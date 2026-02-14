@@ -316,19 +316,28 @@ Write to: `.graphs/{name}.json`
 
 Use the Write tool. Format the JSON with 2-space indentation.
 
-### 3.6: Print Viewing Instructions
+### 3.6: Serve and View
 
-After writing:
+After writing, start the viewer using `serve.py` from the plugin's `scripts/`
+directory. The serve script accepts an absolute path and automatically copies
+the JSON into the viewer's `examples/` directory so the HTTP server can serve it.
 
 ```
 Graph written to: .graphs/{name}.json
 
 To view:
-  python3 -m http.server 8080 --directory <visual-project-map-install-path>/viewer
-  open "http://localhost:8080?graph=$(pwd)/.graphs/{name}.json"
-
-Or copy .graphs/{name}.json into the viewer's examples/ directory and open viewer/index.html.
+  python3 <plugin-install-path>/scripts/serve.py 8080 "$(pwd)/.graphs/{name}.json"
 ```
+
+The `serve.py` script:
+1. Copies the absolute graph path into the plugin's `examples/` directory
+2. Starts an HTTP server rooted at the plugin directory
+3. Opens the viewer in the default browser with the correct relative URL
+
+**Important:** The `?graph=` URL parameter must be a path relative to
+`viewer/index.html`, not an absolute filesystem path. The serve script
+handles this conversion automatically. If starting the server manually,
+use `?graph=../examples/{name}.json`.
 
 ---
 
