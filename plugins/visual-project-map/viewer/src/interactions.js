@@ -90,6 +90,14 @@ var Interactions = (function() {
       showDetailPanel(edge);
     });
 
+    cy.on('dbltap', 'node:child', function(e) {
+      var node = e.target;
+      if (node.data('_isModule')) return;
+      var files = node.data('files');
+      if (!files) return;
+      showNodeDetailPanel(node);
+    });
+
     detailBackdrop.addEventListener('click', hideDetailPanel);
 
     cy.on('mouseover', 'node:child', function(e) {
@@ -99,11 +107,25 @@ var Interactions = (function() {
       var connected = node.closedNeighborhood();
       cy.elements().not(connected).addClass('dimmed');
       connected.addClass('highlighted');
+
+      var files = node.data('files');
+      if (files) {
+        var tipLines = [node.data('label')];
+        if (files.reads && files.reads.length) tipLines.push('\u{1F4D6} ' + files.reads.map(function(f) { return f.split('/').pop(); }).join(', '));
+        if (files.writes && files.writes.length) tipLines.push('\u{1F4DD} ' + files.writes.map(function(f) { return f.split('/').pop(); }).join(', '));
+        tooltipEl.innerHTML = tipLines.map(function(l) { return escapeHtml(l); }).join('<br>');
+        tooltipEl.style.display = 'block';
+        tooltipEl.style.whiteSpace = 'normal';
+        tooltipEl.style.left = (mouseX + 14) + 'px';
+        tooltipEl.style.top = (mouseY - 10) + 'px';
+      }
     });
 
     cy.on('mouseout', 'node:child', function() {
       if (pathTraceActive) return;
       cy.elements().removeClass('dimmed').removeClass('highlighted');
+      tooltipEl.style.display = 'none';
+      tooltipEl.style.whiteSpace = 'nowrap';
     });
 
     cy.on('zoom', function() {
@@ -122,6 +144,15 @@ var Interactions = (function() {
     });
     document.getElementById('btn-labels').addEventListener('click', function() {
       toggleLabels(cy);
+    });
+
+    var viewBtns = document.querySelectorAll('.view-btn');
+    viewBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var mode = btn.getAttribute('data-view');
+        viewBtns.forEach(function(b) { b.className = 'view-btn' + (b === btn ? ' view-active' : ''); });
+        GraphViewer.setView(mode);
+      });
     });
 
     if (searchInput) {
@@ -159,6 +190,15 @@ var Interactions = (function() {
       if (e.key === 'e' || e.key === 'E') { e.preventDefault(); expandAll(cy, manager, moduleIds); }
       if (e.key === 'c' || e.key === 'C') { e.preventDefault(); collapseAll(cy, manager, moduleIds); }
       if (e.key === 'l' || e.key === 'L') { e.preventDefault(); toggleLabels(cy); }
+      if (e.key === 'v' || e.key === 'V') {
+        e.preventDefault();
+        var views = ['module', 'provenance', 'actor'];
+        var cur = GraphViewer.getView();
+        var next = views[(views.indexOf(cur) + 1) % views.length];
+        var viewBtns = document.querySelectorAll('.view-btn');
+        viewBtns.forEach(function(b) { b.className = 'view-btn' + (b.getAttribute('data-view') === next ? ' view-active' : ''); });
+        GraphViewer.setView(next);
+      }
       if (e.key === 'Escape') { hideDetailPanel(); clearPathTrace(cy); updateStatus(manager, moduleIds); }
       if (e.key === '/' && searchInput) { e.preventDefault(); searchInput.focus(); }
     });
@@ -309,6 +349,40 @@ var Interactions = (function() {
     detailPanel.style.display = 'block';
     detailBackdrop.style.display = 'block';
 
+    document.getElementById('dp-close-btn').addEventListener('click', hideDetailPanel);
+  }
+
+  function showNodeDetailPanel(node) {
+    var label = node.data('label') || '(node)';
+    var trust = node.data('trust') || '';
+    var files = node.data('files') || {};
+    var gd = GraphViewer.getGraphData();
+    var trustDefs = (gd && gd.legend && gd.legend.trustLevels) || {};
+    var td = trustDefs[trust];
+
+    var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(label) + '</span>';
+    if (td && td.tag) {
+      html += '<span class="dp-actor" style="background:' + td.tag.bg + ';color:' + td.tag.color + '">' + td.tag.text + '</span>';
+    }
+    html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
+
+    if (td) {
+      html += '<div class="dp-row"><div class="dp-label">Trust</div><div class="dp-value">' + escapeHtml(td.label) + '</div></div>';
+    }
+    if (files.reads && files.reads.length) {
+      html += '<div class="dp-row"><div class="dp-label">Reads</div><ul class="dp-list">';
+      files.reads.forEach(function(f) { html += '<li class="dp-value">' + escapeHtml(f) + '</li>'; });
+      html += '</ul></div>';
+    }
+    if (files.writes && files.writes.length) {
+      html += '<div class="dp-row"><div class="dp-label">Writes</div><ul class="dp-list">';
+      files.writes.forEach(function(f) { html += '<li class="dp-value">' + escapeHtml(f) + '</li>'; });
+      html += '</ul></div>';
+    }
+
+    detailPanel.innerHTML = html;
+    detailPanel.style.display = 'block';
+    detailBackdrop.style.display = 'block';
     document.getElementById('dp-close-btn').addEventListener('click', hideDetailPanel);
   }
 

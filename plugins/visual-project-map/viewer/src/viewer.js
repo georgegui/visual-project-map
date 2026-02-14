@@ -3,6 +3,7 @@ var GraphViewer = (function() {
   var manager = null;
   var graphData = null;
   var moduleIds = [];
+  var currentView = 'module';
 
   function loadGraph(url) {
     return fetch(url).then(function(r) { return r.json(); }).then(function(data) {
@@ -36,21 +37,26 @@ var GraphViewer = (function() {
 
     moduleIds = data.modules.map(function(m) { return m.id; });
 
+    var trustDefs = (data.legend && data.legend.trustLevels) || {};
+
     data.nodes.forEach(function(n) {
       var mod = moduleMap[n.module];
       var s = n.style || {};
-      elements.push({
-        group: 'nodes',
-        data: {
-          id: n.id,
-          parent: n.module,
-          label: n.label,
-          bg: s.color || mod.color,
-          bc: s.borderColor || mod.borderColor,
-          trust: s.trust || 'normal',
-          nodeShape: s.shape || 'round-rectangle'
-        }
-      });
+      var trustKey = s.trust || 'normal';
+      var td = trustDefs[trustKey] || {};
+      var nodeData = {
+        id: n.id,
+        parent: n.module,
+        label: n.label,
+        bg: s.color || mod.color,
+        bc: s.borderColor || mod.borderColor,
+        trust: trustKey,
+        trustColor: td.color || '#f1f5f9',
+        trustBorderColor: td.borderColor || '#94a3b8',
+        nodeShape: s.shape || 'round-rectangle'
+      };
+      if (n.files) nodeData.files = n.files;
+      elements.push({ group: 'nodes', data: nodeData });
     });
 
     data.edges.forEach(function(e, i) {
@@ -170,6 +176,21 @@ var GraphViewer = (function() {
       },
       { selector: 'edge[actor="mixed"]',
         style: { 'line-color': '#8b5cf6', 'target-arrow-color': '#8b5cf6' }
+      },
+      { selector: '.view-provenance',
+        style: { 'background-color': 'data(trustColor)', 'border-color': 'data(trustBorderColor)' }
+      },
+      { selector: '.view-actor-human',
+        style: { 'background-color': '#e0e7ff', 'border-color': '#6366f1' }
+      },
+      { selector: '.view-actor-ai',
+        style: { 'background-color': '#fef3c7', 'border-color': '#f59e0b' }
+      },
+      { selector: '.view-actor-script',
+        style: { 'background-color': '#f1f5f9', 'border-color': '#94a3b8' }
+      },
+      { selector: '.view-actor-mixed',
+        style: { 'background-color': '#ede9fe', 'border-color': '#8b5cf6' }
       },
       { selector: '.highlighted',
         style: { 'opacity': 1, 'z-index': 10 }
@@ -347,6 +368,70 @@ var GraphViewer = (function() {
     });
   }
 
+  function setView(mode) {
+    currentView = mode;
+    var leafNodes = cy.nodes().filter(function(n) { return !n.data('_isModule'); });
+    leafNodes.removeClass('view-provenance view-actor-human view-actor-ai view-actor-script view-actor-mixed');
+
+    if (mode === 'provenance') {
+      leafNodes.addClass('view-provenance');
+    } else if (mode === 'actor') {
+      leafNodes.forEach(function(n) {
+        var edges = n.connectedEdges();
+        var actors = {};
+        edges.forEach(function(e) {
+          var a = e.data('actor') || 'script';
+          actors[a] = (actors[a] || 0) + 1;
+        });
+        var keys = Object.keys(actors);
+        var dominant = 'script';
+        if (keys.length === 1) { dominant = keys[0]; }
+        else if (keys.length > 1) {
+          var hasHuman = !!actors.human;
+          var hasAi = !!actors.ai;
+          if (hasHuman && !hasAi) dominant = 'human';
+          else if (hasAi && !hasHuman) dominant = 'ai';
+          else dominant = 'mixed';
+        }
+        n.addClass('view-actor-' + dominant);
+      });
+    }
+
+    rebuildLegendForView(mode);
+  }
+
+  function rebuildLegendForView(mode) {
+    var legendEl = document.getElementById('legend');
+    if (!legendEl || !graphData) return;
+    if (mode === 'module') {
+      buildLegend(legendEl, graphData);
+      return;
+    }
+    var html = '';
+    if (mode === 'provenance') {
+      var trust = (graphData.legend && graphData.legend.trustLevels) || {};
+      html += '<strong>Provenance View:</strong> ';
+      Object.keys(trust).forEach(function(key) {
+        var t = trust[key];
+        var bg = t.color || '#f1f5f9';
+        var bc = t.borderColor || '#94a3b8';
+        html += '<span><span class="swatch" style="background:' + bg + ';border-color:' + bc + '"></span>' + t.label + '</span> ';
+      });
+    } else if (mode === 'actor') {
+      html += '<strong>Actor View:</strong> ';
+      var actors = [
+        { label: 'Human', color: '#e0e7ff', bc: '#6366f1' },
+        { label: 'AI', color: '#fef3c7', bc: '#f59e0b' },
+        { label: 'Script', color: '#f1f5f9', bc: '#94a3b8' },
+        { label: 'Mixed', color: '#ede9fe', bc: '#8b5cf6' }
+      ];
+      actors.forEach(function(a) {
+        html += '<span><span class="swatch" style="background:' + a.color + ';border-color:' + a.bc + '"></span>' + a.label + '</span> ';
+      });
+    }
+    legendEl.innerHTML = html;
+  }
+
   return {
     init: init,
     loadGraph: loadGraph,
@@ -359,6 +444,9 @@ var GraphViewer = (function() {
     applyCollapsedStyle: applyCollapsedStyle,
     removeCollapsedStyle: removeCollapsedStyle,
     fit: fit,
+    setView: setView,
+    getView: function() { return currentView; },
+    getGraphData: function() { return graphData; },
     getCy: function() { return cy; },
     getManager: function() { return manager; },
     getModuleIds: function() { return moduleIds; }

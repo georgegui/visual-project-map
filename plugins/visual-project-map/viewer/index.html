@@ -26,6 +26,8 @@ body {
 #toolbar button:hover { background: #2980b9; }
 #toolbar button.toggle-off { background: #4a6377; }
 #toolbar button.toggle-on { background: #27ae60; }
+#toolbar .view-btn { background: #4a6377; font-size: 12px; padding: 5px 10px; }
+#toolbar .view-btn.view-active { background: #27ae60; }
 #toolbar .sep { width: 1px; height: 24px; background: #4a6377; }
 #toolbar input[type="text"] {
   background: #3d5166; color: #ecf0f1; border: 1px solid #4a6377; border-radius: 4px;
@@ -117,6 +119,10 @@ body {
   <button id="btn-fit">Fit</button>
   <button id="btn-labels" class="toggle-off">Labels</button>
   <div class="sep"></div>
+  <button class="view-btn view-active" data-view="module">Module</button>
+  <button class="view-btn" data-view="provenance">Provenance</button>
+  <button class="view-btn" data-view="actor">Actor</button>
+  <div class="sep"></div>
   <input type="text" id="search-input" placeholder="Find node... (/)" />
   <div class="zoom-display" id="zoom-display"></div>
 </div>
@@ -127,7 +133,7 @@ body {
 <div id="detail-backdrop"></div>
 <div id="detail-panel"></div>
 <div id="status">Loading...</div>
-<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: toggle &middot; Click node: trace path &middot; /: search &middot; F: fit &middot; E: expand &middot; C: collapse &middot; L: labels &middot; Esc: clear</div>
+<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: toggle &middot; Click node: trace path &middot; Dbl-click node: details &middot; /: search &middot; F: fit &middot; E: expand &middot; C: collapse &middot; L: labels &middot; V: view mode &middot; Esc: clear</div>
 
 <script src="src/expand-collapse.js"></script>
 <script src="src/viewer.js"></script>
