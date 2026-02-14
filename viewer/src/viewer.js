@@ -1,0 +1,366 @@
+var GraphViewer = (function() {
+  var cy = null;
+  var manager = null;
+  var graphData = null;
+  var moduleIds = [];
+
+  function loadGraph(url) {
+    return fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+      graphData = data;
+      return data;
+    });
+  }
+
+  function buildElements(data) {
+    var elements = [];
+    var moduleMap = {};
+
+    var phaseIds = new Set();
+    data.modules.forEach(function(m) {
+      if (m.parent) phaseIds.add(m.parent);
+    });
+
+    data.modules.forEach(function(m) {
+      moduleMap[m.id] = m;
+      var nodeData = {
+        id: m.id,
+        label: m.label,
+        bg: m.color,
+        bc: m.borderColor,
+        _isModule: true
+      };
+      if (m.parent) nodeData.parent = m.parent;
+      if (phaseIds.has(m.id)) nodeData._isPhase = true;
+      elements.push({ group: 'nodes', data: nodeData });
+    });
+
+    moduleIds = data.modules.map(function(m) { return m.id; });
+
+    data.nodes.forEach(function(n) {
+      var mod = moduleMap[n.module];
+      var s = n.style || {};
+      elements.push({
+        group: 'nodes',
+        data: {
+          id: n.id,
+          parent: n.module,
+          label: n.label,
+          bg: s.color || mod.color,
+          bc: s.borderColor || mod.borderColor,
+          trust: s.trust || 'normal',
+          nodeShape: s.shape || 'round-rectangle'
+        }
+      });
+    });
+
+    data.edges.forEach(function(e, i) {
+      var edgeData = {
+        id: e.id || ('e' + (i + 1)),
+        source: e.source,
+        target: e.target,
+        label: e.label || '',
+        lineStyle: e.style || 'solid'
+      };
+      if (e.actor) edgeData.actor = e.actor;
+      if (e.details) edgeData.details = e.details;
+      elements.push({ group: 'edges', data: edgeData });
+    });
+
+    return elements;
+  }
+
+  function buildStyles(data) {
+    var trust = (data.legend && data.legend.trustLevels) || {};
+    var styles = [
+      { selector: ':parent',
+        style: {
+          'background-color': 'data(bg)', 'background-opacity': 0.25,
+          'border-color': 'data(bc)', 'border-width': 2, 'border-opacity': 0.7,
+          'shape': 'round-rectangle',
+          'label': 'data(label)', 'text-valign': 'top', 'text-halign': 'center',
+          'font-size': 14, 'font-weight': 700, 'color': '#334155',
+          'padding': 25, 'text-margin-y': -4
+        }
+      },
+      { selector: 'node[_isModule]',
+        style: {
+          'background-color': 'data(bg)', 'border-color': 'data(bc)'
+        }
+      },
+      { selector: 'node[_isPhase]',
+        style: {
+          'background-opacity': 0.12, 'border-width': 2.5, 'border-style': 'solid',
+          'font-size': 16, 'font-weight': 700, 'padding': 35
+        }
+      },
+      { selector: '.collapsed-module',
+        style: {
+          'background-color': 'data(bg)', 'background-opacity': 0.85,
+          'border-color': 'data(bc)', 'border-width': 2.5,
+          'shape': 'round-rectangle',
+          'width': 180, 'height': 55,
+          'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
+          'font-size': 13, 'font-weight': 600, 'color': '#1e293b'
+        }
+      },
+      { selector: '.collapsed-phase',
+        style: {
+          'background-color': 'data(bg)', 'background-opacity': 0.85,
+          'border-color': 'data(bc)', 'border-width': 3,
+          'shape': 'round-rectangle',
+          'width': 220, 'height': 60,
+          'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
+          'font-size': 14, 'font-weight': 700, 'color': '#1e293b'
+        }
+      },
+      { selector: 'node[nodeShape]',
+        style: {
+          'background-color': 'data(bg)', 'border-color': 'data(bc)',
+          'border-width': 1.5, 'border-style': 'solid',
+          'shape': 'data(nodeShape)', 'height': 28,
+          'padding-left': 10, 'padding-right': 10,
+          'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
+          'font-size': 11, 'color': '#1e293b', 'text-wrap': 'none'
+        }
+      }
+    ];
+
+    if (trust.ai) {
+      styles.push({ selector: 'node[trust="ai"]',
+        style: { 'border-style': trust.ai.borderStyle || 'dashed', 'border-width': trust.ai.borderWidth || 1.5 }
+      });
+    }
+    if (trust.verified) {
+      styles.push({ selector: 'node[trust="verified"]',
+        style: { 'border-width': trust.verified.borderWidth || 3.5 }
+      });
+    }
+
+    styles.push(
+      { selector: 'node[nodeShape="diamond"]',
+        style: { 'shape': 'diamond', 'width': 110, 'height': 60, 'border-width': 3, 'font-size': 10, 'font-weight': 700 }
+      },
+      { selector: 'edge',
+        style: {
+          'width': 1.5, 'curve-style': 'bezier',
+          'target-arrow-shape': 'triangle', 'target-arrow-color': '#94a3b8',
+          'line-color': '#94a3b8', 'arrow-scale': 0.8, 'opacity': 0.7,
+          'label': 'data(label)', 'font-size': 9, 'color': '#64748b',
+          'text-rotation': 'autorotate',
+          'text-background-color': '#f5f6fa', 'text-background-opacity': 0.9,
+          'text-background-padding': 2
+        }
+      },
+      { selector: 'edge[lineStyle="dashed"]',
+        style: { 'line-style': 'dashed', 'line-dash-pattern': [6, 4] }
+      },
+      { selector: 'edge[_metaEdge]',
+        style: {
+          'width': 2, 'line-color': '#64748b', 'target-arrow-color': '#64748b',
+          'opacity': 0.8, 'font-size': 10, 'color': '#475569',
+          'text-background-color': '#f8fafc', 'text-background-opacity': 0.85,
+          'text-background-padding': 2, 'text-rotation': 0
+        }
+      },
+      { selector: 'edge[actor="human"]',
+        style: { 'line-color': '#6366f1', 'target-arrow-color': '#6366f1' }
+      },
+      { selector: 'edge[actor="ai"]',
+        style: { 'line-color': '#f59e0b', 'target-arrow-color': '#f59e0b' }
+      },
+      { selector: 'edge[actor="mixed"]',
+        style: { 'line-color': '#8b5cf6', 'target-arrow-color': '#8b5cf6' }
+      },
+      { selector: '.highlighted',
+        style: { 'opacity': 1, 'z-index': 10 }
+      },
+      { selector: '.dimmed',
+        style: { 'opacity': 0.15 }
+      },
+      { selector: '.path-source',
+        style: { 'border-width': 4, 'border-color': '#3b82f6', 'z-index': 20 }
+      },
+      { selector: 'edge.eh',
+        style: { 'width': 3, 'line-color': '#3b82f6', 'target-arrow-color': '#3b82f6', 'opacity': 1, 'z-index': 20 }
+      },
+      { selector: 'edge.path-edge',
+        style: { 'width': 2.5, 'line-color': '#3b82f6', 'target-arrow-color': '#3b82f6', 'opacity': 0.9, 'z-index': 15 }
+      },
+      { selector: 'edge.labels-hidden',
+        style: { 'label': '', 'text-opacity': 0 }
+      },
+      { selector: 'edge.labels-hidden.path-edge',
+        style: { 'label': 'data(label)', 'text-opacity': 1 }
+      },
+      { selector: 'edge.labels-hidden.eh',
+        style: { 'label': 'data(label)', 'text-opacity': 1 }
+      }
+    );
+
+    return styles;
+  }
+
+  function buildLegend(container, data) {
+    var html = '';
+    var trust = (data.legend && data.legend.trustLevels) || {};
+    var hasTrust = Object.keys(trust).length > 0;
+
+    if (hasTrust) {
+      html += '<strong>Trust:</strong> ';
+      Object.keys(trust).forEach(function(key) {
+        var t = trust[key];
+        if (t.tag) {
+          html += '<span><span class="trust-tag" style="background:' + t.tag.bg + ';color:' + t.tag.color + '">[' + t.tag.text + ']</span> ' + t.label + '</span> ';
+        } else {
+          html += '<span>' + t.label + '</span> ';
+        }
+      });
+      html += '<span style="margin-left:8px">|</span> ';
+    }
+
+    var hasActors = data.edges.some(function(e) { return !!e.actor; });
+    if (hasActors) {
+      html += '<strong>Actor:</strong> ';
+      var actors = [
+        { key: 'human', label: 'Human', color: '#6366f1' },
+        { key: 'ai',    label: 'AI',    color: '#f59e0b' },
+        { key: 'script', label: 'Script', color: '#94a3b8' },
+        { key: 'mixed', label: 'Mixed', color: '#8b5cf6' }
+      ];
+      actors.forEach(function(a) {
+        html += '<span><span class="actor-line" style="background:' + a.color + '"></span>' + a.label + '</span> ';
+      });
+      html += '<span style="margin-left:8px">|</span> ';
+    }
+
+    var nodeModules = new Set();
+    data.nodes.forEach(function(n) { nodeModules.add(n.module); });
+
+    data.modules.forEach(function(m) {
+      if (!nodeModules.has(m.id)) return;
+      html += '<span><span class="swatch" style="background:' + m.color + '"></span>' + m.label + '</span> ';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function initCytoscape(containerId, elements, styles) {
+    cy = cytoscape({
+      container: document.getElementById(containerId),
+      elements: elements,
+      style: styles,
+      layout: { name: 'preset' },
+      minZoom: 0.15,
+      maxZoom: 4,
+      wheelSensitivity: 0.3
+    });
+
+    manager = new CollapseManager(cy);
+    return cy;
+  }
+
+  function applyCollapsedStyle(moduleId) {
+    var node = cy.getElementById(moduleId);
+    if (!node.length) return;
+    if (node.data('_isPhase')) {
+      node.addClass('collapsed-phase');
+    } else {
+      node.addClass('collapsed-module');
+    }
+  }
+
+  function removeCollapsedStyle(moduleId) {
+    var node = cy.getElementById(moduleId);
+    if (node.length) node.removeClass('collapsed-module collapsed-phase');
+  }
+
+  function runLayout(opts) {
+    var defaults = {
+      name: 'dagre', rankDir: 'TB',
+      nodeSep: 35, rankSep: 55, edgeSep: 15,
+      animate: true, animationDuration: 400,
+      fit: false, padding: 40,
+      nodeDimensionsIncludeLabels: true,
+      edgeWeight: function(edge) {
+        return edge.data('lineStyle') === 'dashed' ? 0.1 : 1;
+      },
+      ranker: 'longest-path'
+    };
+    var merged = Object.assign({}, defaults, opts || {});
+    try {
+      cy.layout(merged).run();
+    } catch (e) {
+      merged.ranker = 'network-simplex';
+      cy.layout(merged).run();
+    }
+  }
+
+  function arrangeChildren(moduleId) {
+    var parent = cy.getElementById(moduleId);
+    var children = parent.children();
+    if (children.length === 0) return;
+    var hasModuleChildren = children.some(function(c) { return c.data('_isModule'); });
+    if (hasModuleChildren) {
+      runLayout({ fit: false });
+      return;
+    }
+    var pos = parent.position();
+    var n = children.length;
+    var spacing = 52;
+    var startY = pos.y - (n - 1) * spacing / 2;
+    children.forEach(function(child, i) {
+      child.animate({ position: { x: pos.x, y: startY + i * spacing } }, { duration: 300 });
+    });
+  }
+
+  function fit(padding) {
+    cy.fit(null, padding || 40);
+  }
+
+  function init(containerId, legendId, graphUrl) {
+    return loadGraph(graphUrl).then(function(data) {
+      var elements = buildElements(data);
+      var styles = buildStyles(data);
+
+      buildLegend(document.getElementById(legendId), data);
+      document.querySelector('#toolbar h1').textContent = data.title;
+
+      initCytoscape(containerId, elements, styles);
+
+      manager.collapseAll(moduleIds);
+      moduleIds.forEach(function(id) { applyCollapsedStyle(id); });
+
+      runLayout({ animate: false, fit: true, padding: 50 });
+
+      var termNode = cy.getElementById('mod_term');
+      if (termNode.length && termNode.visible()) {
+        var maxY = -Infinity;
+        cy.nodes().forEach(function(n) {
+          if (n.id() !== 'mod_term' && n.position('y') > maxY) maxY = n.position('y');
+        });
+        termNode.position('y', maxY + 90);
+      }
+
+      fit(50);
+
+      return { cy: cy, manager: manager, data: data, moduleIds: moduleIds };
+    });
+  }
+
+  return {
+    init: init,
+    loadGraph: loadGraph,
+    buildElements: buildElements,
+    buildStyles: buildStyles,
+    buildLegend: buildLegend,
+    initCytoscape: initCytoscape,
+    runLayout: runLayout,
+    arrangeChildren: arrangeChildren,
+    applyCollapsedStyle: applyCollapsedStyle,
+    removeCollapsedStyle: removeCollapsedStyle,
+    fit: fit,
+    getCy: function() { return cy; },
+    getManager: function() { return manager; },
+    getModuleIds: function() { return moduleIds; }
+  };
+})();

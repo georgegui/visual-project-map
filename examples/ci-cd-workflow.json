@@ -1,0 +1,52 @@
+{
+  "title": "CI/CD Pipeline",
+  "modules": [
+    { "id": "phase_build",  "label": "Build & Test", "color": "#e8edf3", "borderColor": "#a8b8cc" },
+    { "id": "phase_deploy", "label": "Deploy",       "color": "#f3ede8", "borderColor": "#ccb8a8" },
+
+    { "id": "mod_commit", "label": "Source",     "color": "#dbeafe", "borderColor": "#93c5fd", "parent": "phase_build" },
+    { "id": "mod_build",  "label": "Build",      "color": "#e0e7ff", "borderColor": "#a5b4fc", "parent": "phase_build" },
+    { "id": "mod_test",   "label": "Test",       "color": "#fff7ed", "borderColor": "#fdba74", "parent": "phase_build" },
+    { "id": "mod_stage",  "label": "Staging",    "color": "#f0fdf4", "borderColor": "#86efac", "parent": "phase_deploy" },
+    { "id": "mod_prod",   "label": "Production", "color": "#fefce8", "borderColor": "#fde047", "parent": "phase_deploy" },
+    { "id": "mod_term",   "label": "Terminals",  "color": "#f1f5f9", "borderColor": "#94a3b8" }
+  ],
+  "nodes": [
+    { "id": "cm_push", "module": "mod_commit", "label": "commit.push" },
+
+    { "id": "bld_lint",    "module": "mod_build", "label": "build.lint",    "style": { "shape": "diamond" } },
+    { "id": "bld_compile", "module": "mod_build", "label": "build.compile" },
+
+    { "id": "tst_unit",        "module": "mod_test", "label": "test.unit" },
+    { "id": "tst_integration", "module": "mod_test", "label": "test.integration" },
+    { "id": "tst_pass",        "module": "mod_test", "label": "test.gate", "style": { "shape": "diamond" } },
+
+    { "id": "stg_deploy", "module": "mod_stage", "label": "stage.deploy" },
+    { "id": "stg_smoke",  "module": "mod_stage", "label": "stage.smoke_test", "style": { "shape": "diamond" } },
+
+    { "id": "prod_approve", "module": "mod_prod", "label": "prod.approval", "style": { "shape": "diamond" } },
+    { "id": "prod_deploy",  "module": "mod_prod", "label": "prod.deploy" },
+
+    { "id": "DEPLOYED", "module": "mod_term", "label": "DEPLOYED", "style": { "color": "#d1fae5", "borderColor": "#6ee7b7" } },
+    { "id": "FAILED",   "module": "mod_term", "label": "FAILED",   "style": { "color": "#fee2e2", "borderColor": "#fca5a5" } }
+  ],
+  "edges": [
+    { "source": "cm_push",   "target": "bld_lint",    "label": "trigger CI",     "style": "solid", "actor": "script" },
+    { "source": "bld_lint",  "target": "bld_compile", "label": "lint pass",      "style": "solid", "actor": "script" },
+    { "source": "bld_lint",  "target": "FAILED",      "label": "lint fail",      "style": "dashed", "actor": "script" },
+    { "source": "bld_compile", "target": "tst_unit",  "label": "build artifact", "style": "solid", "actor": "script" },
+
+    { "source": "tst_unit",        "target": "tst_integration", "label": "unit pass",        "style": "solid", "actor": "script" },
+    { "source": "tst_integration", "target": "tst_pass",        "label": "integration pass", "style": "solid", "actor": "script" },
+    { "source": "tst_pass",        "target": "stg_deploy",      "label": "all tests pass",   "style": "solid", "actor": "script" },
+    { "source": "tst_pass",        "target": "FAILED",          "label": "tests fail",       "style": "dashed", "actor": "script" },
+
+    { "source": "stg_deploy", "target": "stg_smoke",    "label": "deploy staging", "style": "solid", "actor": "script" },
+    { "source": "stg_smoke",  "target": "prod_approve", "label": "smoke pass",     "style": "solid", "actor": "script" },
+    { "source": "stg_smoke",  "target": "FAILED",       "label": "smoke fail",     "style": "dashed", "actor": "script" },
+
+    { "source": "prod_approve", "target": "prod_deploy", "label": "approved",     "style": "solid", "actor": "human" },
+    { "source": "prod_approve", "target": "FAILED",      "label": "rejected",     "style": "dashed", "actor": "human" },
+    { "source": "prod_deploy",  "target": "DEPLOYED",    "label": "live",         "style": "solid", "actor": "mixed" }
+  ]
+}

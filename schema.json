@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Graph Viewer Input",
+  "type": "object",
+  "required": ["title", "modules", "nodes", "edges"],
+  "properties": {
+    "title": { "type": "string" },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "color", "borderColor"],
+        "properties": {
+          "id":          { "type": "string" },
+          "label":       { "type": "string" },
+          "color":       { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "borderColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "module", "label"],
+        "properties": {
+          "id":     { "type": "string" },
+          "module": { "type": "string" },
+          "label":  { "type": "string" },
+          "style": {
+            "type": "object",
+            "properties": {
+              "trust":       { "type": "string" },
+              "shape":       { "type": "string", "enum": ["round-rectangle", "diamond", "ellipse", "rectangle", "hexagon"] },
+              "color":       { "type": "string" },
+              "borderColor": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target"],
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "label":  { "type": "string" },
+          "style":  { "type": "string", "enum": ["solid", "dashed"] },
+          "actor":  { "type": "string", "enum": ["human", "ai", "script", "mixed"] },
+          "details": {
+            "type": "object",
+            "properties": {
+              "script":  { "type": "string" },
+              "input":   { "type": "array", "items": { "type": "string" } },
+              "output":  { "type": "array", "items": { "type": "string" } },
+              "updates": { "type": "array", "items": { "type": "string" } },
+              "docs":    { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "legend": {
+      "type": "object",
+      "properties": {
+        "trustLevels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "label":       { "type": "string" },
+              "borderStyle": { "type": "string" },
+              "borderWidth": { "type": "number" },
+              "tag": {
+                "type": "object",
+                "properties": {
+                  "text":  { "type": "string" },
+                  "bg":    { "type": "string" },
+                  "color": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
