@@ -171,9 +171,10 @@ it reflects how the developer actually organized the code.
 - Terminal/sink module: always Slate (#11)
 
 **Interface check:** After defining modules, verify each one has a clear
-interface — at most 2-3 entry points and 2-3 exit points connecting to
-other modules. If a module would need 5+ cross-module connections, either
-split it or add collector/dispatcher nodes.
+interface — ideally **1 entry point** and **1 exit point** connecting to
+other modules. If a module pair would need 2+ edges between them,
+restructure: merge them, split differently, or wrap in a sub-phase
+(see `_foundations/inference-rules.md` § Principles 2, 8, 9).
 
 **Keep it focused:** Aim for 3-10 modules. If you detect >12, merge
 related directories or suggest `--focus`. Target 3-8 nodes per module.
@@ -280,17 +281,21 @@ Assemble the complete JSON object:
 }
 ```
 
-### 2.4b: Minimize Cross-Module Edges
+### 2.4b: Enforce 1-Edge-Per-Module-Pair Rule
 
-After defining all edges, review cross-module connections following the
-rules in `_foundations/inference-rules.md` § "Cross-Module Edge Minimization":
+After defining all edges, verify cross-module connections following
+`_foundations/inference-rules.md` § "Cross-Module Edge Minimization":
 
-1. Count cross-module edges per node (source module ≠ target module)
-2. If any node has >3 cross-module in-edges: add a **collector** in the
-   source modules that bundles parallel paths into a single exit edge
-3. If any node has >3 cross-module out-edges to different modules: add a
-   **dispatcher** that merges internal paths into one fan-out point
-4. Terminal/sink nodes commonly need this — check them first
+1. For every pair of modules, count edges between them
+2. If any pair has **2+ edges**: restructure — do NOT just add more nodes.
+   The right fix is usually one of:
+   - Add a collector exit node inside the source module
+   - Add a router entry node inside the target module
+   - Wrap parallel targets in a sub-phase with dispatcher/collector
+   - Merge the two modules if they are too tightly coupled
+3. Verify at each hierarchy level: collapse phases mentally and check
+   that each phase pair also has at most 1 edge
+4. Terminal nodes: route through module exit nodes, not directly
 
 ### 3.2: Validate
 
@@ -304,7 +309,7 @@ Before writing, verify:
 - Edge `style` is `"solid"` or `"dashed"`
 - Edge `actor` is `"human"`, `"ai"`, `"script"`, or `"mixed"` (or omitted)
 - All color values are `#rrggbb` format
-- No node has >3 cross-module incoming or outgoing edges (P4b.3)
+- No module pair has more than 1 edge between them (1-edge rule)
 
 ### 3.3: Scope Check
 
