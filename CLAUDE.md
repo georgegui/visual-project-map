@@ -81,6 +81,32 @@ Feature requirements and graph output constraints live in `spec/`:
 4. **Add to catalog** — append new entry in `spec/features.md`.
 5. **Update status** as work progresses: `proposed` → `planned` → `implemented`.
 
+## Releasing a New Version
+
+Version must be bumped in **two** files — they must always match:
+
+1. `.claude-plugin/marketplace.json` → `plugins[0].version`
+2. `plugins/visual-project-map/.claude-plugin/plugin.json` → `version`
+
+After bumping, commit and push, then update the local install:
+
+```bash
+# 1. Pull marketplace into Claude's local cache
+cd ~/.claude/plugins/marketplaces/visual-project-map && git pull
+
+# 2. Clear old cached version
+rm -rf ~/.claude/plugins/cache/visual-project-map/visual-project-map/{old_version}
+
+# 3. Update plugin (in Claude Code)
+/plugin update visual-project-map@visual-project-map
+```
+
+If the update still shows the old version, uninstall and reinstall:
+```
+/plugin uninstall visual-project-map@visual-project-map
+/plugin install visual-project-map@visual-project-map
+```
+
 ## Input JSON Schema
 
 Validated by `schema.json`. Four required top-level fields: `title`, `modules`, `nodes`, `edges`. Optional `legend` with `trustLevels`.
