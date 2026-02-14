@@ -99,6 +99,59 @@ Populate `details` when edges represent script invocations:
 | `updates` | In-place file modifications, database writes |
 | `docs` | Referenced markdown files, README links |
 
+## Cross-Module Edge Minimization
+
+When building the graph, minimize edges that cross module boundaries.
+Cross-module edges create visual clutter, especially when modules are
+collapsed and meta-edges accumulate.
+
+### Rule: Maximum 3 cross-module edges per node
+
+If a node would have >3 cross-module incoming edges or >3 cross-module
+outgoing edges, restructure with collector or dispatcher nodes.
+
+### Collector Pattern (many-to-one fan-in)
+
+When multiple nodes in Module A all connect to a single target in Module B:
+
+```
+BEFORE (3 cross-module edges):
+  A_pass  ──→ B_target
+  A_warn  ──→ B_target
+  A_fail  ──→ B_target
+
+AFTER (1 cross-module edge):
+  A_pass  ──→ A_ready   (intra-module)
+  A_warn  ──→ A_ready   (intra-module)
+  A_fail  ──→ A_ready   (intra-module)
+  A_ready ──→ B_target  (1 cross-module edge)
+```
+
+### Dispatcher Pattern (one-to-many fan-out)
+
+When a node fans out to targets in many different modules:
+
+```
+BEFORE (6 cross-module edges):
+  A_pass  ──→ B_pend, C_pend, D_pend
+  A_human ──→ B_pend, C_pend, D_pend
+
+AFTER (3 cross-module edges):
+  A_pass  ──→ A_ready   (intra-module)
+  A_human ──→ A_ready   (intra-module)
+  A_ready ──→ B_pend    (cross-module)
+  A_ready ──→ C_pend    (cross-module)
+  A_ready ──→ D_pend    (cross-module)
+```
+
+### When to Apply
+
+| Condition | Action |
+|-----------|--------|
+| Same node pair duplicated (A_x → B, A_y → B) | Add collector in Module A |
+| Same source fans to 4+ modules | Add dispatcher node |
+| Terminal node receives from 4+ modules | Add collectors in source modules |
+
 ## Scope Warnings
 
 | Condition | Action |

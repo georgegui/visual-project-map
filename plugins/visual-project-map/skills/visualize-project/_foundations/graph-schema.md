@@ -43,6 +43,16 @@
 | `color` | string | Override background color |
 | `borderColor` | string | Override border color |
 
+### Node Files (optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `files` | object | File I/O annotations for the node |
+| `files.reads` | string[] | Files this node reads from |
+| `files.writes` | string[] | Files this node writes to |
+
+Shown on hover (tooltip), double-click (detail panel), and in Files view mode.
+
 ## Edge Object
 
 | Field | Required | Type | Values |

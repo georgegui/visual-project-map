@@ -169,6 +169,14 @@ Use ALL CAPS for terminals (`INCLUDED`, `COMPLETE`, `FAILED`).
 provenance semantics (raw → automated → AI → verified). For most
 projects, omit trust and the `legend.trustLevels` section entirely.
 
+**File annotations:** When a node represents a step with known file I/O
+(detected in Step 1.4), add the `files` field:
+```json
+{ "files": { "reads": ["path/to/input.csv"], "writes": ["path/to/output.csv"] } }
+```
+Only include paths you actually found in the codebase. Use directory paths
+(without trailing slash) when the step reads/writes an entire directory.
+
 **Scope guard:** Aim for 8-40 nodes. If >50, only include nodes that
 are documented or represent significant state transitions.
 
@@ -241,6 +249,18 @@ Assemble the complete JSON object:
 }
 ```
 
+### 2.4b: Minimize Cross-Module Edges
+
+After defining all edges, review cross-module connections following the
+rules in `_foundations/inference-rules.md` § "Cross-Module Edge Minimization":
+
+1. Count cross-module edges per node (source module ≠ target module)
+2. If any node has >3 cross-module in-edges: add a **collector** in the
+   source modules that bundles parallel paths into a single exit edge
+3. If any node has >3 cross-module out-edges to different modules: add a
+   **dispatcher** that merges internal paths into one fan-out point
+4. Terminal/sink nodes commonly need this — check them first
+
 ### 3.2: Validate
 
 Before writing, verify:
@@ -253,6 +273,7 @@ Before writing, verify:
 - Edge `style` is `"solid"` or `"dashed"`
 - Edge `actor` is `"human"`, `"ai"`, `"script"`, or `"mixed"` (or omitted)
 - All color values are `#rrggbb` format
+- No node has >3 cross-module incoming or outgoing edges (P4b.3)
 
 ### 3.3: Scope Check
 
