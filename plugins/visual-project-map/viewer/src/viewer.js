@@ -58,8 +58,8 @@ var GraphViewer = (function() {
       if (n.files) {
         nodeData.files = n.files;
         var parts = [];
-        if (n.files.reads && n.files.reads.length) parts.push('\u{1F4D6} ' + n.files.reads.map(function(f) { return f.split('/').pop(); }).join(', '));
-        if (n.files.writes && n.files.writes.length) parts.push('\u{1F4DD} ' + n.files.writes.map(function(f) { return f.split('/').pop(); }).join(', '));
+        if (n.files.reads && n.files.reads.length) parts.push('\u{1F4D6} ' + n.files.reads.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
+        if (n.files.writes && n.files.writes.length) parts.push('\u{1F4DD} ' + n.files.writes.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
         nodeData.fileLabel = parts.join('\n') || n.label;
       } else {
         nodeData.fileLabel = n.label;
@@ -207,7 +207,7 @@ var GraphViewer = (function() {
         style: { 'opacity': 1, 'z-index': 10 }
       },
       { selector: '.dimmed',
-        style: { 'opacity': 0.15 }
+        style: { 'opacity': 0.35 }
       },
       { selector: '.path-source',
         style: { 'border-width': 4, 'border-color': '#3b82f6', 'z-index': 20 }

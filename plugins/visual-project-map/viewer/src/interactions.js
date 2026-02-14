@@ -111,8 +111,8 @@ var Interactions = (function() {
       var files = node.data('files');
       if (files) {
         var tipLines = [node.data('label')];
-        if (files.reads && files.reads.length) tipLines.push('\u{1F4D6} ' + files.reads.map(function(f) { return f.split('/').pop(); }).join(', '));
-        if (files.writes && files.writes.length) tipLines.push('\u{1F4DD} ' + files.writes.map(function(f) { return f.split('/').pop(); }).join(', '));
+        if (files.reads && files.reads.length) tipLines.push('\u{1F4D6} ' + files.reads.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
+        if (files.writes && files.writes.length) tipLines.push('\u{1F4DD} ' + files.writes.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
         tooltipEl.innerHTML = tipLines.map(function(l) { return escapeHtml(l); }).join('<br>');
         tooltipEl.style.display = 'block';
         tooltipEl.style.whiteSpace = 'normal';
