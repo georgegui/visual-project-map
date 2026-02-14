@@ -110,11 +110,22 @@ in a large codebase.
 
 ### Step 1.5: Synthesize
 
-Before generating the graph, form a mental model:
-- What are the major phases of this project? (e.g., Input → Processing → Output)
-- What data flows between phases?
-- Where are decision points?
+Before generating the graph, form a mental model by combining **all** signals
+— folder structure, script groupings, data directories, and documentation:
+
+- What are the major phases? Identify these from **directory structure first**
+  (e.g., `scripts/ingest/`, `scripts/clean/`, `scripts/export/`), then confirm
+  with documentation (e.g., "Workflow: Ingest → Clean → Export").
+- What data flows between phases? Look for directories that are outputs of one
+  phase and inputs to the next (e.g., `data/raw/` → `data/processed/`).
+- Where are decision points? Look for gate/check scripts, conditional logic,
+  validation steps.
 - Who does what? (human, script, AI)
+- **Module interfaces**: For each candidate module, can you state in one sentence
+  what goes in and what comes out? If not, the boundary may need adjustment.
+
+Consult `_foundations/inference-rules.md` § "Module Design Principles" for the
+full set of principles governing module design.
 
 ---
 
@@ -127,9 +138,24 @@ Consult `_foundations/graph-schema.md` for field requirements.
 
 ### 2.1: Define Modules
 
-**Mapping rules:**
-- Each top-level directory with a CLAUDE.md or 2+ scripts → module
-- Each major workflow section in CLAUDE.md → module
+Modules are abstraction boundaries — they hide internal complexity behind
+a small interface. Design them **top-down from structure**, not bottom-up
+from edges. See `_foundations/inference-rules.md` § "Module Design Principles".
+
+**Identification order** (structure first, docs second):
+1. **Folder structure**: Each directory with scripts or a distinct data role
+   → candidate module. Parent directories → candidate phases.
+2. **Package organization**: `__init__.py`, import graphs, subpackages.
+3. **Data flow directories**: Directories that are outputs of one step and
+   inputs to the next (e.g., `data/raw/` → `data/clean/`).
+4. **Documentation sections**: Workflow headers in CLAUDE.md or README.md
+   confirm and label the modules identified from structure.
+5. **Build/CI targets**: Makefile rules, CI stages, npm scripts.
+
+When folder structure and documentation disagree, prefer folder structure —
+it reflects how the developer actually organized the code.
+
+**Nesting:**
 - If `--depth 2`: group related modules into phases (by parent directory
   or by workflow section). Create phase modules with `parent` omitted,
   and child modules with `parent` pointing to their phase.
@@ -144,8 +170,13 @@ Consult `_foundations/graph-schema.md` for field requirements.
 - Child modules: use module colors 0-10 from color-palette.md, in order
 - Terminal/sink module: always Slate (#11)
 
+**Interface check:** After defining modules, verify each one has a clear
+interface — at most 2-3 entry points and 2-3 exit points connecting to
+other modules. If a module would need 5+ cross-module connections, either
+split it or add collector/dispatcher nodes.
+
 **Keep it focused:** Aim for 3-10 modules. If you detect >12, merge
-related directories or suggest `--focus`.
+related directories or suggest `--focus`. Target 3-8 nodes per module.
 
 ### 2.2: Define Nodes
 

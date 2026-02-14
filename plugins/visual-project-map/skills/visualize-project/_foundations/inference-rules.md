@@ -3,18 +3,104 @@
 Lookup tables for detecting modules, nodes, edges, and their properties
 from project structure and documentation.
 
+## Module Design Principles
+
+Modules are **abstraction boundaries**, not just visual groupings. A well-designed
+module hides internal complexity behind a small number of entry and exit points —
+the same encapsulation principle as classes in software engineering.
+
+### Principle 1: Identify modules from structure first, documentation second
+
+The primary signal for module boundaries is the **codebase itself** — folder
+structure, script groupings, data directories, and package organization. These
+reflect how the developer actually organized their work. Documentation confirms
+and refines these boundaries but should not be the sole source.
+
+Priority order for identifying modules:
+1. **Directory structure**: Each subdirectory with scripts or data → candidate module
+2. **Package organization**: `__init__.py`, subpackages, import graphs
+3. **Data flow boundaries**: Directories that are outputs of one phase and inputs
+   to the next (e.g., `data/raw/` → `data/clean/` → `data/output/`)
+4. **Documentation sections**: Workflow headers in CLAUDE.md or README.md
+5. **Build targets**: Makefile rules, CI stages, npm scripts
+
+### Principle 2: Modules are interfaces with few ports
+
+Each module should have at most **2-3 entry nodes** (where edges arrive from
+other modules) and **2-3 exit nodes** (where edges leave to other modules).
+Internal nodes connect only to siblings within the same module.
+
+If you can't describe what goes into a module and what comes out in one sentence,
+the module boundary is probably wrong.
+
+### Principle 3: Settle before exporting
+
+A module should resolve its internal branching before connecting to other modules.
+If three internal paths all lead to the same external destination, add a collector
+node that merges them into one exit — don't draw three cross-module edges. The
+module "settles" its internal state, then exports a clean result.
+
+### Principle 4: Internal edges should outnumber external edges
+
+If a module has more cross-module edges than internal edges, its boundaries are
+wrong. The nodes inside are more coupled to the outside than to each other — redraw
+the module boundaries so tightly coupled nodes are together.
+
+### Principle 5: Module size sweet spot is 3-8 nodes
+
+- **< 3 nodes**: The module may not justify its own grouping. Consider merging
+  with an adjacent module.
+- **3-8 nodes**: Ideal — comprehensible at a glance, enough structure to be useful.
+- **> 8 nodes**: Consider splitting into sub-phases or using `--depth 2` to create
+  a parent phase with child modules.
+
+### Principle 6: Decisions belong at module boundaries
+
+Decision nodes (diamonds) typically determine which module or phase comes next.
+Place them near the boundary — as the last node before edges leave the module.
+This keeps branching logic visible at the interface level.
+
+### Principle 7: Terminal nodes attract spaghetti
+
+Terminal/sink nodes (INCLUDED, EXCLUDED, COMPLETE, FAILED) naturally attract
+incoming edges from many modules. They are the first place to check for
+cross-module edge overload. Almost every graph benefits from adding collector
+nodes in source modules before routing to terminals.
+
+### Generation Sequence
+
+Follow this order to produce clean graphs:
+
+1. **Draft modules** from folder structure and codebase organization
+2. **Assign nodes** to the module where they have the most sibling connections
+3. **Draw internal edges** within each module
+4. **Identify exit/entry points** — which nodes need cross-module connections?
+5. **Check the budget** — any node with >3 cross-module edges? Add collectors/dispatchers
+6. **Verify encapsulation** — can you describe each module's interface in one sentence?
+
+The anti-pattern is "draw all nodes, draw all edges, then group into modules."
+That produces spaghetti because module boundaries become afterthoughts. Design
+modules top-down as abstractions, then populate them with nodes.
+
+---
+
 ## Module Detection
 
 A directory or section becomes a module when ANY signal matches:
 
-| Signal | Source | Example |
-|--------|--------|---------|
-| Directory with CLAUDE.md | Glob | `scripts/review/CLAUDE.md` |
-| Directory with 2+ scripts | Glob | `scripts/discovery/*.py` |
-| Top-level workflow section in CLAUDE.md | Read | `### Workflow: Download` |
-| Named pipeline stage | Read | `## Phase 1 — Discovery` |
-| Package with `__init__.py` or `__main__.py` | Glob | `scripts/lib/` |
-| Directory with Makefile target | Read | `build:`, `test:`, `deploy:` |
+| Signal | Source | Priority | Example |
+|--------|--------|----------|---------|
+| Directory with CLAUDE.md | Glob | 1 | `scripts/review/CLAUDE.md` |
+| Directory with 2+ scripts | Glob | 1 | `scripts/discovery/*.py` |
+| Data directory with distinct I/O role | Glob | 1 | `data/raw/`, `data/clean/` |
+| Package with `__init__.py` or `__main__.py` | Glob | 2 | `scripts/lib/` |
+| Directory with Makefile target | Read | 2 | `build:`, `test:`, `deploy:` |
+| Top-level workflow section in CLAUDE.md | Read | 3 | `### Workflow: Download` |
+| Named pipeline stage in docs | Read | 3 | `## Phase 1 — Discovery` |
+| CI/CD stage | Read | 3 | `.github/workflows/` jobs |
+
+When signals conflict (e.g., docs describe 3 phases but folders suggest 5),
+prefer the folder structure — it reflects actual organization.
 
 ### Module ID Convention
 
