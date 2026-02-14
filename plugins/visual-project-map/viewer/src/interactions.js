@@ -41,6 +41,7 @@ var Interactions = (function() {
         GraphViewer.applyCollapsedStyle(id);
       }
       GraphViewer.runLayout({ animate: true, fit: false });
+      GraphViewer.refreshView();
       updateStatus(manager, moduleIds);
     });
 
@@ -275,6 +276,7 @@ var Interactions = (function() {
     manager.expandAll();
     moduleIds.forEach(function(id) { GraphViewer.removeCollapsedStyle(id); });
     GraphViewer.runLayout({ fit: true });
+    GraphViewer.refreshView();
     updateStatus(manager, moduleIds);
   }
 
@@ -292,6 +294,7 @@ var Interactions = (function() {
       termNode.position('y', maxY + 90);
     }
     GraphViewer.fit(40);
+    GraphViewer.refreshView();
     updateStatus(manager, moduleIds);
   }
 
@@ -308,7 +311,7 @@ var Interactions = (function() {
     }
   }
 
-  var actorColors = { human: '#6366f1', ai: '#f59e0b', script: '#94a3b8', mixed: '#8b5cf6' };
+  var actorColors = { human: '#3b82f6', ai: '#f59e0b', script: '#6b7280', mixed: '#14b8a6' };
   var actorLabels = { human: 'Human', ai: 'AI', script: 'Script', mixed: 'Mixed' };
 
   function showDetailPanel(edge) {
