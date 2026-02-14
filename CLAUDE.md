@@ -9,38 +9,49 @@ A standalone browser-based graph viewer for directed acyclic graphs with collaps
 ## Running
 
 ```bash
-# Serve the viewer locally
-python3 scripts/serve.py
+# Serve the viewer locally (from the plugin directory)
+python3 plugins/visual-project-map/scripts/serve.py
 # Or manually:
-python3 -m http.server 8080 --directory viewer
+cd plugins/visual-project-map && python3 -m http.server 8080
 ```
 
-Load a specific graph: `viewer/index.html?graph=../examples/minimal.json`
-
-Default graph is `examples/minimal.json`.
+Load a specific graph: `viewer/?graph=../examples/minimal.json`
 
 ## Plugin Structure
 
+This repo is a **Claude Code plugin marketplace** containing one plugin:
+
 ```
 visual-project-map/
-├── plugin.json              # Claude Code plugin manifest
-├── skills/visualize-project/ # Skill for auto-generating graphs
-├── viewer/                  # Static viewer application
-├── examples/                # Sample graph JSON files
-├── spec/                    # Feature catalog + constraints
-└── schema.json              # Input JSON Schema
+├── .claude-plugin/
+│   └── marketplace.json           # Marketplace manifest
+├── plugins/
+│   └── visual-project-map/        # Plugin (cached on install)
+│       ├── .claude-plugin/
+│       │   └── plugin.json        # Plugin manifest
+│       ├── skills/visualize-project/
+│       ├── viewer/
+│       ├── examples/
+│       ├── scripts/
+│       └── schema.json
+├── spec/                          # Feature catalog + constraints
+└── screenshots/
 ```
 
-Install as Claude Code plugin: `claude install <username>/visual-project-map`
+Install as Claude Code plugin:
+```
+/plugin marketplace add georgegui/visual-project-map
+/plugin install visual-project-map@visual-project-map
+```
 Then use: `/visualize-project` to auto-generate a graph from any project.
 
 ## Architecture
 
 No build system, no npm, no bundler. Three global JS modules loaded as `<script>` tags in order:
 
-1. **`viewer/src/expand-collapse.js`** — `CollapseManager` class. Handles collapse/expand by removing children with `cy.remove()` and restoring with `cy.add()`. Creates deduplicated meta-edges for cross-module connections when modules are collapsed.
-2. **`viewer/src/viewer.js`** — `GraphViewer` IIFE module. Loads JSON, converts to Cytoscape elements/styles, initializes the graph in collapsed state, runs dagre layout.
-3. **`viewer/src/interactions.js`** — `Interactions` IIFE module. Click-to-toggle on modules, hover highlighting/tooltips, keyboard shortcuts, toolbar buttons.
+1. **`plugins/visual-project-map/viewer/src/expand-collapse.js`** — `CollapseManager` class. Handles collapse/expand by removing children with `cy.remove()` and restoring with `cy.add()`. Creates deduplicated meta-edges for cross-module connections when modules are collapsed.
+2. **`plugins/visual-project-map/viewer/src/viewer.js`** — `GraphViewer` IIFE module. Loads JSON, converts to Cytoscape elements/styles, initializes the graph in collapsed state, runs dagre layout.
+3. **`plugins/visual-project-map/viewer/src/interactions.js`** — `Interactions` IIFE module. Click-to-toggle on modules, hover highlighting/tooltips, keyboard shortcuts, toolbar buttons.
 
 **Load order matters**: `expand-collapse.js` must load before `viewer.js` (which instantiates `CollapseManager`), and both before `interactions.js` (which calls `GraphViewer` and uses the manager).
 

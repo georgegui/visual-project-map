@@ -8,10 +8,11 @@ Built on [Cytoscape.js](https://js.cytoscape.org/) + [dagre](https://github.com/
 
 ## Quick Start — Claude Code
 
-Install the plugin:
+Add the marketplace and install the plugin:
 
-```bash
-claude install <username>/visual-project-map
+```
+/plugin marketplace add georgegui/visual-project-map
+/plugin install visual-project-map@visual-project-map
 ```
 
 Then in any project:
