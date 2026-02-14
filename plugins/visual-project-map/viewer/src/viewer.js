@@ -55,7 +55,15 @@ var GraphViewer = (function() {
         trustBorderColor: td.borderColor || '#94a3b8',
         nodeShape: s.shape || 'round-rectangle'
       };
-      if (n.files) nodeData.files = n.files;
+      if (n.files) {
+        nodeData.files = n.files;
+        var parts = [];
+        if (n.files.reads && n.files.reads.length) parts.push('\u{1F4D6} ' + n.files.reads.map(function(f) { return f.split('/').pop(); }).join(', '));
+        if (n.files.writes && n.files.writes.length) parts.push('\u{1F4DD} ' + n.files.writes.map(function(f) { return f.split('/').pop(); }).join(', '));
+        nodeData.fileLabel = parts.join('\n') || n.label;
+      } else {
+        nodeData.fileLabel = n.label;
+      }
       elements.push({ group: 'nodes', data: nodeData });
     });
 
@@ -192,6 +200,9 @@ var GraphViewer = (function() {
       { selector: '.view-actor-mixed',
         style: { 'background-color': '#ede9fe', 'border-color': '#8b5cf6' }
       },
+      { selector: '.view-files',
+        style: { 'label': 'data(fileLabel)', 'text-wrap': 'wrap', 'text-max-width': 160, 'font-size': 9, 'text-valign': 'center', 'width': 180, 'height': 48 }
+      },
       { selector: '.highlighted',
         style: { 'opacity': 1, 'z-index': 10 }
       },
@@ -222,38 +233,7 @@ var GraphViewer = (function() {
   }
 
   function buildLegend(container, data) {
-    var html = '';
-    var trust = (data.legend && data.legend.trustLevels) || {};
-    var hasTrust = Object.keys(trust).length > 0;
-
-    if (hasTrust) {
-      html += '<strong>Trust:</strong> ';
-      Object.keys(trust).forEach(function(key) {
-        var t = trust[key];
-        if (t.tag) {
-          html += '<span><span class="trust-tag" style="background:' + t.tag.bg + ';color:' + t.tag.color + '">[' + t.tag.text + ']</span> ' + t.label + '</span> ';
-        } else {
-          html += '<span>' + t.label + '</span> ';
-        }
-      });
-      html += '<span style="margin-left:8px">|</span> ';
-    }
-
-    var hasActors = data.edges.some(function(e) { return !!e.actor; });
-    if (hasActors) {
-      html += '<strong>Actor:</strong> ';
-      var actors = [
-        { key: 'human', label: 'Human', color: '#6366f1' },
-        { key: 'ai',    label: 'AI',    color: '#f59e0b' },
-        { key: 'script', label: 'Script', color: '#94a3b8' },
-        { key: 'mixed', label: 'Mixed', color: '#8b5cf6' }
-      ];
-      actors.forEach(function(a) {
-        html += '<span><span class="actor-line" style="background:' + a.color + '"></span>' + a.label + '</span> ';
-      });
-      html += '<span style="margin-left:8px">|</span> ';
-    }
-
+    var html = '<strong>Modules:</strong> ';
     var nodeModules = new Set();
     data.nodes.forEach(function(n) { nodeModules.add(n.module); });
 
@@ -371,10 +351,12 @@ var GraphViewer = (function() {
   function setView(mode) {
     currentView = mode;
     var leafNodes = cy.nodes().filter(function(n) { return !n.data('_isModule'); });
-    leafNodes.removeClass('view-provenance view-actor-human view-actor-ai view-actor-script view-actor-mixed');
+    leafNodes.removeClass('view-provenance view-files view-actor-human view-actor-ai view-actor-script view-actor-mixed');
 
     if (mode === 'provenance') {
       leafNodes.addClass('view-provenance');
+    } else if (mode === 'files') {
+      leafNodes.addClass('view-files');
     } else if (mode === 'actor') {
       leafNodes.forEach(function(n) {
         var edges = n.connectedEdges();
@@ -410,13 +392,15 @@ var GraphViewer = (function() {
     var html = '';
     if (mode === 'provenance') {
       var trust = (graphData.legend && graphData.legend.trustLevels) || {};
-      html += '<strong>Provenance View:</strong> ';
+      html += '<strong>Provenance:</strong> ';
       Object.keys(trust).forEach(function(key) {
         var t = trust[key];
         var bg = t.color || '#f1f5f9';
         var bc = t.borderColor || '#94a3b8';
         html += '<span><span class="swatch" style="background:' + bg + ';border-color:' + bc + '"></span>' + t.label + '</span> ';
       });
+    } else if (mode === 'files') {
+      html += '<strong>Files:</strong> \u{1F4D6} reads &nbsp; \u{1F4DD} writes';
     } else if (mode === 'actor') {
       html += '<strong>Actor View:</strong> ';
       var actors = [

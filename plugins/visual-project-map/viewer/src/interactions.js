@@ -192,7 +192,7 @@ var Interactions = (function() {
       if (e.key === 'l' || e.key === 'L') { e.preventDefault(); toggleLabels(cy); }
       if (e.key === 'v' || e.key === 'V') {
         e.preventDefault();
-        var views = ['module', 'provenance', 'actor'];
+        var views = ['module', 'provenance', 'actor', 'files'];
         var cur = GraphViewer.getView();
         var next = views[(views.indexOf(cur) + 1) % views.length];
         var viewBtns = document.querySelectorAll('.view-btn');
