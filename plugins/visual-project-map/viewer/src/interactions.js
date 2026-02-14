@@ -27,8 +27,18 @@ var Interactions = (function() {
     cy.on('tap', 'node[_isModule]', function(e) {
       var node = e.target;
       var id = node.id();
+      var wasCollapsed = manager.isCollapsed(id);
+      var parentPos = { x: node.position('x'), y: node.position('y') };
       clearPathTrace(cy);
-      if (manager.isCollapsed(id)) {
+
+      // Snapshot current positions + viewport
+      var posBefore = {};
+      cy.nodes().forEach(function(n) {
+        posBefore[n.id()] = { x: n.position('x'), y: n.position('y') };
+      });
+      var vpBefore = { zoom: cy.zoom(), pan: { x: cy.pan().x, y: cy.pan().y } };
+
+      if (wasCollapsed) {
         if (autofocusMode) {
           var ancestors = getAncestorModules(id);
           moduleIds.forEach(function(mid) {
@@ -45,14 +55,57 @@ var Interactions = (function() {
             GraphViewer.applyCollapsedStyle(child.id());
           }
         });
-        GraphViewer.arrangeChildren(id);
       } else if (node.isParent()) {
         manager.collapse(id);
         GraphViewer.applyCollapsedStyle(id);
       }
-      GraphViewer.runLayout({ animate: true, fit: false });
+
+      // Run layout silently to compute final state
+      GraphViewer.runLayout({ animate: false, fit: false });
       GraphViewer.refreshView();
       updateStatus(manager, moduleIds);
+
+      // Snapshot final node positions
+      var posAfter = {};
+      cy.nodes().forEach(function(n) {
+        posAfter[n.id()] = { x: n.position('x'), y: n.position('y') };
+      });
+
+      // Use Cytoscape's own fit to compute the correct target viewport
+      var fitPad = autofocusMode ? 60 : 40;
+      if (autofocusMode) {
+        var target = cy.getElementById(id);
+        var parent = target.parent();
+        var fitEles;
+        if (parent.length) {
+          fitEles = parent.add(parent.descendants());
+        } else if (wasCollapsed) {
+          fitEles = target.add(target.descendants());
+        } else {
+          fitEles = cy.elements();
+        }
+        cy.fit(fitEles, fitPad);
+      } else {
+        cy.fit(null, fitPad);
+      }
+      var vpAfter = { zoom: cy.zoom(), pan: { x: cy.pan().x, y: cy.pan().y } };
+
+      // Restore everything to pre-state: positions + viewport
+      cy.batch(function() {
+        cy.nodes().forEach(function(n) {
+          n.position(posBefore[n.id()] || parentPos);
+        });
+      });
+      cy.viewport({ zoom: vpBefore.zoom, pan: vpBefore.pan });
+
+      // Animate nodes to final positions + viewport to final state
+      var dur = 500;
+      var ease = 'ease-in-out-cubic';
+      cy.nodes().forEach(function(n) {
+        var dest = posAfter[n.id()];
+        if (dest) n.animate({ position: dest }, { duration: dur, easing: ease });
+      });
+      cy.animate({ zoom: vpAfter.zoom, pan: vpAfter.pan, duration: dur, easing: ease });
     });
 
     cy.on('tap', 'node:child', function(e) {
@@ -150,9 +203,6 @@ var Interactions = (function() {
     document.getElementById('btn-collapse').addEventListener('click', function() {
       collapseAll(cy, manager, moduleIds);
     });
-    document.getElementById('btn-fit').addEventListener('click', function() {
-      GraphViewer.fit(40);
-    });
     document.getElementById('btn-labels').addEventListener('click', function() {
       toggleLabels(cy);
     });
@@ -200,7 +250,6 @@ var Interactions = (function() {
 
     document.addEventListener('keydown', function(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); GraphViewer.fit(40); }
       if (e.key === 'e' || e.key === 'E') { e.preventDefault(); expandAll(cy, manager, moduleIds); }
       if (e.key === 'c' || e.key === 'C') { e.preventDefault(); collapseAll(cy, manager, moduleIds); }
       if (e.key === 'l' || e.key === 'L') { e.preventDefault(); toggleLabels(cy); }

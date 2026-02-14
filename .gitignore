@@ -10,3 +10,6 @@ node_modules/
 
 # Project-specific example graphs
 plugins/visual-project-map/examples/rct-workflow*.json
+
+# Local dev scripts
+install.sh

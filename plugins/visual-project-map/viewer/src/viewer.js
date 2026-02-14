@@ -233,7 +233,38 @@ var GraphViewer = (function() {
   }
 
   function buildLegend(container, data) {
-    var html = '<strong>Modules:</strong> ';
+    var html = '';
+    var trust = (data.legend && data.legend.trustLevels) || {};
+    var hasTrust = Object.keys(trust).length > 0;
+
+    if (hasTrust) {
+      html += '<strong>Trust:</strong> ';
+      Object.keys(trust).forEach(function(key) {
+        var t = trust[key];
+        if (t.tag) {
+          html += '<span><span class="trust-tag" style="background:' + t.tag.bg + ';color:' + t.tag.color + '">[' + t.tag.text + ']</span> ' + t.label + '</span> ';
+        } else {
+          html += '<span>' + t.label + '</span> ';
+        }
+      });
+      html += '<span style="margin-left:8px">|</span> ';
+    }
+
+    var hasActors = data.edges.some(function(e) { return !!e.actor; });
+    if (hasActors) {
+      html += '<strong>Actor:</strong> ';
+      var actors = [
+        { key: 'human', label: 'Human', color: '#3b82f6' },
+        { key: 'ai',    label: 'AI',    color: '#f59e0b' },
+        { key: 'script', label: 'Script', color: '#6b7280' },
+        { key: 'mixed', label: 'Mixed', color: '#14b8a6' }
+      ];
+      actors.forEach(function(a) {
+        html += '<span><span class="actor-line" style="background:' + a.color + '"></span>' + a.label + '</span> ';
+      });
+      html += '<span style="margin-left:8px">|</span> ';
+    }
+
     var nodeModules = new Set();
     data.nodes.forEach(function(n) { nodeModules.add(n.module); });
 
