@@ -1,0 +1,12 @@
+{
+  "name": "visual-project-map",
+  "version": "1.0.0",
+  "description": "Auto-generate interactive workflow graphs from project structure",
+  "author": {
+    "name": "George Gui",
+    "email": "zg2467@gsb.columbia.edu"
+  },
+  "repository": "https://github.com/georgegui/visual-project-map",
+  "license": "MIT",
+  "keywords": ["workflow", "visualization", "dag", "graph", "cytoscape"]
+}

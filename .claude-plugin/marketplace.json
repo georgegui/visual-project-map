@@ -1,0 +1,20 @@
+{
+  "name": "visual-project-map",
+  "owner": {
+    "name": "George Gui",
+    "email": "zg2467@gsb.columbia.edu"
+  },
+  "metadata": {
+    "description": "Interactive workflow graphs for any codebase"
+  },
+  "plugins": [
+    {
+      "name": "visual-project-map",
+      "source": "./plugins/visual-project-map",
+      "description": "Auto-generate interactive workflow graphs from project structure",
+      "version": "1.0.0",
+      "license": "MIT",
+      "keywords": ["workflow", "visualization", "dag", "graph", "cytoscape"]
+    }
+  ]
+}
