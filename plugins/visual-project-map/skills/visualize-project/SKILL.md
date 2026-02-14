@@ -285,12 +285,13 @@ Graph Summary: "Project Title"
     mod_terminal  (2 nodes)
 ```
 
-Ask: "Write this graph to `./{name}-graph.json`?" (default: yes)
+Ask: "Write this graph to `.graphs/{name}.json`?" (default: yes)
 
 ### 3.5: Write File
 
 Derive `{name}` from the project directory name (lowercase, hyphens).
-Write to: `./{name}-graph.json` (in the project root being analyzed)
+Create `.graphs/` directory if it doesn't exist.
+Write to: `.graphs/{name}.json`
 
 Use the Write tool. Format the JSON with 2-space indentation.
 
@@ -299,13 +300,13 @@ Use the Write tool. Format the JSON with 2-space indentation.
 After writing:
 
 ```
-Graph written to: ./{name}-graph.json
+Graph written to: .graphs/{name}.json
 
 To view:
   python3 -m http.server 8080 --directory <visual-project-map-install-path>/viewer
-  open "http://localhost:8080?graph=$(pwd)/{name}-graph.json"
+  open "http://localhost:8080?graph=$(pwd)/.graphs/{name}.json"
 
-Or copy {name}-graph.json into the viewer's examples/ directory and open viewer/index.html.
+Or copy .graphs/{name}.json into the viewer's examples/ directory and open viewer/index.html.
 ```
 
 ---
@@ -334,7 +335,7 @@ Only visualize scripts that are:
 Do not attempt to graph every utility or helper script.
 
 ### Already has a graph
-If `./{name}-graph.json` exists, warn the user and ask whether to
+If `.graphs/{name}.json` exists, warn the user and ask whether to
 overwrite or use a different filename.
 
 ---
