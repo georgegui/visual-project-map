@@ -226,6 +226,61 @@ var GraphViewer = (function() {
       },
       { selector: 'edge.labels-hidden.eh',
         style: { 'label': 'data(label)', 'text-opacity': 1 }
+      },
+      { selector: '.plan-add',
+        style: {
+          'border-color': '#16a34a', 'border-width': 2.5, 'border-style': 'dashed',
+          'overlay-color': '#22c55e', 'overlay-opacity': 0.12, 'overlay-padding': 6,
+          'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: '.plan-modify',
+        style: {
+          'border-color': '#d97706', 'border-width': 3, 'border-style': 'solid',
+          'overlay-color': '#f59e0b', 'overlay-opacity': 0.12, 'overlay-padding': 6,
+          'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: '.plan-remove',
+        style: {
+          'border-color': '#dc2626', 'border-width': 2.5, 'border-style': 'dashed',
+          'overlay-color': '#ef4444', 'overlay-opacity': 0.10, 'overlay-padding': 6,
+          'opacity': 0.5, 'text-decoration': 'line-through', 'z-index': 10
+        }
+      },
+      { selector: '.plan-unchanged',
+        style: { 'opacity': 0.3 }
+      },
+      { selector: 'edge.plan-add',
+        style: {
+          'line-color': '#16a34a', 'target-arrow-color': '#16a34a',
+          'line-style': 'dashed', 'width': 2.5, 'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: 'edge.plan-modify',
+        style: {
+          'line-color': '#d97706', 'target-arrow-color': '#d97706',
+          'width': 3, 'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: 'edge.plan-remove',
+        style: {
+          'line-color': '#dc2626', 'target-arrow-color': '#dc2626',
+          'line-style': 'dashed', 'width': 2, 'opacity': 0.5, 'z-index': 10
+        }
+      },
+      { selector: 'edge.plan-unchanged',
+        style: { 'opacity': 0.15 }
+      },
+      { selector: '.plan-task-highlight',
+        style: {
+          'border-width': 4, 'border-color': '#3b82f6',
+          'overlay-color': '#3b82f6', 'overlay-opacity': 0.15, 'overlay-padding': 8,
+          'opacity': 1, 'z-index': 20
+        }
+      },
+      { selector: '.plan-task-dim',
+        style: { 'opacity': 0.2 }
       }
     );
 
@@ -418,8 +473,11 @@ var GraphViewer = (function() {
     var allNodes = cy.nodes();
     var viewClasses = 'view-provenance view-files view-actor-human view-actor-ai view-actor-script view-actor-mixed';
     allNodes.removeClass(viewClasses);
+    PlanOverlay.clear(cy);
 
-    if (mode === 'provenance') {
+    if (mode === 'plan') {
+      PlanOverlay.apply(cy, graphData);
+    } else if (mode === 'provenance') {
       allNodes.filter(function(n) { return !n.data('_isModule'); }).addClass('view-provenance');
     } else if (mode === 'files') {
       allNodes.filter(function(n) { return !n.data('_isModule'); }).addClass('view-files');
@@ -474,6 +532,17 @@ var GraphViewer = (function() {
       ];
       actors.forEach(function(a) {
         html += '<span><span class="swatch" style="background:' + a.color + ';border-color:' + a.bc + '"></span>' + a.label + '</span> ';
+      });
+    } else if (mode === 'plan') {
+      html += '<strong>Plan:</strong> ';
+      var statuses = [
+        { label: 'Add', color: '#dcfce7', bc: '#16a34a' },
+        { label: 'Modify', color: '#fef3c7', bc: '#d97706' },
+        { label: 'Remove', color: '#fee2e2', bc: '#dc2626' },
+        { label: 'Unchanged', color: '#f1f5f9', bc: '#cbd5e1' }
+      ];
+      statuses.forEach(function(s) {
+        html += '<span><span class="swatch" style="background:' + s.color + ';border-color:' + s.bc + '"></span>' + s.label + '</span> ';
       });
     }
     legendEl.innerHTML = html;

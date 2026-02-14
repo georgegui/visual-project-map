@@ -75,6 +75,20 @@ Edge color is reserved for actor encoding. Do not overload edge color for
 other semantics. The `actor` field is optional — edges without it render in
 the default gray.
 
+**P2.8 Plan status via overlay glow.** When the Plan view mode is active,
+node and edge plan status is encoded via overlay glow/shadow — an otherwise
+unused visual channel:
+- Green dashed glow + dashed border = new element (`add`)
+- Amber glow + thick border = modified element (`modify`)
+- Red dashed glow + reduced opacity = removed element (`remove`)
+- 30% opacity (no glow) = unchanged element
+
+These treatments are only active in Plan view mode. Switching to any other
+view (Module, Provenance, Actor, Files) removes all plan styling. This
+avoids conflict with P2.1 (color=module), P2.2 (border=trust), P2.3
+(shape=role), and P2.7 (edge color=actor) because plan uses the overlay
+channel, not the primary visual encoding channels.
+
 ## P3. Layout Properties
 
 **P3.1 Top-to-bottom flow.** The primary reading direction is top to bottom.
@@ -104,6 +118,30 @@ single meta-edge with a combined label:
 **P4.3 Progressive disclosure.** Expanding a module reveals its children and
 replaces meta-edges with real edges. Collapsing reverses this. The user
 controls the level of detail.
+
+## P4b. Cross-Module Edge Minimization
+
+**P4b.1 Edge bundling via collector nodes.** When multiple edges from one
+module converge on a single target in another module (fan-in > 3), the graph
+should introduce a **collector node** inside the source module. Multiple
+internal paths merge into the collector, which then emits a single
+cross-module edge. This keeps cross-module edge count proportional to the
+number of modules, not the number of internal states.
+
+**P4b.2 Dispatch via dispatcher nodes.** When a single node fans out to
+multiple targets across different modules (fan-out > 3 cross-module edges),
+the graph should introduce a **dispatcher node** that serves as the single
+exit point. Internal paths converge on the dispatcher, which then fans out
+to one entry point per target module.
+
+**P4b.3 Maximum cross-module fan-in/fan-out.** No single node should have
+more than 3 cross-module incoming edges or 3 cross-module outgoing edges.
+If this limit is exceeded, restructure with collector/dispatcher nodes.
+
+*Rationale: Cross-module edges are the primary source of visual clutter,
+especially when modules are collapsed and meta-edges accumulate. Bundling
+through collector/dispatcher nodes reduces spaghetti while preserving the
+semantic meaning of each transition inside the module.*
 
 ## P5. Readability Properties
 

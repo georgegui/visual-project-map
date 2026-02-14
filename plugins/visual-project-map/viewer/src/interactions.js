@@ -126,9 +126,17 @@ var Interactions = (function() {
       var details = edge.data('details');
       var tipText = label;
       if (details && details.script) tipText = (label ? label + '  \u2192  ' : '') + details.script;
+      if (GraphViewer.getView() === 'plan') {
+        var edgeKey = edge.data('source') + '->' + edge.data('target');
+        var pa = PlanOverlay.getAnnotation(GraphViewer.getGraphData(), 'edges', edgeKey);
+        if (pa && pa.description) {
+          tipText = (tipText ? tipText + ' \u2014 ' : '') + pa.description;
+        }
+      }
       if (tipText) {
-        tooltipEl.textContent = tipText;
+        tooltipEl.innerHTML = escapeHtml(tipText);
         tooltipEl.style.display = 'block';
+        tooltipEl.style.whiteSpace = 'normal';
         tooltipEl.style.left = (mouseX + 14) + 'px';
         tooltipEl.style.top = (mouseY - 10) + 'px';
       }
@@ -168,15 +176,32 @@ var Interactions = (function() {
       if (pathTraceActive) return;
       var node = e.target;
       if (node.data('_isModule')) return;
-      var connected = node.closedNeighborhood();
-      cy.elements().not(connected).addClass('dimmed');
-      connected.addClass('highlighted');
+      var isPlanView = GraphViewer.getView() === 'plan';
+      if (!isPlanView) {
+        var connected = node.closedNeighborhood();
+        cy.elements().not(connected).addClass('dimmed');
+        connected.addClass('highlighted');
+      }
 
+      var tipLines = [];
       var files = node.data('files');
-      if (files) {
-        var tipLines = [node.data('label')];
+
+      if (isPlanView) {
+        var pa = PlanOverlay.getAnnotation(GraphViewer.getGraphData(), 'nodes', node.id());
+        if (pa) {
+          var statusLabel = pa.status === 'add' ? '[ADD]' : pa.status === 'modify' ? '[MODIFY]' : '[REMOVE]';
+          tipLines.push(statusLabel + ' ' + (node.data('_origLabel') || node.data('label')));
+          if (pa.description) tipLines.push(pa.description);
+        } else {
+          tipLines.push(node.data('_origLabel') || node.data('label'));
+        }
+      } else if (files) {
+        tipLines.push(node.data('label'));
         if (files.reads && files.reads.length) tipLines.push('\u{1F4D6} ' + files.reads.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
         if (files.writes && files.writes.length) tipLines.push('\u{1F4DD} ' + files.writes.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
+      }
+
+      if (tipLines.length) {
         tooltipEl.innerHTML = tipLines.map(function(l) { return escapeHtml(l); }).join('<br>');
         tooltipEl.style.display = 'block';
         tooltipEl.style.whiteSpace = 'normal';
@@ -210,12 +235,23 @@ var Interactions = (function() {
       toggleAutofocus();
     });
 
+    var gd = GraphViewer.getGraphData();
+    var planBtn = document.getElementById('btn-plan-view');
+    var planSummaryBtn = document.getElementById('btn-plan-summary');
+    var planSummaryPanel = document.getElementById('plan-summary-panel');
+    if (PlanOverlay.hasPlan(gd)) {
+      if (planBtn) planBtn.style.display = '';
+      if (planSummaryBtn) planSummaryBtn.style.display = '';
+      buildPlanSummaryPanel(gd, cy);
+    }
+
     var viewBtns = document.querySelectorAll('.view-btn');
     viewBtns.forEach(function(btn) {
       btn.addEventListener('click', function() {
         var mode = btn.getAttribute('data-view');
         viewBtns.forEach(function(b) { b.className = 'view-btn' + (b === btn ? ' view-active' : ''); });
         GraphViewer.setView(mode);
+        updatePlanUI(mode);
       });
     });
 
@@ -257,11 +293,13 @@ var Interactions = (function() {
       if (e.key === 'v' || e.key === 'V') {
         e.preventDefault();
         var views = ['module', 'provenance', 'actor', 'files'];
+        if (PlanOverlay.hasPlan(GraphViewer.getGraphData())) views.push('plan');
         var cur = GraphViewer.getView();
         var next = views[(views.indexOf(cur) + 1) % views.length];
         var viewBtns = document.querySelectorAll('.view-btn');
         viewBtns.forEach(function(b) { b.className = 'view-btn' + (b.getAttribute('data-view') === next ? ' view-active' : ''); });
         GraphViewer.setView(next);
+        updatePlanUI(next);
       }
       if (e.key === 'Escape') { hideDetailPanel(); clearPathTrace(cy); updateStatus(manager, moduleIds); }
       if (e.key === '/' && searchInput) { e.preventDefault(); searchInput.focus(); }
@@ -431,6 +469,16 @@ var Interactions = (function() {
       html += '<div class="dp-row"><div class="dp-label">Docs</div><div class="dp-value">' + escapeHtml(details.docs) + '</div></div>';
     }
 
+    if (GraphViewer.getView() === 'plan') {
+      var edgeKey = edge.data('source') + '->' + edge.data('target');
+      var pa = PlanOverlay.getAnnotation(GraphViewer.getGraphData(), 'edges', edgeKey);
+      if (pa) {
+        html += '<div class="dp-row" style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:4px"><div class="dp-label">Plan: ' + escapeHtml(pa.status.toUpperCase()) + '</div>';
+        if (pa.description) html += '<div class="dp-value">' + escapeHtml(pa.description) + '</div>';
+        html += '</div>';
+      }
+    }
+
     detailPanel.innerHTML = html;
     detailPanel.style.display = 'block';
     detailBackdrop.style.display = 'block';
@@ -466,6 +514,15 @@ var Interactions = (function() {
       html += '</ul></div>';
     }
 
+    if (GraphViewer.getView() === 'plan') {
+      var pa = PlanOverlay.getAnnotation(GraphViewer.getGraphData(), 'nodes', node.id());
+      if (pa) {
+        html += '<div class="dp-row" style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:4px"><div class="dp-label">Plan: ' + escapeHtml(pa.status.toUpperCase()) + '</div>';
+        if (pa.description) html += '<div class="dp-value">' + escapeHtml(pa.description) + '</div>';
+        html += '</div>';
+      }
+    }
+
     detailPanel.innerHTML = html;
     detailPanel.style.display = 'block';
     detailBackdrop.style.display = 'block';
@@ -479,6 +536,78 @@ var Interactions = (function() {
 
   function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function updatePlanUI(mode) {
+    var summaryBtn = document.getElementById('btn-plan-summary');
+    var summaryPanel = document.getElementById('plan-summary-panel');
+    if (mode === 'plan') {
+      if (summaryBtn) summaryBtn.style.display = '';
+    } else {
+      if (summaryPanel) summaryPanel.classList.remove('open');
+      PlanOverlay.clearTaskHighlight(GraphViewer.getCy());
+    }
+  }
+
+  function buildPlanSummaryPanel(graphData, cy) {
+    var panel = document.getElementById('plan-summary-panel');
+    var summaryBtn = document.getElementById('btn-plan-summary');
+    if (!panel || !graphData.plan) return;
+
+    var plan = graphData.plan;
+    var summary = plan.summary || {};
+    var html = '<div class="ps-header"><span class="ps-title">Plan Summary</span>';
+    html += '<button class="ps-close" id="ps-close-btn">&times;</button></div>';
+
+    if (summary.goal) {
+      html += '<div class="ps-goal">' + escapeHtml(summary.goal) + '</div>';
+    }
+
+    if (summary.tasks && summary.tasks.length) {
+      html += '<div class="ps-tasks">';
+      summary.tasks.forEach(function(t) {
+        html += '<div class="ps-task" data-task-id="' + escapeHtml(t.id) + '"';
+        if (t.nodeIds) html += ' data-node-ids="' + escapeHtml(JSON.stringify(t.nodeIds)) + '"';
+        html += '>';
+        html += '<span class="ps-task-id">' + escapeHtml(t.id) + '</span>';
+        html += '<span class="ps-task-title">' + escapeHtml(t.title) + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    panel.innerHTML = html;
+
+    document.getElementById('ps-close-btn').addEventListener('click', function() {
+      panel.classList.remove('open');
+      PlanOverlay.clearTaskHighlight(cy);
+    });
+
+    panel.querySelectorAll('.ps-task').forEach(function(taskEl) {
+      taskEl.addEventListener('click', function() {
+        var nodeIdsStr = taskEl.getAttribute('data-node-ids');
+        panel.querySelectorAll('.ps-task').forEach(function(t) { t.classList.remove('ps-task-active'); });
+
+        if (nodeIdsStr) {
+          var nodeIds = JSON.parse(nodeIdsStr);
+          taskEl.classList.add('ps-task-active');
+          PlanOverlay.highlightTaskNodes(cy, nodeIds);
+        } else {
+          PlanOverlay.clearTaskHighlight(cy);
+        }
+      });
+    });
+
+    if (summaryBtn) {
+      summaryBtn.addEventListener('click', function() {
+        if (panel.classList.contains('open')) {
+          panel.classList.remove('open');
+          PlanOverlay.clearTaskHighlight(cy);
+        } else {
+          panel.classList.add('open');
+        }
+      });
+    }
   }
 
   return { init: init };

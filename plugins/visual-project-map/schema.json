@@ -86,6 +86,67 @@
           }
         }
       }
+    },
+    "plan": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "object",
+          "properties": {
+            "goal": { "type": "string" },
+            "tasks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "title": { "type": "string" },
+                  "nodeIds": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["id", "title"]
+              }
+            }
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "properties": {
+            "nodes": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "status": { "enum": ["add", "modify", "remove"] },
+                  "description": { "type": "string" }
+                },
+                "required": ["status"]
+              }
+            },
+            "edges": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "status": { "enum": ["add", "modify", "remove"] },
+                  "description": { "type": "string" }
+                },
+                "required": ["status"]
+              }
+            },
+            "modules": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "status": { "enum": ["add", "modify"] },
+                  "description": { "type": "string" }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

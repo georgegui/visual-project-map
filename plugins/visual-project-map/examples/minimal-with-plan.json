@@ -1,0 +1,102 @@
+{
+  "title": "Minimal Example + Plan Overlay",
+  "modules": [
+    { "id": "mod_input",   "label": "Input",      "color": "#dbeafe", "borderColor": "#93c5fd" },
+    { "id": "mod_process", "label": "Processing", "color": "#fef3c7", "borderColor": "#fbbf24" },
+    { "id": "mod_output",  "label": "Output",     "color": "#d1fae5", "borderColor": "#6ee7b7" }
+  ],
+  "nodes": [
+    { "id": "raw",      "module": "mod_input",   "label": "raw_data",       "style": { "trust": "normal" } },
+    { "id": "valid",    "module": "mod_input",   "label": "validated",      "style": { "trust": "auto" } },
+    { "id": "rejected", "module": "mod_input",   "label": "rejected",       "style": { "trust": "auto" } },
+
+    { "id": "clean",    "module": "mod_process", "label": "cleaned",        "style": { "trust": "auto" } },
+    { "id": "reviewed", "module": "mod_process", "label": "ai_reviewed",    "style": { "trust": "ai" } },
+    { "id": "approved", "module": "mod_process", "label": "human_approved", "style": { "trust": "verified" } },
+
+    { "id": "done",     "module": "mod_output",  "label": "COMPLETE",       "style": { "trust": "normal" } },
+    { "id": "failed",   "module": "mod_output",  "label": "FAILED",        "style": { "trust": "normal", "color": "#fee2e2", "borderColor": "#fca5a5" } }
+  ],
+  "edges": [
+    { "source": "raw",      "target": "valid",    "label": "validate",       "style": "solid" },
+    { "source": "raw",      "target": "rejected", "label": "invalid",        "style": "solid" },
+    { "source": "valid",    "target": "clean",    "label": "clean",          "style": "solid" },
+    { "source": "clean",    "target": "reviewed", "label": "AI review",      "style": "solid" },
+    { "source": "reviewed", "target": "approved", "label": "human confirms", "style": "solid" },
+    { "source": "reviewed", "target": "clean",    "label": "errors found",   "style": "dashed" },
+    { "source": "approved", "target": "done",     "label": "finalize",       "style": "solid" },
+    { "source": "rejected", "target": "failed",   "label": "excluded",       "style": "solid" },
+    { "source": "clean",    "target": "failed",   "label": "unfixable",      "style": "solid" },
+    { "source": "failed",   "target": "raw",      "label": "retry",          "style": "dashed" }
+  ],
+  "legend": {
+    "trustLevels": {
+      "normal":   { "label": "Normal",   "borderStyle": "solid",  "borderWidth": 1.5 },
+      "auto":     { "label": "Script",   "borderStyle": "solid",  "borderWidth": 1.5, "tag": { "text": "auto", "bg": "#dbeafe", "color": "#1e40af" } },
+      "ai":       { "label": "LLM",      "borderStyle": "dashed", "borderWidth": 1.5, "tag": { "text": "AI",   "bg": "#fef3c7", "color": "#92400e" } },
+      "verified": { "label": "Human",    "borderStyle": "solid",  "borderWidth": 3.5, "tag": { "text": "verified", "bg": "#d1fae5", "color": "#065f46" } }
+    }
+  },
+  "plan": {
+    "summary": {
+      "goal": "Add a deduplication step between validation and cleaning, and remove the retry loop from failed back to raw.",
+      "tasks": [
+        {
+          "id": "T1",
+          "title": "Add deduplication node after validation",
+          "nodeIds": ["valid", "deduped"]
+        },
+        {
+          "id": "T2",
+          "title": "Modify cleaning to accept deduplicated input",
+          "nodeIds": ["clean"]
+        },
+        {
+          "id": "T3",
+          "title": "Remove retry loop (failed to raw)",
+          "nodeIds": ["failed", "raw"]
+        }
+      ]
+    },
+    "annotations": {
+      "nodes": {
+        "deduped": {
+          "status": "add",
+          "description": "New deduplication step that removes duplicate records before cleaning."
+        },
+        "clean": {
+          "status": "modify",
+          "description": "Update cleaning script to accept deduplicated input instead of raw validated data."
+        },
+        "reviewed": {
+          "status": "modify",
+          "description": "AI review will include deduplication quality checks."
+        }
+      },
+      "edges": {
+        "valid->clean": {
+          "status": "remove",
+          "description": "Direct path from validation to cleaning is replaced by dedup step."
+        },
+        "valid->deduped": {
+          "status": "add",
+          "description": "Route validated data through deduplication."
+        },
+        "deduped->clean": {
+          "status": "add",
+          "description": "Feed deduplicated data into cleaning."
+        },
+        "failed->raw": {
+          "status": "remove",
+          "description": "Remove retry loop; failed records go to manual review instead."
+        }
+      },
+      "modules": {
+        "mod_input": {
+          "status": "modify",
+          "description": "Input module gains a deduplication step."
+        }
+      }
+    }
+  }
+}

@@ -20,45 +20,45 @@ contradictions and against this catalog for duplicates.
 
 ### F01: Load graph from JSON
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (loadGraph, buildElements)
+- **Files**: `src/viewer.js` (loadGraph, buildElements)
 - **Properties**: P1.1–P1.4
 - Fetches a JSON file, converts modules/nodes/edges into Cytoscape elements.
 
 ### F02: Dagre hierarchical layout
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (runLayout)
+- **Files**: `src/viewer.js` (runLayout)
 - **Properties**: P3.1, P3.2
 - Top-to-bottom layout via dagre with configurable spacing.
 
 ### F03: URL parameter for graph selection
 - **Status**: `implemented`
-- **Files**: `viewer/index.html` (inline script)
+- **Files**: `index.html` (inline script)
 - `?graph=path/to/file.json` loads a specific graph. Defaults to
-  `examples/minimal.json`.
+  `examples/rct-workflow.json`.
 
 ## Visual Encoding
 
 ### F04: Module color coding
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildElements, buildStyles)
+- **Files**: `src/viewer.js` (buildElements, buildStyles)
 - **Properties**: P2.1
 - Modules define (color, borderColor). Children inherit unless overridden.
 
 ### F05: Trust level border encoding
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildStyles)
+- **Files**: `src/viewer.js` (buildStyles)
 - **Properties**: P2.2
 - Border style/width driven by `legend.trustLevels` in the input JSON.
 
 ### F06: Node shape semantics
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildElements, buildStyles)
+- **Files**: `src/viewer.js` (buildElements, buildStyles)
 - **Properties**: P2.3
 - Shapes: round-rectangle, diamond, ellipse, rectangle, hexagon.
 
 ### F07: Edge style (solid/dashed)
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildElements, buildStyles)
+- **Files**: `src/viewer.js` (buildElements, buildStyles)
 - **Properties**: P2.4
 - Solid = primary flow, dashed = feedback/retry/optional.
 
@@ -70,7 +70,7 @@ contradictions and against this catalog for duplicates.
 
 ### F09: Edge label backgrounds
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildStyles)
+- **Files**: `src/viewer.js` (buildStyles)
 - **Properties**: P3.3
 - Opaque text backgrounds prevent label overlap.
 
@@ -78,31 +78,31 @@ contradictions and against this catalog for duplicates.
 
 ### F10: Module collapse via cy.remove/cy.add
 - **Status**: `implemented`
-- **Files**: `viewer/src/expand-collapse.js` (CollapseManager)
+- **Files**: `src/expand-collapse.js` (CollapseManager)
 - **Properties**: P4.1, P4.3
 - Custom implementation, no third-party extension.
 
 ### F11: Meta-edge deduplication
 - **Status**: `implemented`
-- **Files**: `viewer/src/expand-collapse.js` (_rebuildEdges)
+- **Files**: `src/expand-collapse.js` (_rebuildEdges)
 - **Properties**: P4.2
 - Multiple cross-module edges merge into one meta-edge with combined labels.
 
 ### F12: Collapsed-by-default on load
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (init)
+- **Files**: `src/viewer.js` (init)
 - **Properties**: P4.1
 - All modules start collapsed, giving an overview-first experience.
 
 ### F13: Collapsed module visual style
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildStyles, applyCollapsedStyle)
+- **Files**: `src/viewer.js` (buildStyles, applyCollapsedStyle)
 - Collapsed modules render as fixed-size labeled rectangles with higher
   background opacity. Phase modules use a slightly larger style.
 
 ### F35: Nested module hierarchy (phases)
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildElements), `viewer/src/expand-collapse.js` (depth-aware collapse/expand)
+- **Files**: `src/viewer.js` (buildElements), `src/expand-collapse.js` (depth-aware collapse/expand)
 - **Properties**: P1.2, P4.3
 - Modules can have an optional `parent` field pointing to a phase module.
   Phases group related modules and support independent collapse/expand.
@@ -111,7 +111,7 @@ contradictions and against this catalog for duplicates.
 
 ### F36: Edge label toggle
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (toggleLabels), `viewer/src/viewer.js` (labels-hidden styles)
+- **Files**: `src/interactions.js` (toggleLabels), `src/viewer.js` (labels-hidden styles)
 - **Properties**: P2.6
 - Edge labels are hidden by default. Toggle via toolbar button or `L` key.
   Labels always appear on path-traced edges (F26) and on hover (F15 tooltip).
@@ -120,58 +120,58 @@ contradictions and against this catalog for duplicates.
 
 ### F14: Click module to toggle expand/collapse
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (tap handler)
+- **Files**: `src/interactions.js` (tap handler)
 - **Properties**: P6.1
 
 ### F15: Hover edge tooltip
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (mouseover/mouseout edge)
+- **Files**: `src/interactions.js` (mouseover/mouseout edge)
 - **Properties**: P6.2
 
 ### F16: Hover node neighborhood highlighting
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (mouseover/mouseout node:child)
+- **Files**: `src/interactions.js` (mouseover/mouseout node:child)
 - **Properties**: P6.3
 - Dims non-connected elements, highlights immediate neighborhood.
 
 ### F17: Keyboard shortcuts (F/E/C)
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (keydown handler)
+- **Files**: `src/interactions.js` (keydown handler)
 - **Properties**: P6.4
 - F = fit, E = expand all, C = collapse all.
 
 ### F18: Pan and zoom
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (initCytoscape), `viewer/src/interactions.js` (zoom)
+- **Files**: `src/viewer.js` (initCytoscape), `src/interactions.js` (zoom)
 - **Properties**: P6.5
 - Scroll to zoom (0.15x–4x), drag to pan.
 
 ### F19: Fit to viewport
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (fit), `viewer/src/interactions.js` (btn-fit)
+- **Files**: `src/viewer.js` (fit), `src/interactions.js` (btn-fit)
 - **Properties**: P6.6
 
 ## UI Chrome
 
 ### F20: Auto-generated legend
 - **Status**: `implemented`
-- **Files**: `viewer/src/viewer.js` (buildLegend)
+- **Files**: `src/viewer.js` (buildLegend)
 - **Properties**: P5.1
 - Trust level tags + module color swatches.
 
 ### F21: Status bar
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (updateStatus)
+- **Files**: `src/interactions.js` (updateStatus)
 - **Properties**: P5.2
 
 ### F22: Zoom display
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (zoom handler)
+- **Files**: `src/interactions.js` (zoom handler)
 - **Properties**: P5.3
 
 ### F23: Toolbar buttons
 - **Status**: `implemented`
-- **Files**: `viewer/index.html`, `viewer/src/interactions.js`
+- **Files**: `index.html`, `src/interactions.js`
 - Expand All, Collapse All, Fit buttons.
 
 ## Schema & Validation
@@ -191,7 +191,7 @@ contradictions and against this catalog for duplicates.
 
 ### F26: Path tracing (upstream/downstream)
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (tracePath, clearPathTrace)
+- **Files**: `src/interactions.js` (tracePath, clearPathTrace)
 - **Properties**: P7.2, P6.3
 - Click a leaf node to highlight all ancestors (upstream) and descendants
   (downstream) via BFS edge traversal. Dims everything else. Click background
@@ -201,7 +201,7 @@ contradictions and against this catalog for duplicates.
 
 ### F27: Search / find node by label
 - **Status**: `implemented`
-- **Files**: `viewer/src/interactions.js` (search input handler), `viewer/index.html` (search input)
+- **Files**: `src/interactions.js` (search input handler), `index.html` (search input)
 - **Properties**: P7.3
 - Text input in toolbar. Type to filter matching node labels (case-insensitive
   substring). Matching nodes highlighted, non-matches dimmed, viewport pans to
@@ -262,7 +262,7 @@ contradictions and against this catalog for duplicates.
 
 ### F37: Actor annotations on edges
 - **Status**: `implemented`
-- **Files**: `schema.json` (actor field), `viewer/src/viewer.js` (buildElements, buildStyles, buildLegend), `viewer/src/expand-collapse.js` (meta-edge actor propagation)
+- **Files**: `schema.json` (actor field), `src/viewer.js` (buildElements, buildStyles, buildLegend), `src/expand-collapse.js` (meta-edge actor propagation)
 - **Properties**: P2.7
 - Edge line color encodes who performs the transition: human (indigo), AI
   (amber), script (gray, default), mixed (violet). Actor colors propagate
@@ -271,7 +271,7 @@ contradictions and against this catalog for duplicates.
 
 ### F38: Edge detail panel
 - **Status**: `implemented`
-- **Files**: `schema.json` (details object), `viewer/src/viewer.js` (buildElements), `viewer/src/interactions.js` (showDetailPanel, hideDetailPanel), `viewer/index.html` (detail-panel div + CSS)
+- **Files**: `schema.json` (details object), `src/viewer.js` (buildElements), `src/interactions.js` (showDetailPanel, hideDetailPanel), `index.html` (detail-panel div + CSS)
 - **Properties**: P6.2 (extends tooltip)
 - Clicking an edge with a `details` object opens a modal panel showing
   script path, input files, output files, updated fields, and documentation
@@ -280,15 +280,95 @@ contradictions and against this catalog for duplicates.
 
 ## Tooling & Generation
 
-### F39: visualize-project skill (auto-generate graph JSON)
+### F39: visualize-workflow skill (auto-generate graph JSON)
 - **Status**: `implemented`
-- **Files**: `skills/visualize-project/SKILL.md`, `skills/visualize-project/_foundations/`
+- **Files**: `.claude/skills/visualize-workflow/SKILL.md`, `.claude/skills/_foundations/`
 - **Properties**: P1.1–P1.4 (output must satisfy all structural properties)
 - Claude Code skill that analyzes a project's folder structure, CLAUDE.md
   files, and script dependencies to auto-generate a graph-viewer JSON.
   Supports `--focus`, `--depth`, `--title` arguments. Uses the graph
   schema, color palette, and inference rules from `_foundations/`.
   Turns the graph-viewer into a general-purpose project visualization tool.
+
+## View Modes
+
+### F40: View mode switcher (Module/Provenance/Actor/Files)
+- **Status**: `implemented`
+- **Files**: `src/viewer.js` (setView, rebuildLegendForView, view-specific CSS), `src/interactions.js` (view button handlers, V key), `index.html` (view buttons)
+- **Properties**: P2.1, P2.2, P2.7, P5.1
+- Four mutually exclusive color scheme views: **Module** (default, module-colored),
+  **Provenance** (trust-state colored: raw/ai_generated/needs_human_review/human_verified),
+  **Actor** (dominant edge actor colored), **Files** (node labels replaced with file I/O paths).
+  Toolbar buttons cycle through views; `V` key rotates. Legend updates to show only
+  context-relevant items per active view.
+
+### F41: Node file annotations
+- **Status**: `implemented`
+- **Files**: `src/viewer.js` (buildElements fileLabel), `src/interactions.js` (hover tooltip, showNodeDetailPanel)
+- Nodes can have an optional `files` object with `reads: string[]` and `writes: string[]`.
+  Displayed on hover (tooltip with emoji indicators), on double-click (modal detail panel
+  showing full paths), and inline in Files view mode (F40).
+
+### F42: Node detail panel (double-click)
+- **Status**: `implemented`
+- **Files**: `src/interactions.js` (dbltap handler, showNodeDetailPanel)
+- **Properties**: P6.2 (extends detail panel concept from edges to nodes)
+- Double-clicking a leaf node with `files` data opens a modal panel showing the node's
+  trust level badge and full read/write file paths. Same dismiss behavior as edge detail
+  panel (F38).
+
+### F43: Context-sensitive legend
+- **Status**: `implemented`
+- **Files**: `src/viewer.js` (rebuildLegendForView)
+- **Properties**: P5.1
+- Legend content changes based on active view mode (F40). Module view shows module swatches,
+  Provenance view shows trust level tags, Actor view shows actor line colors, Files view
+  shows file emoji indicators. Reduces legend clutter compared to showing all categories
+  simultaneously.
+
+## Plan Overlay
+
+### F44: Plan overlay view mode
+- **Status**: `implemented`
+- **Files**: `src/plan-overlay.js` (PlanOverlay module), `src/viewer.js` (setView plan case, plan styles, plan legend), `src/interactions.js` (plan button visibility, V key cycling), `index.html` (Plan button, CSS)
+- **Properties**: P2.8
+- Optional `plan` field in graph JSON triggers a Plan view button. When active,
+  annotated nodes/edges glow green (add), amber (modify), or red (remove) via
+  overlay shadows. Unchanged elements dim to 30% opacity. Switching to any other
+  view clears all plan styling. No conflict with existing visual encodings
+  (P2.1-P2.7) because plan uses overlay glow (unused channel).
+
+### F45: Plan summary panel
+- **Status**: `implemented`
+- **Files**: `src/interactions.js` (buildPlanSummaryPanel), `index.html` (plan-summary-panel div + CSS)
+- **Properties**: P5.1 (extends)
+- Slide-in panel from the right showing plan goal and task list. Click a task
+  to highlight its `nodeIds` on the graph. Toggle via Summary button (visible
+  in plan view). Panel shows `plan.summary.goal` and `plan.summary.tasks[]`.
+
+### F46: Collapsed module plan badges
+- **Status**: `implemented`
+- **Files**: `src/plan-overlay.js` (apply, getModuleCounts, formatBadge)
+- **Properties**: P4.1 (extends)
+- When a module is collapsed in plan view, its label includes a badge showing
+  counts of annotated children: `+N ~M -R` (add/modify/remove). Badges are
+  removed when leaving plan view.
+
+### F47: Plan tooltip/detail integration
+- **Status**: `implemented`
+- **Files**: `src/interactions.js` (mouseover handlers, showDetailPanel, showNodeDetailPanel)
+- **Properties**: P6.2 (extends)
+- In plan view, hovering annotated nodes/edges shows the plan annotation
+  description in the tooltip. The detail panel (click/double-click) also shows
+  the plan status and description alongside existing information.
+
+### F48: visualize-plan skill
+- **Status**: `implemented`
+- **Files**: `.claude/skills/visualize-plan/SKILL.md`
+- **Properties**: P1.1-P1.4 (output must satisfy all structural properties)
+- Claude Code skill that reads an existing graph JSON and a plan document,
+  matches plan tasks to graph nodes/edges, and emits a `plan` field. Complements
+  the `visualize-workflow` skill (F39) for plan-time visualization.
 
 ---
 
@@ -302,7 +382,19 @@ contradictions and against this catalog for duplicates.
 | 2026-02-13 | F26, F27 | Implemented: path tracing (BFS upstream/downstream) and search (label substring) |
 | 2026-02-13 | F35 | Implemented: nested module hierarchy (phases). Updated P1.2 from single-level to 2-level. |
 | 2026-02-13 | F36 | Implemented: edge label toggle (hidden by default, shown on path trace/hover/toggle) |
-| 2026-02-13 | — | Default graph changed to nested variant |
+| 2026-02-13 | — | Default graph changed to nested variant (`rct-workflow-nested.json`) |
 | 2026-02-13 | F37 | Implemented: actor annotations on edges (P2.7). Color-coded edge lines for human/AI/script/mixed. |
 | 2026-02-13 | F38 | Implemented: edge detail panel. Click edges with `details` for script/input/output info. |
-| 2026-02-13 | F39 | Implemented: visualize-project skill for auto-generating graph JSON from project structure. |
+| 2026-02-13 | F39 | Implemented: visualize-workflow skill for auto-generating graph JSON from project structure. |
+| 2026-02-14 | F40 | Implemented: view mode switcher (Module/Provenance/Actor/Files) with V key cycling |
+| 2026-02-14 | F41 | Implemented: node file annotations (reads/writes) with hover tooltip and Files view |
+| 2026-02-14 | F42 | Implemented: node detail panel on double-click (trust badge + file paths) |
+| 2026-02-14 | F43 | Implemented: context-sensitive legend per active view mode |
+| 2026-02-14 | P4b | Added: cross-module edge minimization properties (P4b.1–P4b.3) |
+| 2026-02-14 | — | RCT JSON restructured with 5 collector/dispatcher nodes. Cross-module edges: 33 → 22. |
+| 2026-02-14 | F44 | Implemented: plan overlay view mode (green/amber/red glow on annotated elements) |
+| 2026-02-14 | F45 | Implemented: plan summary panel (slide-in goal + task list with node highlighting) |
+| 2026-02-14 | F46 | Implemented: collapsed module plan badges (+N ~M -R counts) |
+| 2026-02-14 | F47 | Implemented: plan tooltip/detail integration (annotation descriptions on hover/click) |
+| 2026-02-14 | F48 | Implemented: visualize-plan skill for overlaying plans onto existing graphs |
+| 2026-02-14 | P2.8 | Added: plan status via overlay glow (unused visual channel) |
