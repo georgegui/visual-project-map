@@ -6,6 +6,7 @@ var Interactions = (function() {
   var mouseX = 0, mouseY = 0;
   var pathTraceActive = false;
   var labelsHidden = true;
+  var autofocusMode = false;
 
   function init(cy, manager, moduleIds) {
     tooltipEl = document.getElementById('tooltip');
@@ -28,6 +29,15 @@ var Interactions = (function() {
       var id = node.id();
       clearPathTrace(cy);
       if (manager.isCollapsed(id)) {
+        if (autofocusMode) {
+          var ancestors = getAncestorModules(id);
+          moduleIds.forEach(function(mid) {
+            if (mid !== id && !ancestors.has(mid) && !manager.isCollapsed(mid)) {
+              manager.collapse(mid);
+              GraphViewer.applyCollapsedStyle(mid);
+            }
+          });
+        }
         manager.expand(id);
         GraphViewer.removeCollapsedStyle(id);
         node.children().forEach(function(child) {
@@ -146,6 +156,9 @@ var Interactions = (function() {
     document.getElementById('btn-labels').addEventListener('click', function() {
       toggleLabels(cy);
     });
+    document.getElementById('btn-autofocus').addEventListener('click', function() {
+      toggleAutofocus();
+    });
 
     var viewBtns = document.querySelectorAll('.view-btn');
     viewBtns.forEach(function(btn) {
@@ -191,6 +204,7 @@ var Interactions = (function() {
       if (e.key === 'e' || e.key === 'E') { e.preventDefault(); expandAll(cy, manager, moduleIds); }
       if (e.key === 'c' || e.key === 'C') { e.preventDefault(); collapseAll(cy, manager, moduleIds); }
       if (e.key === 'l' || e.key === 'L') { e.preventDefault(); toggleLabels(cy); }
+      if (e.key === 'a' || e.key === 'A') { e.preventDefault(); toggleAutofocus(); }
       if (e.key === 'v' || e.key === 'V') {
         e.preventDefault();
         var views = ['module', 'provenance', 'actor', 'files'];
@@ -222,6 +236,26 @@ var Interactions = (function() {
       labelsHidden = true;
       btn.className = 'toggle-off';
     }
+  }
+
+  function getAncestorModules(moduleId) {
+    var ancestors = new Set();
+    var gd = GraphViewer.getGraphData();
+    if (!gd) return ancestors;
+    var moduleMap = {};
+    gd.modules.forEach(function(m) { moduleMap[m.id] = m; });
+    var m = moduleMap[moduleId];
+    while (m && m.parent) {
+      ancestors.add(m.parent);
+      m = moduleMap[m.parent];
+    }
+    return ancestors;
+  }
+
+  function toggleAutofocus() {
+    var btn = document.getElementById('btn-autofocus');
+    autofocusMode = !autofocusMode;
+    if (btn) btn.className = autofocusMode ? 'toggle-on' : 'toggle-off';
   }
 
   function tracePath(cy, node) {
