@@ -118,7 +118,7 @@ on each module, rendered as a subtitle in the viewer.
 ### PF-11: Graph diff
 
 - **Priority**: Medium
-- **Status**: `proposed`
+- **Status**: `implemented` (F54)
 
 Compare two versions of the same project graph side-by-side or as an overlay
 (nodes added, removed, or moved). Answers "what changed since last sprint?" —
@@ -127,7 +127,7 @@ the temporal version of "how does it work?"
 ### PF-12: Incremental regeneration
 
 - **Priority**: Low
-- **Status**: `proposed`
+- **Status**: `implemented` (F55)
 - **Depends on**: F39 (visualize-project skill)
 
 Re-running `/visualize-project` rebuilds from scratch. It should detect what
@@ -141,7 +141,7 @@ any manual refinements the user made to the graph JSON.
 ### PF-13: Schema sync
 
 - **Priority**: High
-- **Status**: `proposed`
+- **Status**: `implemented` (F53)
 - **Depends on**: F24 (schema)
 
 `schema.json` is missing properties the code actively uses (`parent`, `files`,

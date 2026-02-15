@@ -403,6 +403,52 @@ var GraphViewer = (function() {
       },
       { selector: '.plan-task-dim',
         style: { 'opacity': 0.2 }
+      },
+      // Diff overlay styles
+      { selector: '.diff-added',
+        style: {
+          'border-color': '#16a34a', 'border-width': 3, 'border-style': 'dashed',
+          'overlay-color': '#22c55e', 'overlay-opacity': 0.15, 'overlay-padding': 6,
+          'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: '.diff-modified',
+        style: {
+          'border-color': '#d97706', 'border-width': 3, 'border-style': 'solid',
+          'overlay-color': '#f59e0b', 'overlay-opacity': 0.15, 'overlay-padding': 6,
+          'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: '.diff-removed',
+        style: {
+          'border-color': '#dc2626', 'border-width': 2.5, 'border-style': 'dashed',
+          'overlay-color': '#ef4444', 'overlay-opacity': 0.10, 'overlay-padding': 6,
+          'opacity': 0.5, 'z-index': 10
+        }
+      },
+      { selector: '.diff-unchanged',
+        style: { 'opacity': 0.3 }
+      },
+      { selector: 'edge.diff-added',
+        style: {
+          'line-color': '#16a34a', 'target-arrow-color': '#16a34a',
+          'line-style': 'dashed', 'width': 2.5, 'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: 'edge.diff-modified',
+        style: {
+          'line-color': '#d97706', 'target-arrow-color': '#d97706',
+          'width': 3, 'opacity': 1, 'z-index': 10
+        }
+      },
+      { selector: 'edge.diff-removed',
+        style: {
+          'line-color': '#dc2626', 'target-arrow-color': '#dc2626',
+          'line-style': 'dashed', 'width': 2, 'opacity': 0.5, 'z-index': 10
+        }
+      },
+      { selector: 'edge.diff-unchanged',
+        style: { 'opacity': 0.15 }
       }
     );
 
@@ -673,8 +719,11 @@ var GraphViewer = (function() {
     var viewClasses = 'view-provenance view-files view-actor-human view-actor-ai view-actor-script view-actor-mixed';
     allNodes.removeClass(viewClasses);
     PlanOverlay.clear(cy);
+    if (typeof GraphDiff !== 'undefined') GraphDiff.clearOverlay(cy);
 
-    if (mode === 'plan') {
+    if (mode === 'diff' && graphData._diff) {
+      GraphDiff.applyOverlay(cy, graphData._diff);
+    } else if (mode === 'plan') {
       PlanOverlay.apply(cy, graphData);
     } else if (mode === 'provenance') {
       allNodes.filter(function(n) { return !n.data('_isModule'); }).addClass('view-provenance');
@@ -743,6 +792,21 @@ var GraphViewer = (function() {
       statuses.forEach(function(s) {
         html += '<span><span class="swatch" style="background:' + s.color + ';border-color:' + s.bc + '"></span>' + s.label + '</span> ';
       });
+    } else if (mode === 'diff') {
+      html += '<strong>Diff:</strong> ';
+      var diffStatuses = [
+        { label: 'Added', color: '#dcfce7', bc: '#16a34a' },
+        { label: 'Modified', color: '#fef3c7', bc: '#d97706' },
+        { label: 'Removed', color: '#fee2e2', bc: '#dc2626' },
+        { label: 'Unchanged', color: '#f1f5f9', bc: '#cbd5e1' }
+      ];
+      diffStatuses.forEach(function(s) {
+        html += '<span><span class="swatch" style="background:' + s.color + ';border-color:' + s.bc + '"></span>' + s.label + '</span> ';
+      });
+      if (graphData._diff) {
+        var d = graphData._diff.summary;
+        html += '<span style="margin-left:12px;color:#64748b">+' + d.added + ' ~' + d.modified + ' -' + d.removed + '</span>';
+      }
     }
     legendEl.innerHTML = html;
   }

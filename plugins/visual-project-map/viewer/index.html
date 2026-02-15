@@ -235,6 +235,7 @@ body {
   <button class="view-btn" data-view="actor">Actor</button>
   <button class="view-btn" data-view="files">Files</button>
   <button class="view-btn" data-view="plan" id="btn-plan-view" style="display:none">Plan</button>
+  <button class="view-btn" data-view="diff" id="btn-diff-view" style="display:none">Diff</button>
   <button id="btn-plan-summary" style="display:none;background:#4a6377;font-size:12px;padding:5px 10px;border-radius:4px">Summary</button>
   <div class="sep"></div>
   <input type="text" id="search-input" placeholder="Find node... (/)" />
@@ -258,6 +259,7 @@ body {
 
 <script src="src/expand-collapse.js"></script>
 <script src="src/plan-overlay.js"></script>
+<script src="src/diff.js"></script>
 <script src="src/viewer.js"></script>
 <script src="src/minimap.js"></script>
 <script src="src/interactions.js"></script>
@@ -265,9 +267,36 @@ body {
 (function() {
   var params = new URLSearchParams(window.location.search);
   var graphUrl = params.get('graph') || '../examples/minimal.json';
+  var compareUrl = params.get('compare');
 
   GraphViewer.init('cy', 'legend', graphUrl).then(function(result) {
     Interactions.init(result.cy, result.manager, result.moduleIds, graphUrl);
+
+    // PF-11: If ?compare=old.json is set, load old graph and compute diff
+    if (compareUrl) {
+      fetch(compareUrl).then(function(r) {
+        if (!r.ok) throw new Error('Failed to load comparison graph');
+        return r.json();
+      }).then(function(oldData) {
+        var diff = GraphDiff.compare(oldData, result.data);
+        // Store diff on graphData so setView('diff') can access it
+        GraphViewer.getGraphData()._diff = diff;
+        // Show the Diff button
+        var diffBtn = document.getElementById('btn-diff-view');
+        if (diffBtn) diffBtn.style.display = '';
+        // Auto-activate diff view
+        GraphViewer.setView('diff');
+        var viewBtns = document.querySelectorAll('.view-btn');
+        viewBtns.forEach(function(b) {
+          b.className = 'view-btn' + (b.getAttribute('data-view') === 'diff' ? ' view-active' : '');
+        });
+        document.getElementById('status').textContent =
+          'Diff: +' + diff.summary.added + ' added, ~' + diff.summary.modified + ' modified, -' + diff.summary.removed + ' removed';
+      }).catch(function(err) {
+        console.error('[diff]', err);
+        document.getElementById('status').textContent = 'Diff failed: ' + err.message;
+      });
+    }
   }).catch(function(err) {
     document.getElementById('status').textContent = 'Error: ' + err.message;
     console.error(err);

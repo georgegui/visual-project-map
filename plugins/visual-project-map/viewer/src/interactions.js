@@ -361,6 +361,7 @@ var Interactions = (function() {
         e.preventDefault();
         var views = ['module', 'provenance', 'actor', 'files'];
         if (PlanOverlay.hasPlan(GraphViewer.getGraphData())) views.push('plan');
+        if (GraphViewer.getGraphData()._diff) views.push('diff');
         var cur = GraphViewer.getView();
         var next = views[(views.indexOf(cur) + 1) % views.length];
         var viewBtns = document.querySelectorAll('.view-btn');

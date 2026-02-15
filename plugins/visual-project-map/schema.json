@@ -14,7 +14,40 @@
           "id":          { "type": "string" },
           "label":       { "type": "string" },
           "color":       { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
-          "borderColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+          "borderColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "parent":      { "type": "string", "description": "ID of parent phase module (for nesting)" },
+          "interface": {
+            "type": "object",
+            "description": "Module interface contract (inputs/outputs)",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "format": { "type": "string" },
+                    "example": { "type": "string" }
+                  },
+                  "required": ["name"]
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "format": { "type": "string" },
+                    "example": { "type": "string" }
+                  },
+                  "required": ["name"]
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -35,6 +68,33 @@
               "color":       { "type": "string" },
               "borderColor": { "type": "string" }
             }
+          },
+          "files": {
+            "type": "object",
+            "description": "File I/O annotations",
+            "properties": {
+              "reads":  { "type": "array", "items": { "type": "string" } },
+              "writes": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "_isInterfacePort": {
+            "type": "boolean",
+            "description": "True if this node is a module interface port"
+          },
+          "_portDirection": {
+            "type": "string",
+            "enum": ["input", "output"],
+            "description": "Direction of the interface port"
+          },
+          "interfaceContract": {
+            "type": "object",
+            "description": "Contract details for interface port nodes",
+            "properties": {
+              "name":        { "type": "string" },
+              "description": { "type": "string" },
+              "format":      { "type": "string" },
+              "example":     { "type": "string" }
+            }
           }
         }
       }
@@ -45,6 +105,7 @@
         "type": "object",
         "required": ["source", "target"],
         "properties": {
+          "id":     { "type": "string", "description": "Optional edge ID (auto-generated as e1, e2, ... if omitted)" },
           "source": { "type": "string" },
           "target": { "type": "string" },
           "label":  { "type": "string" },
@@ -74,6 +135,8 @@
               "label":       { "type": "string" },
               "borderStyle": { "type": "string" },
               "borderWidth": { "type": "number" },
+              "color":       { "type": "string", "description": "Background color for provenance view" },
+              "borderColor": { "type": "string", "description": "Border color for provenance view" },
               "tag": {
                 "type": "object",
                 "properties": {
