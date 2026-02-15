@@ -124,6 +124,7 @@ var GraphViewer = (function() {
       if (m.parent) nodeData.parent = m.parent;
       if (phaseIds.has(m.id)) nodeData._isPhase = true;
       if (m.interface) nodeData.interface = m.interface;
+      if (m.description) nodeData.description = m.description;
       elements.push({ group: 'nodes', data: nodeData });
     });
 
@@ -157,6 +158,8 @@ var GraphViewer = (function() {
         nodeData.parent = n.module;
       }
 
+      if (n.description) nodeData.description = n.description;
+
       if (n.files) {
         nodeData.files = n.files;
         var parts = [];
@@ -179,6 +182,7 @@ var GraphViewer = (function() {
       };
       if (e.actor) edgeData.actor = e.actor;
       if (e.details) edgeData.details = e.details;
+      if (e.description) edgeData.description = e.description;
       elements.push({ group: 'edges', data: edgeData });
     });
 
@@ -589,6 +593,11 @@ var GraphViewer = (function() {
 
       buildLegend(document.getElementById(legendId), data);
       document.querySelector('#toolbar h1').textContent = data.title;
+      var descEl = document.getElementById('graph-description');
+      if (descEl && data.description) {
+        descEl.textContent = data.description;
+        descEl.style.display = 'block';
+      }
 
       initCytoscape(containerId, elements, styles);
 

@@ -13,6 +13,7 @@
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `description` | string | One-paragraph overview of the graph's purpose and scope |
 | `legend` | object | Contains `trustLevels` definitions |
 | `plan` | object | Plan overlay annotations (see visualize-plan skill) |
 
@@ -22,6 +23,7 @@
 |-------|----------|------|-------|
 | `id` | yes | string | Unique module ID (prefix with `mod_` or `phase_`) |
 | `label` | yes | string | Display label |
+| `description` | no | string | What this module does and why it exists (1-2 sentences) |
 | `color` | yes | string | Background hex color `#rrggbb` |
 | `borderColor` | yes | string | Border hex color `#rrggbb` |
 | `parent` | no | string | ID of parent phase module (for nesting) |
@@ -33,6 +35,7 @@
 | `id` | yes | string | Unique node ID (lowercase, underscores) |
 | `module` | yes | string | Parent module ID |
 | `label` | yes | string | Display label (use `module.state` dot notation) |
+| `description` | no | string | What happens at this state or step (1-2 sentences) |
 | `style` | no | object | Visual overrides (see below) |
 
 ### Node Style
@@ -73,6 +76,7 @@ to the adjacent module's port, visualizing the data contract between modules.
 | `source` | yes | string | Source node ID |
 | `target` | yes | string | Target node ID |
 | `label` | no | string | Transition description |
+| `description` | no | string | What this transition does and why it exists (1-2 sentences) |
 | `style` | no | string | `"solid"` (default) or `"dashed"` |
 | `actor` | no | string | `"human"`, `"ai"`, `"script"`, `"mixed"` |
 | `details` | no | object | Script/IO metadata (see below) |

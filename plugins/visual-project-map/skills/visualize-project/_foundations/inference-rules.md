@@ -239,6 +239,47 @@ Only include trust levels when the project has clear provenance semantics.
 - Script names when specific: "clean_*.py", "build_registry.py"
 - Conditions: "score >= 70", "all pass", "any fail"
 
+## Description Extraction
+
+Natural language descriptions make the graph self-documenting. Extract them
+from existing project documentation — do not invent content.
+
+### Sources (priority order)
+
+| Element | Primary Source | Fallback |
+|---------|---------------|----------|
+| Graph `description` | CLAUDE.md first paragraph or "## Overview" | README.md project description |
+| Module `description` | CLAUDE.md section matching module name | README.md section, docstring in `__init__.py` |
+| Node `description` | Docstring in the script the node represents | Inline comment near the function definition |
+| Edge `description` | Prose connecting two documented steps | Script-level comment explaining the handoff |
+
+### When to include descriptions
+
+| Element | Include description? |
+|---------|---------------------|
+| Graph root | **Always** — every graph gets a description |
+| Modules | **Always** — every module gets a description |
+| Nodes: decision/gate (diamond) | **Yes** — explain the branching criteria |
+| Nodes: complex processing | **Yes** — explain what the step does |
+| Nodes: simple pass-through | **Skip** — the label is sufficient |
+| Nodes: terminals (COMPLETE, FAILED) | **Skip** — self-explanatory |
+| Edges: cross-module | **Yes** — explain what data crosses the boundary |
+| Edges: conditional/branching | **Yes** — explain the condition |
+| Edges: simple sequential within a module | **Skip** — the label is sufficient |
+
+### Module interface extraction
+
+For each module, populate `interface.inputs` and `interface.outputs`:
+
+| Signal | Interface field |
+|--------|----------------|
+| Script `open()`, `read_csv()`, CLI args | `inputs[].name` + `format` |
+| Script `to_csv()`, `json.dump()`, stdout | `outputs[].name` + `format` |
+| Data directory as input | `inputs[].name` = directory name |
+| Data directory as output | `outputs[].name` = directory name |
+| README describing data format | `inputs/outputs[].description` + `format` |
+| Example file in repo | `inputs/outputs[].example` (first few lines) |
+
 ## Edge Details Detection
 
 Populate `details` when edges represent script invocations:

@@ -1,5 +1,6 @@
 {
   "title": "Minimal Example + Plan Overlay",
+  "description": "Three-stage data pipeline with a plan overlay demonstrating proposed additions and modifications to the workflow.",
   "modules": [
     { "id": "mod_input",   "label": "Input",      "color": "#dbeafe", "borderColor": "#93c5fd" },
     { "id": "mod_process", "label": "Processing", "color": "#fef3c7", "borderColor": "#fbbf24" },
