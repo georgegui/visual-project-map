@@ -370,6 +370,67 @@ contradictions and against this catalog for duplicates.
   matches plan tasks to graph nodes/edges, and emits a `plan` field. Complements
   the `visualize-workflow` skill (F39) for plan-time visualization.
 
+## Quality of Life
+
+### F49: Runtime input validation
+- **Status**: `implemented`
+- **Files**: `src/viewer.js` (validateGraph, showErrorPanel, loadGraph error handling), `index.html` (error-panel div + CSS)
+- **Properties**: P1.1–P1.4
+- Validates graph JSON on load: required fields, duplicate IDs, dangling references,
+  circular parent chains. Blocking errors show in a modal error panel. Non-blocking
+  warnings (orphan nodes, empty graph) logged to console with status bar note.
+
+### F50: Auto-refresh / watch mode
+- **Status**: `implemented`
+- **Files**: `src/viewer.js` (watchGraph, stopWatch, reloadGraph), `src/interactions.js` (toggleWatch, W key), `index.html` (Watch button)
+- Client-side polling via HEAD requests every 2 seconds, comparing Last-Modified
+  headers. When the JSON changes, the viewer reloads in-place preserving view mode.
+  Toggle via Watch toolbar button or `W` key.
+
+### F51: Minimap
+- **Status**: `implemented`
+- **Files**: `src/minimap.js` (Minimap module), `src/interactions.js` (toggleMinimap, M key), `index.html` (canvas + CSS + button)
+- **Properties**: P6.1 (extends navigation)
+- Canvas-based overview inset in bottom-right corner showing all nodes/edges at
+  thumbnail scale with a viewport rectangle. Click to navigate. Debounced redraws
+  on pan/zoom/layout. Toggle via Minimap button or `M` key.
+
+### F52: Breadcrumb navigation
+- **Status**: `implemented`
+- **Files**: `src/interactions.js` (breadcrumb helpers, renderBreadcrumb, click handlers), `index.html` (breadcrumb div + CSS)
+- **Properties**: P6.1 (extends navigation)
+- Clickable trail bar below legend showing drill-down path (e.g. Graph > Phase > Module).
+  Tracks most-recently expanded module chain. Click "Graph" to collapse all, click any
+  ancestor to collapse everything deeper. Hidden when all modules are collapsed.
+
+### F53: Schema sync
+- **Status**: `implemented`
+- **Files**: `schema.json`, `skills/visualize-project/_foundations/graph-schema.md`
+- **Properties**: P1.1–P1.4
+- Synced `schema.json` with all properties the code actually uses: module `parent`,
+  module `interface`, node `files`, node `_isInterfacePort`/`_portDirection`/
+  `interfaceContract`, edge `id`, trustLevel `color`/`borderColor`. Updated the
+  graph-schema.md foundation doc to match.
+
+### F54: Graph diff
+- **Status**: `implemented`
+- **Files**: `src/diff.js` (GraphDiff module), `src/viewer.js` (diff styles, diff legend, diff view mode), `src/interactions.js` (V key cycling with diff), `index.html` (Diff button, diff.js script, ?compare= URL handling)
+- **Properties**: P2.9 (new)
+- Compare two graph JSON versions via `?graph=new.json&compare=old.json`. Computes
+  structural diff (added/removed/modified) for modules, nodes, and edges. Diff view
+  mode shows green/amber/red/dimmed overlay. V key cycling includes Diff when loaded.
+  Legend shows diff summary counts.
+
+### F55: Incremental regeneration
+- **Status**: `implemented`
+- **Files**: `skills/visualize-project/SKILL.md` (incremental mode section, --force flag)
+- **Properties**: P1.1–P1.4
+- When `.graphs/{name}.json` already exists, the skill uses incremental mode: re-scans
+  the project, diffs against the existing graph, preserves manual refinements (labels,
+  colors, contracts), adds new elements, and lists removals for user confirmation.
+  Saves previous version as `{name}.prev.json` for diff overlay. `--force` flag
+  skips incremental mode.
+
 ---
 
 ## Changelog
@@ -398,3 +459,10 @@ contradictions and against this catalog for duplicates.
 | 2026-02-14 | F47 | Implemented: plan tooltip/detail integration (annotation descriptions on hover/click) |
 | 2026-02-14 | F48 | Implemented: visualize-plan skill for overlaying plans onto existing graphs |
 | 2026-02-14 | P2.8 | Added: plan status via overlay glow (unused visual channel) |
+| 2026-02-15 | F49 | Implemented: runtime input validation with error panel |
+| 2026-02-15 | F50 | Implemented: auto-refresh watch mode (HEAD polling, W key) |
+| 2026-02-15 | F51 | Implemented: canvas minimap with click-to-navigate (M key) |
+| 2026-02-15 | F52 | Implemented: breadcrumb navigation for drill-down hierarchy |
+| 2026-02-15 | F53 | Implemented: schema sync (added parent, files, interface, port fields) |
+| 2026-02-15 | F54 | Implemented: graph diff view mode (?compare= URL, diff.js, green/amber/red overlay) |
+| 2026-02-15 | F55 | Implemented: incremental regeneration (skill preserves refinements, saves .prev.json) |

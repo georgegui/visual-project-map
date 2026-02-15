@@ -14,6 +14,7 @@
 | Field | Type | Description |
 |-------|------|-------------|
 | `legend` | object | Contains `trustLevels` definitions |
+| `plan` | object | Plan overlay annotations (see visualize-plan skill) |
 
 ## Module Object
 
@@ -53,10 +54,22 @@
 
 Shown on hover (tooltip), double-click (detail panel), and in Files view mode.
 
+### Interface Port Nodes (optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `_isInterfacePort` | boolean | True if this node represents a module boundary |
+| `_portDirection` | string | `"input"` or `"output"` |
+| `interfaceContract` | object | `{ name, description, format, example }` |
+
+Interface port nodes sit outside their module's compound node and connect
+to the adjacent module's port, visualizing the data contract between modules.
+
 ## Edge Object
 
 | Field | Required | Type | Values |
 |-------|----------|------|--------|
+| `id` | no | string | Optional edge ID (auto-generated as e1, e2, ... if omitted) |
 | `source` | yes | string | Source node ID |
 | `target` | yes | string | Target node ID |
 | `label` | no | string | Transition description |
@@ -83,4 +96,6 @@ Each key maps to:
 | `label` | string | Human-readable name |
 | `borderStyle` | string | `"solid"` or `"dashed"` |
 | `borderWidth` | number | Border thickness (1.5 normal, 3.5 thick) |
+| `color` | string | Background color for provenance view |
+| `borderColor` | string | Border color for provenance view |
 | `tag` | object | Optional `{ text, bg, color }` for badge display |

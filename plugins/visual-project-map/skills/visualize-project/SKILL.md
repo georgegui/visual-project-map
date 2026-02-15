@@ -31,6 +31,7 @@ Parse `$ARGUMENTS` as follows:
 | `--focus path` | (none) | Limit scan to a subdirectory |
 | `--depth N` | `2` | Module nesting: `1` = flat, `2` = phases + modules |
 | `--title "..."` | Auto from directory name | Graph title override |
+| `--force` | `false` | Skip incremental mode; regenerate from scratch |
 
 Examples:
 - `/visualize-project` — current project
@@ -400,9 +401,61 @@ Only visualize scripts that are:
 3. Have clear I/O relationships with other visualized scripts
 Do not attempt to graph every utility or helper script.
 
-### Already has a graph
-If `.graphs/{name}.json` exists, warn the user and ask whether to
-overwrite or use a different filename.
+### Already has a graph (incremental regeneration)
+If `.graphs/{name}.json` exists, use **incremental mode** instead of
+rebuilding from scratch:
+
+1. **Read the existing graph** — load `.graphs/{name}.json` and build a
+   lookup of all existing module IDs, node IDs, and edge keys
+   (`source->target`).
+
+2. **Re-scan the project** — run Phase 1 discovery as normal to get a
+   fresh mental model of the project structure.
+
+3. **Diff against existing** — for each element in the fresh analysis:
+   - If an existing module/node/edge still matches the codebase: **keep it
+     unchanged** (preserve its ID, label, color, and any manual refinements
+     the user may have made).
+   - If a new script/step/directory appears: **add** the corresponding
+     module/node/edge with a new ID following the naming convention.
+   - If an existing element's source (script, docs) no longer exists in
+     the codebase: mark it as a candidate for **removal** but do NOT
+     auto-remove — list it for the user to confirm.
+   - If a label, module assignment, or edge relationship changed:
+     **update** only the changed fields, keeping the existing ID.
+
+4. **Preserve manual refinements** — the following fields are considered
+   user-editable and must NOT be overwritten during incremental updates:
+   - Node/module `label` (if it differs from what the skill would generate
+     and the underlying source hasn't changed)
+   - `style.color`, `style.borderColor` overrides
+   - `interfaceContract` content
+   - `plan` field (belongs to visualize-plan, not this skill)
+   - Edge `label` and `details.docs`
+
+5. **Write with diff** — save to `.graphs/{name}.json` and also save the
+   previous version to `.graphs/{name}.prev.json` so the viewer can show
+   a diff overlay via `?graph=.../{name}.json&compare=.../{name}.prev.json`.
+
+6. **Present changes** — before writing, show a summary table:
+   ```
+   Incremental Update: "Project Title"
+     Modules: 8 (1 added, 0 removed)
+     Nodes:   24 → 27 (+3 added, 0 removed)
+     Edges:   31 → 34 (+3 added, 0 removed)
+
+     New nodes:
+       + cln_dedupe2 in mod_clean  (new script: scripts/clean/dedupe_v2.py)
+       + exp_parquet in mod_export (new script: scripts/export/to_parquet.py)
+       + exp_validate in mod_export (new step from CLAUDE.md)
+
+     Candidates for removal (confirm before deleting):
+       ? exp_csv in mod_export (scripts/export/to_csv.py no longer exists)
+   ```
+   Ask the user to confirm additions and removals before writing.
+
+If the user passes `--force` or explicitly asks to overwrite, skip
+incremental mode and regenerate from scratch.
 
 ---
 

@@ -7,8 +7,15 @@ var Interactions = (function() {
   var pathTraceActive = false;
   var labelsHidden = true;
   var autofocusMode = false;
+  var watching = false;
+  var breadcrumbPath = [];
+  var _cy, _manager, _moduleIds, _graphUrl;
 
-  function init(cy, manager, moduleIds) {
+  function init(cy, manager, moduleIds, graphUrl) {
+    _cy = cy;
+    _manager = manager;
+    _moduleIds = moduleIds;
+    _graphUrl = graphUrl;
     tooltipEl = document.getElementById('tooltip');
     statusEl = document.getElementById('status');
     detailPanel = document.getElementById('detail-panel');
@@ -63,9 +70,11 @@ var Interactions = (function() {
             GraphViewer.applyCollapsedStyle(child.id());
           }
         });
+        updateBreadcrumbForExpand(id, cy);
       } else if (node.isParent()) {
         manager.collapse(id);
         GraphViewer.applyCollapsedStyle(id);
+        updateBreadcrumbForCollapse(id);
       }
 
       // Run layout silently to compute final state
@@ -352,6 +361,7 @@ var Interactions = (function() {
         e.preventDefault();
         var views = ['module', 'provenance', 'actor', 'files'];
         if (PlanOverlay.hasPlan(GraphViewer.getGraphData())) views.push('plan');
+        if (GraphViewer.getGraphData()._diff) views.push('diff');
         var cur = GraphViewer.getView();
         var next = views[(views.indexOf(cur) + 1) % views.length];
         var viewBtns = document.querySelectorAll('.view-btn');
@@ -359,9 +369,59 @@ var Interactions = (function() {
         GraphViewer.setView(next);
         updatePlanUI(next);
       }
+      if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMinimap(); }
+      if (e.key === 'w' || e.key === 'W') { e.preventDefault(); toggleWatch(graphUrl); }
       if (e.key === 'Escape') { hideDetailPanel(); clearPathTrace(cy); updateStatus(manager, moduleIds); }
       if (e.key === '/' && searchInput) { e.preventDefault(); searchInput.focus(); }
     });
+
+    // PF-2: Watch button
+    var watchBtn = document.getElementById('btn-watch');
+    if (watchBtn) {
+      watchBtn.addEventListener('click', function() { toggleWatch(graphUrl); });
+    }
+
+    // PF-3: Minimap
+    if (typeof Minimap !== 'undefined') {
+      Minimap.init('minimap', cy);
+    }
+    var minimapBtn = document.getElementById('btn-minimap');
+    if (minimapBtn) {
+      minimapBtn.addEventListener('click', function() { toggleMinimap(); });
+    }
+
+    // PF-4: Breadcrumb click handler
+    var bcEl = document.getElementById('breadcrumb');
+    if (bcEl) {
+      bcEl.addEventListener('click', function(e) {
+        var target = e.target.closest('[data-action]');
+        if (!target) return;
+        var action = target.getAttribute('data-action');
+        if (action === 'collapse-all') {
+          collapseAll(cy, manager, moduleIds);
+          breadcrumbPath = [];
+          renderBreadcrumb(cy);
+        } else if (action === 'collapse-to') {
+          var modId = target.getAttribute('data-module');
+          var idx = breadcrumbPath.indexOf(modId);
+          if (idx >= 0) {
+            // Collapse everything deeper than this level
+            var toCollapse = breadcrumbPath.slice(idx + 1);
+            for (var i = toCollapse.length - 1; i >= 0; i--) {
+              if (!manager.isCollapsed(toCollapse[i])) {
+                manager.collapse(toCollapse[i]);
+                GraphViewer.applyCollapsedStyle(toCollapse[i]);
+              }
+            }
+            breadcrumbPath = breadcrumbPath.slice(0, idx + 1);
+            renderBreadcrumb(cy);
+            GraphViewer.runLayout({ animate: true, fit: true, padding: 50 });
+            GraphViewer.refreshView();
+            updateStatus(manager, moduleIds);
+          }
+        }
+      });
+    }
 
     cy.edges().addClass('labels-hidden');
     cy.on('add', 'edge', function(e) {
@@ -457,6 +517,8 @@ var Interactions = (function() {
     GraphViewer.runLayout({ fit: true });
     GraphViewer.refreshView();
     updateStatus(manager, moduleIds);
+    breadcrumbPath = [];
+    renderBreadcrumb(cy);
   }
 
   function collapseAll(cy, manager, moduleIds) {
@@ -475,6 +537,8 @@ var Interactions = (function() {
     GraphViewer.fit(40);
     GraphViewer.refreshView();
     updateStatus(manager, moduleIds);
+    breadcrumbPath = [];
+    renderBreadcrumb(cy);
   }
 
   function updateStatus(manager, moduleIds) {
@@ -795,5 +859,92 @@ var Interactions = (function() {
     }
   }
 
-  return { init: init };
+  // --- PF-4: Breadcrumb helpers ---
+  function getModuleParentChain(moduleId, cy) {
+    var chain = [moduleId];
+    var node = cy.getElementById(moduleId);
+    while (node.length && node.data('parent')) {
+      var pid = node.data('parent');
+      chain.unshift(pid);
+      node = cy.getElementById(pid);
+    }
+    return chain;
+  }
+
+  function updateBreadcrumbForExpand(moduleId, cy) {
+    breadcrumbPath = getModuleParentChain(moduleId, cy);
+    renderBreadcrumb(cy);
+  }
+
+  function updateBreadcrumbForCollapse(moduleId) {
+    var idx = breadcrumbPath.indexOf(moduleId);
+    if (idx >= 0) {
+      breadcrumbPath = breadcrumbPath.slice(0, idx);
+    }
+    renderBreadcrumb(_cy);
+  }
+
+  function renderBreadcrumb(cy) {
+    var el = document.getElementById('breadcrumb');
+    var cyEl = document.getElementById('cy');
+    if (!el) return;
+
+    if (breadcrumbPath.length === 0) {
+      el.style.display = 'none';
+      if (cyEl) cyEl.style.top = '80px';
+      return;
+    }
+
+    el.style.display = 'block';
+    if (cyEl) cyEl.style.top = '106px';
+
+    var html = '<span data-action="collapse-all">Graph</span>';
+    breadcrumbPath.forEach(function(id, i) {
+      var node = cy.getElementById(id);
+      var label = node.length ? node.data('label') : id;
+      var isLast = (i === breadcrumbPath.length - 1);
+      html += '<span class="bc-sep">&rsaquo;</span>';
+      if (isLast) {
+        html += '<span class="bc-current">' + escapeHtml(label) + '</span>';
+      } else {
+        html += '<span data-action="collapse-to" data-module="' + escapeHtml(id) + '">' + escapeHtml(label) + '</span>';
+      }
+    });
+    el.innerHTML = html;
+  }
+
+  // --- PF-2: Watch toggle ---
+  function toggleWatch(graphUrl) {
+    watching = !watching;
+    var btn = document.getElementById('btn-watch');
+    if (btn) btn.className = watching ? 'toggle-on' : 'toggle-off';
+
+    if (watching) {
+      GraphViewer.watchGraph(graphUrl, function() {
+        GraphViewer.reloadGraph('cy', 'legend', graphUrl).then(function(result) {
+          if (result) {
+            _cy = result.cy;
+            _manager = result.manager;
+            _moduleIds = result.moduleIds;
+            if (typeof Minimap !== 'undefined') Minimap.setCy(_cy);
+            breadcrumbPath = [];
+            renderBreadcrumb(_cy);
+            updateStatus(_manager, _moduleIds);
+          }
+        });
+      });
+    } else {
+      GraphViewer.stopWatch();
+    }
+  }
+
+  // --- PF-3: Minimap toggle ---
+  function toggleMinimap() {
+    if (typeof Minimap === 'undefined') return;
+    var vis = Minimap.toggle();
+    var btn = document.getElementById('btn-minimap');
+    if (btn) btn.className = vis ? 'toggle-on' : 'toggle-off';
+  }
+
+  return { init: init, updateStatus: updateStatus };
 })();
