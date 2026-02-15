@@ -103,6 +103,34 @@ body {
 #detail-panel .dp-list { list-style: none; padding: 0; margin: 0; }
 #detail-panel .dp-list li { padding: 1px 0; }
 #detail-panel .dp-list li::before { content: ''; display: none; }
+#detail-panel .dp-section-label {
+  font-size: 10px; font-weight: 700; color: #3b82f6; text-transform: uppercase;
+  letter-spacing: 1px; margin: 12px 0 6px; padding-bottom: 4px;
+  border-bottom: 2px solid #dbeafe;
+}
+#detail-panel .dp-section-label:first-of-type { margin-top: 0; }
+#detail-panel .dp-iface-item {
+  margin-bottom: 12px; padding-left: 10px;
+  border-left: 3px solid #e2e8f0;
+}
+#detail-panel .dp-iface-name {
+  font-weight: 600; font-size: 13px; color: #1e293b; margin-bottom: 2px;
+}
+#detail-panel .dp-iface-desc {
+  font-size: 12px; color: #64748b; margin-bottom: 6px; line-height: 1.4;
+}
+#detail-panel .dp-example {
+  background: #f8fafc; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0;
+  font-size: 11px; white-space: pre-wrap; word-break: break-all;
+  max-height: 80px; overflow-y: auto; line-height: 1.4;
+}
+#detail-panel .dp-expand-btn {
+  display: block; width: 100%; margin-top: 12px; padding: 8px;
+  background: #3498db; color: white; border: none; border-radius: 4px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+#detail-panel .dp-expand-btn:hover { background: #2980b9; }
+#detail-panel.dp-wide { max-width: 520px; max-height: 80vh; overflow-y: auto; }
 #detail-backdrop {
   display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   z-index: 250; background: rgba(0,0,0,0.15);
@@ -176,7 +204,7 @@ body {
 <div id="detail-panel"></div>
 <div id="plan-summary-panel"></div>
 <div id="status">Loading...</div>
-<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: toggle &middot; Click node: trace path &middot; Dbl-click node: details &middot; /: search &middot; E: expand &middot; C: collapse &middot; L: labels &middot; A: autofocus &middot; V: view mode &middot; Esc: clear</div>
+<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: interface/toggle &middot; Click node: trace path &middot; Dbl-click node: details &middot; /: search &middot; E: expand &middot; C: collapse &middot; L: labels &middot; A: autofocus &middot; V: view mode &middot; Esc: clear</div>
 
 <script src="src/expand-collapse.js"></script>
 <script src="src/plan-overlay.js"></script>

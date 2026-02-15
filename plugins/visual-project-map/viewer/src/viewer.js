@@ -32,6 +32,7 @@ var GraphViewer = (function() {
       };
       if (m.parent) nodeData.parent = m.parent;
       if (phaseIds.has(m.id)) nodeData._isPhase = true;
+      if (m.interface) nodeData.interface = m.interface;
       elements.push({ group: 'nodes', data: nodeData });
     });
 
@@ -46,7 +47,6 @@ var GraphViewer = (function() {
       var td = trustDefs[trustKey] || {};
       var nodeData = {
         id: n.id,
-        parent: n.module,
         label: n.label,
         bg: s.color || mod.color,
         bc: s.borderColor || mod.borderColor,
@@ -55,6 +55,17 @@ var GraphViewer = (function() {
         trustBorderColor: td.borderColor || '#94a3b8',
         nodeShape: s.shape || 'round-rectangle'
       };
+
+      if (n._isInterfacePort) {
+        nodeData._isInterfacePort = true;
+        nodeData._portDirection = n._portDirection || 'input';
+        nodeData._moduleRef = n.module;
+        if (n.interfaceContract) nodeData.interfaceContract = n.interfaceContract;
+        nodeData.nodeShape = 'round-rectangle';
+      } else {
+        nodeData.parent = n.module;
+      }
+
       if (n.files) {
         nodeData.files = n.files;
         var parts = [];
@@ -135,6 +146,26 @@ var GraphViewer = (function() {
           'padding-left': 10, 'padding-right': 10,
           'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
           'font-size': 11, 'color': '#1e293b', 'text-wrap': 'none'
+        }
+      },
+      { selector: 'node[_isInterfacePort]',
+        style: {
+          'width': 130, 'height': 24,
+          'font-size': 9, 'font-weight': 600,
+          'border-width': 2, 'border-style': 'solid',
+          'shape': 'round-rectangle',
+          'text-valign': 'center', 'text-halign': 'center',
+          'color': '#475569'
+        }
+      },
+      { selector: 'node[_portDirection="input"]',
+        style: {
+          'background-color': '#eff6ff', 'border-color': '#60a5fa'
+        }
+      },
+      { selector: 'node[_portDirection="output"]',
+        style: {
+          'background-color': '#f0fdf4', 'border-color': '#4ade80'
         }
       }
     ];
