@@ -149,6 +149,8 @@ var Interactions = (function() {
       var details = edge.data('details');
       var tipText = label;
       if (details && details.script) tipText = (label ? label + '  \u2192  ' : '') + details.script;
+      var desc = edge.data('description');
+      if (desc) tipText = (tipText ? tipText + ' \u2014 ' : '') + desc;
       if (GraphViewer.getView() === 'plan') {
         var edgeKey = edge.data('source') + '->' + edge.data('target');
         var pa = PlanOverlay.getAnnotation(GraphViewer.getGraphData(), 'edges', edgeKey);
@@ -181,7 +183,8 @@ var Interactions = (function() {
     cy.on('tap', 'edge', function(e) {
       var edge = e.target;
       var details = edge.data('details');
-      if (!details) return;
+      var desc = edge.data('description');
+      if (!details && !desc) return;
       showDetailPanel(edge);
     });
 
@@ -189,7 +192,8 @@ var Interactions = (function() {
       var node = e.target;
       if (node.data('_isModule')) return;
       var files = node.data('files');
-      if (!files) return;
+      var desc = node.data('description');
+      if (!files && !desc) return;
       showNodeDetailPanel(node);
     });
 
@@ -208,6 +212,7 @@ var Interactions = (function() {
 
       var tipLines = [];
       var files = node.data('files');
+      var desc = node.data('description');
 
       if (isPlanView) {
         var pa = PlanOverlay.getAnnotation(GraphViewer.getGraphData(), 'nodes', node.id());
@@ -218,10 +223,13 @@ var Interactions = (function() {
         } else {
           tipLines.push(node.data('_origLabel') || node.data('label'));
         }
-      } else if (files) {
-        tipLines.push(node.data('label'));
-        if (files.reads && files.reads.length) tipLines.push('\u{1F4D6} ' + files.reads.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
-        if (files.writes && files.writes.length) tipLines.push('\u{1F4DD} ' + files.writes.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
+      } else {
+        if (desc || files) tipLines.push(node.data('label'));
+        if (desc) tipLines.push(desc);
+        if (files) {
+          if (files.reads && files.reads.length) tipLines.push('\u{1F4D6} ' + files.reads.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
+          if (files.writes && files.writes.length) tipLines.push('\u{1F4DD} ' + files.writes.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
+        }
       }
 
       if (tipLines.length) {
@@ -263,15 +271,20 @@ var Interactions = (function() {
     cy.on('mouseover', 'node[_isModule]', function(e) {
       var node = e.target;
       var iface = node.data('interface');
-      if (!iface || !manager.isCollapsed(node.id())) return;
+      var desc = node.data('description');
+      if (!iface && !desc) return;
+      if (!manager.isCollapsed(node.id()) && !desc) return;
       var tipLines = ['<strong>' + escapeHtml(node.data('label')) + '</strong>'];
-      if (iface.inputs && iface.inputs.length) {
-        tipLines.push('<span style="color:#93c5fd">IN:</span> ' + iface.inputs.map(function(i) { return escapeHtml(i.name); }).join(', '));
+      if (desc) tipLines.push(escapeHtml(desc.length > 120 ? desc.substring(0, 120) + '...' : desc));
+      if (iface && manager.isCollapsed(node.id())) {
+        if (iface.inputs && iface.inputs.length) {
+          tipLines.push('<span style="color:#93c5fd">IN:</span> ' + iface.inputs.map(function(i) { return escapeHtml(i.name); }).join(', '));
+        }
+        if (iface.outputs && iface.outputs.length) {
+          tipLines.push('<span style="color:#86efac">OUT:</span> ' + iface.outputs.map(function(o) { return escapeHtml(o.name); }).join(', '));
+        }
+        tipLines.push('<span style="color:#94a3b8;font-size:10px">Click for details</span>');
       }
-      if (iface.outputs && iface.outputs.length) {
-        tipLines.push('<span style="color:#86efac">OUT:</span> ' + iface.outputs.map(function(o) { return escapeHtml(o.name); }).join(', '));
-      }
-      tipLines.push('<span style="color:#94a3b8;font-size:10px">Click for details</span>');
       tooltipEl.innerHTML = tipLines.join('<br>');
       tooltipEl.style.display = 'block';
       tooltipEl.style.whiteSpace = 'normal';
@@ -589,11 +602,16 @@ var Interactions = (function() {
   function showModuleInterfacePanel(node, cy, manager, moduleIds) {
     var label = node.data('label') || '(module)';
     var iface = node.data('interface') || {};
+    var desc = node.data('description');
     var id = node.id();
 
     var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(label) + '</span>';
     html += '<span class="dp-actor" style="background:#dbeafe;color:#1e40af">Interface</span>';
     html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
+
+    if (desc) {
+      html += '<div class="dp-desc">' + escapeHtml(desc) + '</div>';
+    }
 
     if (iface.inputs && iface.inputs.length) {
       html += '<div class="dp-section-label">Inputs</div>';
@@ -687,6 +705,7 @@ var Interactions = (function() {
     var label = edge.data('label') || '(edge)';
     var actor = edge.data('actor');
     var details = edge.data('details') || {};
+    var desc = edge.data('description');
 
     var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(label) + '</span>';
     if (actor) {
@@ -695,6 +714,9 @@ var Interactions = (function() {
     }
     html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
 
+    if (desc) {
+      html += '<div class="dp-desc">' + escapeHtml(desc) + '</div>';
+    }
     if (details.script) {
       html += '<div class="dp-row"><div class="dp-label">Script</div><div class="dp-value">' + escapeHtml(details.script) + '</div></div>';
     }
@@ -738,6 +760,7 @@ var Interactions = (function() {
     var label = node.data('label') || '(node)';
     var trust = node.data('trust') || '';
     var files = node.data('files') || {};
+    var desc = node.data('description');
     var gd = GraphViewer.getGraphData();
     var trustDefs = (gd && gd.legend && gd.legend.trustLevels) || {};
     var td = trustDefs[trust];
@@ -748,6 +771,9 @@ var Interactions = (function() {
     }
     html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
 
+    if (desc) {
+      html += '<div class="dp-desc">' + escapeHtml(desc) + '</div>';
+    }
     if (td) {
       html += '<div class="dp-row"><div class="dp-label">Trust</div><div class="dp-value">' + escapeHtml(td.label) + '</div></div>';
     }

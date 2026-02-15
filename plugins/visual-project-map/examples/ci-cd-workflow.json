@@ -1,5 +1,6 @@
 {
   "title": "CI/CD Pipeline",
+  "description": "Continuous integration and deployment pipeline with two phases: build and test (compile, lint, unit tests) followed by staged deployment to production with rollback capability.",
   "modules": [
     { "id": "phase_build",  "label": "Build & Test", "color": "#e8edf3", "borderColor": "#a8b8cc" },
     { "id": "phase_deploy", "label": "Deploy",       "color": "#f3ede8", "borderColor": "#ccb8a8" },

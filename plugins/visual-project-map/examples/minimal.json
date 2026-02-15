@@ -1,33 +1,45 @@
 {
   "title": "Minimal Example",
+  "description": "Three-stage data pipeline demonstrating input validation, AI-assisted processing with human review, and terminal states for success and failure paths.",
   "modules": [
-    { "id": "mod_input",   "label": "Input",      "color": "#dbeafe", "borderColor": "#93c5fd" },
-    { "id": "mod_process", "label": "Processing", "color": "#fef3c7", "borderColor": "#fbbf24" },
-    { "id": "mod_output",  "label": "Output",     "color": "#d1fae5", "borderColor": "#6ee7b7" }
+    { "id": "mod_input",   "label": "Input",      "color": "#dbeafe", "borderColor": "#93c5fd",
+      "description": "Ingests raw data and validates it against the expected schema." },
+    { "id": "mod_process", "label": "Processing", "color": "#fef3c7", "borderColor": "#fbbf24",
+      "description": "Cleans validated data, runs AI review, and requires human approval before output." },
+    { "id": "mod_output",  "label": "Output",     "color": "#d1fae5", "borderColor": "#6ee7b7",
+      "description": "Terminal states for successfully processed or failed records." }
   ],
   "nodes": [
     { "id": "raw",      "module": "mod_input",   "label": "raw_data",       "style": { "trust": "normal" } },
-    { "id": "valid",    "module": "mod_input",   "label": "validated",      "style": { "trust": "auto" } },
-    { "id": "rejected", "module": "mod_input",   "label": "rejected",       "style": { "trust": "auto" } },
+    { "id": "valid",    "module": "mod_input",   "label": "validated",      "style": { "trust": "auto" },
+      "description": "Records that passed schema validation and are ready for cleaning." },
+    { "id": "rejected", "module": "mod_input",   "label": "rejected",       "style": { "trust": "auto" },
+      "description": "Records that failed schema validation on first pass." },
 
     { "id": "clean",    "module": "mod_process", "label": "cleaned",        "style": { "trust": "auto" } },
-    { "id": "reviewed", "module": "mod_process", "label": "ai_reviewed",    "style": { "trust": "ai" } },
-    { "id": "approved", "module": "mod_process", "label": "human_approved", "style": { "trust": "verified" } },
+    { "id": "reviewed", "module": "mod_process", "label": "ai_reviewed",    "style": { "trust": "ai" },
+      "description": "AI has reviewed the cleaned data for quality issues and flagged potential problems." },
+    { "id": "approved", "module": "mod_process", "label": "human_approved", "style": { "trust": "verified" },
+      "description": "A human reviewer has confirmed the AI assessment and approved the record." },
 
     { "id": "done",     "module": "mod_output",  "label": "COMPLETE",       "style": { "trust": "normal" } },
     { "id": "failed",   "module": "mod_output",  "label": "FAILED",        "style": { "trust": "normal", "color": "#fee2e2", "borderColor": "#fca5a5" } }
   ],
   "edges": [
     { "source": "raw",      "target": "valid",    "label": "validate",       "style": "solid" },
-    { "source": "raw",      "target": "rejected", "label": "invalid",        "style": "solid" },
-    { "source": "valid",    "target": "clean",    "label": "clean",          "style": "solid" },
+    { "source": "raw",      "target": "rejected", "label": "invalid",        "style": "solid",
+      "description": "Records failing schema validation are routed to the rejected state." },
+    { "source": "valid",    "target": "clean",    "label": "clean",          "style": "solid",
+      "description": "Validated records cross from Input to Processing for cleaning and review." },
     { "source": "clean",    "target": "reviewed", "label": "AI review",      "style": "solid" },
     { "source": "reviewed", "target": "approved", "label": "human confirms", "style": "solid" },
-    { "source": "reviewed", "target": "clean",    "label": "errors found",   "style": "dashed" },
+    { "source": "reviewed", "target": "clean",    "label": "errors found",   "style": "dashed",
+      "description": "If AI review finds quality issues, the record loops back for re-cleaning." },
     { "source": "approved", "target": "done",     "label": "finalize",       "style": "solid" },
     { "source": "rejected", "target": "failed",   "label": "excluded",       "style": "solid" },
     { "source": "clean",    "target": "failed",   "label": "unfixable",      "style": "solid" },
-    { "source": "failed",   "target": "raw",      "label": "retry",          "style": "dashed" }
+    { "source": "failed",   "target": "raw",      "label": "retry",          "style": "dashed",
+      "description": "Failed records can be manually corrected and re-submitted for processing." }
   ],
   "legend": {
     "trustLevels": {

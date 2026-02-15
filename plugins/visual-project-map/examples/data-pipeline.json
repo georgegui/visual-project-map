@@ -1,27 +1,44 @@
 {
   "title": "Data Pipeline",
+  "description": "End-to-end ETL pipeline that fetches data from external APIs, transforms and enriches records with AI, validates quality through human review, and loads approved data into production.",
   "modules": [
-    { "id": "mod_ingest",    "label": "Data Ingestion",      "color": "#dbeafe", "borderColor": "#93c5fd" },
-    { "id": "mod_transform", "label": "Data Transformation", "color": "#e0e7ff", "borderColor": "#a5b4fc" },
-    { "id": "mod_validate",  "label": "Validation",          "color": "#fff7ed", "borderColor": "#fdba74" },
-    { "id": "mod_load",      "label": "Loading",             "color": "#f0fdf4", "borderColor": "#86efac" },
+    { "id": "mod_ingest",    "label": "Data Ingestion",      "color": "#dbeafe", "borderColor": "#93c5fd",
+      "description": "Fetches raw data from configured API endpoints, parses responses, and stores raw files for downstream processing.",
+      "interface": {
+        "inputs": [{ "name": "sources_config", "description": "API endpoint configuration", "format": "YAML" }],
+        "outputs": [{ "name": "raw_files", "description": "Parsed JSON files stored in data/raw/", "format": "JSON, one file per API response" }]
+      }
+    },
+    { "id": "mod_transform", "label": "Data Transformation", "color": "#e0e7ff", "borderColor": "#a5b4fc",
+      "description": "Normalizes field formats, removes duplicates, and enriches records with AI-generated metadata." },
+    { "id": "mod_validate",  "label": "Validation",          "color": "#fff7ed", "borderColor": "#fdba74",
+      "description": "Validates data schema and quality, then routes records through human review before approval." },
+    { "id": "mod_load",      "label": "Loading",             "color": "#f0fdf4", "borderColor": "#86efac",
+      "description": "Stages validated data and promotes it to the production database after final checks." },
     { "id": "mod_term",      "label": "Terminals",           "color": "#f1f5f9", "borderColor": "#94a3b8" }
   ],
   "nodes": [
-    { "id": "ing_fetch",   "module": "mod_ingest",    "label": "fetch_api",       "style": { "trust": "normal" } },
+    { "id": "ing_fetch",   "module": "mod_ingest",    "label": "fetch_api",       "style": { "trust": "normal" },
+      "description": "Calls configured external APIs and captures raw JSON responses." },
     { "id": "ing_parse",   "module": "mod_ingest",    "label": "parse_response",  "style": { "trust": "auto" } },
     { "id": "ing_store",   "module": "mod_ingest",    "label": "store_raw",       "style": { "trust": "auto" } },
 
     { "id": "tfm_normalize", "module": "mod_transform", "label": "normalize",      "style": { "trust": "auto" } },
-    { "id": "tfm_dedup",     "module": "mod_transform", "label": "deduplicate",    "style": { "trust": "auto" } },
-    { "id": "tfm_enrich",    "module": "mod_transform", "label": "enrich_fields",  "style": { "trust": "ai" } },
+    { "id": "tfm_dedup",     "module": "mod_transform", "label": "deduplicate",    "style": { "trust": "auto" },
+      "description": "Removes exact and near-duplicate records using title and identifier matching." },
+    { "id": "tfm_enrich",    "module": "mod_transform", "label": "enrich_fields",  "style": { "trust": "ai" },
+      "description": "Uses an LLM to generate missing metadata fields like categories and summaries." },
 
-    { "id": "val_schema",  "module": "mod_validate", "label": "schema_check",  "style": { "trust": "auto", "shape": "diamond" } },
-    { "id": "val_quality", "module": "mod_validate", "label": "quality_score", "style": { "trust": "ai" } },
-    { "id": "val_approve", "module": "mod_validate", "label": "human_review",  "style": { "trust": "verified" } },
+    { "id": "val_schema",  "module": "mod_validate", "label": "schema_check",  "style": { "trust": "auto", "shape": "diamond" },
+      "description": "Validates each record against the expected JSON schema. Invalid records are sent back for re-normalization or marked as unfixable." },
+    { "id": "val_quality", "module": "mod_validate", "label": "quality_score", "style": { "trust": "ai" },
+      "description": "AI-generated quality score based on completeness, consistency, and accuracy heuristics." },
+    { "id": "val_approve", "module": "mod_validate", "label": "human_review",  "style": { "trust": "verified" },
+      "description": "Human reviewer inspects flagged records and decides to approve, rework, or reject." },
 
     { "id": "load_stage", "module": "mod_load", "label": "load_staging",    "style": { "trust": "auto" } },
-    { "id": "load_prod",  "module": "mod_load", "label": "load_production", "style": { "trust": "verified" } },
+    { "id": "load_prod",  "module": "mod_load", "label": "load_production", "style": { "trust": "verified" },
+      "description": "Final promotion to production database after staging validation passes." },
 
     { "id": "COMPLETE", "module": "mod_term", "label": "COMPLETE", "style": { "trust": "normal", "color": "#d1fae5", "borderColor": "#6ee7b7" } },
     { "id": "FAILED",   "module": "mod_term", "label": "FAILED",   "style": { "trust": "normal", "color": "#fee2e2", "borderColor": "#fca5a5" } }
@@ -31,21 +48,25 @@
       "details": { "script": "scripts/ingest/fetch.py", "input": ["config/sources.yaml"], "output": ["data/raw/"], "docs": "Fetches data from configured API endpoints" } },
     { "source": "ing_parse", "target": "ing_store", "label": "parsed records", "style": "solid", "actor": "script" },
     { "source": "ing_store", "target": "tfm_normalize", "label": "raw files", "style": "solid", "actor": "script",
+      "description": "Raw JSON files are handed off from ingestion to transformation for normalization.",
       "details": { "script": "scripts/transform/normalize.py", "input": ["data/raw/"], "output": ["data/normalized/"], "updates": ["manifest.json"] } },
 
     { "source": "tfm_normalize", "target": "tfm_dedup", "label": "normalized", "style": "solid", "actor": "script" },
     { "source": "tfm_dedup", "target": "tfm_enrich", "label": "unique records", "style": "solid", "actor": "script" },
-    { "source": "tfm_enrich", "target": "val_schema", "label": "enriched", "style": "solid", "actor": "ai" },
+    { "source": "tfm_enrich", "target": "val_schema", "label": "enriched", "style": "solid", "actor": "ai",
+      "description": "AI-enriched records are passed to validation for schema and quality checks." },
 
     { "source": "val_schema", "target": "val_quality", "label": "schema valid", "style": "solid", "actor": "script" },
-    { "source": "val_schema", "target": "tfm_normalize", "label": "schema invalid", "style": "dashed", "actor": "script" },
+    { "source": "val_schema", "target": "tfm_normalize", "label": "schema invalid", "style": "dashed", "actor": "script",
+      "description": "Records failing schema validation are sent back to normalization for correction." },
     { "source": "val_schema", "target": "FAILED", "label": "unfixable", "style": "dashed", "actor": "script" },
     { "source": "val_quality", "target": "val_approve", "label": "score above threshold", "style": "solid", "actor": "ai",
       "details": { "script": "scripts/validate/quality.py", "input": ["data/normalized/", "config/quality_rules.yaml"], "output": ["reports/quality_scores.csv"] } },
     { "source": "val_quality", "target": "FAILED", "label": "low quality", "style": "dashed", "actor": "ai" },
 
     { "source": "val_approve", "target": "load_stage", "label": "approved", "style": "solid", "actor": "human" },
-    { "source": "val_approve", "target": "tfm_normalize", "label": "needs rework", "style": "dashed", "actor": "human" },
+    { "source": "val_approve", "target": "tfm_normalize", "label": "needs rework", "style": "dashed", "actor": "human",
+      "description": "Human reviewer sends records back to normalization when quality issues need manual correction." },
     { "source": "load_stage", "target": "load_prod", "label": "staging OK", "style": "solid", "actor": "script" },
     { "source": "load_prod", "target": "COMPLETE", "label": "deployed", "style": "solid", "actor": "human" },
     { "source": "load_stage", "target": "FAILED", "label": "staging error", "style": "dashed", "actor": "script" }

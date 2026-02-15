@@ -166,6 +166,11 @@ body {
   font-size: 11px; white-space: pre-wrap; word-break: break-all;
   max-height: 80px; overflow-y: auto; line-height: 1.4;
 }
+#detail-panel .dp-desc {
+  font-size: 12px; color: #475569; line-height: 1.5; margin-bottom: 10px;
+  padding: 6px 10px; background: #f8fafc; border-radius: 4px;
+  border-left: 3px solid #94a3b8;
+}
 #detail-panel .dp-expand-btn {
   display: block; width: 100%; margin-top: 12px; padding: 8px;
   background: #3498db; color: white; border: none; border-radius: 4px;
@@ -243,6 +248,7 @@ body {
 </div>
 
 <div id="legend"></div>
+<div id="graph-description" style="display:none;position:fixed;top:80px;left:0;right:0;z-index:88;background:#f0f4f8;border-bottom:1px solid #e2e8f0;padding:4px 20px;font-size:12px;color:#475569;line-height:1.4;max-height:40px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:help" title="Graph description"></div>
 <div id="breadcrumb"></div>
 <div id="cy"></div>
 <canvas id="minimap" width="200" height="150"></canvas>

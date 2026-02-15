@@ -109,9 +109,11 @@ If the update still shows the old version, uninstall and reinstall:
 
 ## Input JSON Schema
 
-Validated by `schema.json`. Four required top-level fields: `title`, `modules`, `nodes`, `edges`. Optional `legend` with `trustLevels`.
+Validated by `schema.json`. Four required top-level fields: `title`, `modules`, `nodes`, `edges`. Optional `legend` with `trustLevels`. Optional `description` (string) on graph root, modules, nodes, and edges for natural language documentation.
 
+- Graph root, modules, nodes, and edges may have an optional `description` string (natural language documentation shown in tooltips and detail panels)
 - Modules may have an optional `parent` field pointing to another module (creating a phase grouping)
+- Modules may have an optional `interface` object with `inputs`/`outputs` arrays describing the data contract
 - Every node must reference a valid `module` ID as its parent
 - Node `style.trust` keys must match keys in `legend.trustLevels`
 - Edge `style` is `"solid"` or `"dashed"`

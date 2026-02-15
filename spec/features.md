@@ -431,6 +431,30 @@ contradictions and against this catalog for duplicates.
   Saves previous version as `{name}.prev.json` for diff overlay. `--force` flag
   skips incremental mode.
 
+## Natural Language Descriptions
+
+### F56: Description fields on graph, modules, nodes, and edges
+- **Status**: `implemented`
+- **Files**: `schema.json` (description fields), `src/viewer.js` (buildElements passes descriptions, graph-description element), `src/interactions.js` (tooltips + detail panels show descriptions), `index.html` (graph-description div + dp-desc CSS)
+- **Properties**: P5.1 (extends), P6.2 (extends)
+- Optional `description` string on graph root, modules, nodes, and edges. Provides
+  natural language documentation making the JSON self-describing. Graph description
+  shows as a collapsible bar below the legend. Module descriptions appear in tooltips
+  (collapsed or expanded) and in the interface panel. Node descriptions appear in
+  hover tooltips and the double-click detail panel. Edge descriptions appear in hover
+  tooltips and the click detail panel. Descriptions are purely informational — they
+  do not affect layout, color, or any visual encoding.
+
+### F57: Skill generates descriptions and module interfaces
+- **Status**: `implemented`
+- **Files**: `skills/visualize-project/SKILL.md` (Step 2.0, module/node/edge description instructions), `skills/visualize-project/_foundations/inference-rules.md` (Description Extraction section), `skills/visualize-project/_foundations/graph-schema.md` (description fields)
+- **Properties**: P1.1–P1.4
+- The visualize-project skill now generates descriptions for the graph root (always),
+  modules (always), nodes (where non-trivial), and edges (cross-module and conditional).
+  It also populates `module.interface` with `inputs`/`outputs` arrays describing data
+  crossing module boundaries. Description fields are preserved during incremental
+  regeneration as manual refinements.
+
 ---
 
 ## Changelog
@@ -466,3 +490,5 @@ contradictions and against this catalog for duplicates.
 | 2026-02-15 | F53 | Implemented: schema sync (added parent, files, interface, port fields) |
 | 2026-02-15 | F54 | Implemented: graph diff view mode (?compare= URL, diff.js, green/amber/red overlay) |
 | 2026-02-15 | F55 | Implemented: incremental regeneration (skill preserves refinements, saves .prev.json) |
+| 2026-02-15 | F56 | Implemented: description fields on graph, modules, nodes, edges (schema + viewer + tooltips + panels) |
+| 2026-02-15 | F57 | Implemented: skill generates descriptions and module interfaces (SKILL.md + inference-rules.md) |

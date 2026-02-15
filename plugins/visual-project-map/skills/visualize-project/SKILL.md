@@ -137,6 +137,16 @@ Consult `_foundations/inference-rules.md` for all lookup tables.
 Consult `_foundations/color-palette.md` for color assignments.
 Consult `_foundations/graph-schema.md` for field requirements.
 
+### 2.0: Write Graph Description
+
+Write a one-paragraph `description` for the graph root that explains:
+- What this project/pipeline does end-to-end
+- What the major stages are at a high level
+- What the final output or outcome is
+
+This becomes the graph's README — anyone viewing it should understand the
+overall purpose without expanding a single module. Keep it to 1-3 sentences.
+
 ### 2.1: Define Modules
 
 Modules are abstraction boundaries — they hide internal complexity behind
@@ -180,6 +190,30 @@ restructure: merge them, split differently, or wrap in a sub-phase
 **Keep it focused:** Aim for 3-10 modules. If you detect >12, merge
 related directories or suggest `--focus`. Target 3-8 nodes per module.
 
+**Module descriptions:** Add a `description` field to every module — one
+sentence explaining what it does and why it exists as a separate boundary.
+Extract from CLAUDE.md section headers, README descriptions, or docstrings.
+Example: `"Downloads candidate records from PubMed API, validates schema,
+and deduplicates against the existing corpus."`
+
+**Module interfaces:** For each module, populate the `interface` field with
+`inputs` and `outputs` arrays describing the data crossing its boundary.
+Each entry has `name` (required), `description`, `format`, and `example`.
+Extract these from script I/O detected in Step 1.4. Example:
+```json
+{
+  "interface": {
+    "inputs": [
+      { "name": "raw_records", "description": "JSON files from API fetch", "format": "JSON array, one file per source" }
+    ],
+    "outputs": [
+      { "name": "validated_records", "description": "Schema-conformant records with duplicates removed", "format": "CSV with columns: id, title, abstract, source" }
+    ]
+  }
+}
+```
+Only include interfaces you have evidence for — don't invent formats.
+
 ### 2.2: Define Nodes
 
 **From workflow steps:** Each numbered step, documented state, or
@@ -209,6 +243,14 @@ projects, omit trust and the `legend.trustLevels` section entirely.
 ```
 Only include paths you actually found in the codebase. Use directory paths
 (without trailing slash) when the step reads/writes an entire directory.
+
+**Node descriptions:** Add a `description` field to nodes where the label
+alone is ambiguous or the step is non-trivial. Not every node needs one —
+skip descriptions for self-explanatory terminals like `COMPLETE` or trivial
+pass-through states. Focus on decision nodes, complex processing steps, and
+entry/exit points. Extract from docstrings, inline comments, or README prose.
+Example: `"Checks JSON schema conformance. Records with missing required
+fields are routed to the error path."`
 
 **Scope guard:** Aim for 8-40 nodes. If >50, only include nodes that
 are documented or represent significant state transitions.
@@ -241,6 +283,14 @@ standardize node.
 
 **Edge labels:** Short verb phrases. Include script name if specific.
 Include conditions if branching (`"score >= 70"`, `"all pass"`).
+
+**Edge descriptions:** Add a `description` field to edges where the short
+label is insufficient. Focus on cross-module edges (the ones visible when
+collapsed), conditional branches, and feedback loops. The description
+explains *what* happens and *why* this connection exists. Example:
+`"Triggered nightly by cron. Passes validated records as a batch CSV to
+the enrichment pipeline."` Skip descriptions for obvious sequential flows
+where the label already says everything.
 
 **Edge details:** Populate `details` only for edges that represent
 concrete script invocations with known inputs/outputs. Do not invent
@@ -275,6 +325,7 @@ Assemble the complete JSON object:
 ```json
 {
   "title": "...",
+  "description": "One-paragraph overview of the entire graph",
   "modules": [ ... ],
   "nodes": [ ... ],
   "edges": [ ... ],
@@ -428,8 +479,10 @@ rebuilding from scratch:
    user-editable and must NOT be overwritten during incremental updates:
    - Node/module `label` (if it differs from what the skill would generate
      and the underlying source hasn't changed)
+   - `description` fields (on graph, modules, nodes, edges)
    - `style.color`, `style.borderColor` overrides
    - `interfaceContract` content
+   - Module `interface` content
    - `plan` field (belongs to visualize-plan, not this skill)
    - Edge `label` and `details.docs`
 
@@ -482,17 +535,28 @@ Running `/visualize-project /path/to/data-pipeline --depth 1` produces:
 ```json
 {
   "title": "Data Pipeline Workflow",
+  "description": "ETL pipeline that downloads records from an API, normalizes and deduplicates them, then loads the results into a SQLite database.",
   "modules": [
-    { "id": "mod_ingest", "label": "Ingest",    "color": "#dbeafe", "borderColor": "#93c5fd" },
-    { "id": "mod_clean",  "label": "Clean",      "color": "#e0e7ff", "borderColor": "#a5b4fc" },
-    { "id": "mod_export", "label": "Export",      "color": "#fef2f2", "borderColor": "#fca5a5" },
-    { "id": "mod_term",   "label": "Terminals",   "color": "#f1f5f9", "borderColor": "#94a3b8" }
+    { "id": "mod_ingest", "label": "Ingest", "color": "#dbeafe", "borderColor": "#93c5fd",
+      "description": "Downloads raw JSON from the API and validates schema conformance.",
+      "interface": {
+        "inputs": [{ "name": "api_config", "description": "Source API endpoints and credentials", "format": "YAML" }],
+        "outputs": [{ "name": "validated_json", "description": "Schema-valid JSON files", "format": "JSON, one file per record" }]
+      }
+    },
+    { "id": "mod_clean", "label": "Clean", "color": "#e0e7ff", "borderColor": "#a5b4fc",
+      "description": "Normalizes field formats and removes duplicate records." },
+    { "id": "mod_export", "label": "Export", "color": "#fef2f2", "borderColor": "#fca5a5",
+      "description": "Builds the final SQLite database from deduplicated CSV." },
+    { "id": "mod_term", "label": "Terminals", "color": "#f1f5f9", "borderColor": "#94a3b8" }
   ],
   "nodes": [
     { "id": "ing_dl",   "module": "mod_ingest", "label": "ingest.download" },
-    { "id": "ing_val",  "module": "mod_ingest", "label": "ingest.validate" },
+    { "id": "ing_val",  "module": "mod_ingest", "label": "ingest.validate",
+      "description": "Checks each JSON file against the expected schema. Invalid files are logged and skipped." },
     { "id": "cln_norm", "module": "mod_clean",  "label": "clean.normalize" },
-    { "id": "cln_dup",  "module": "mod_clean",  "label": "clean.deduplicate" },
+    { "id": "cln_dup",  "module": "mod_clean",  "label": "clean.deduplicate",
+      "description": "Removes exact and fuzzy duplicates using title + DOI matching." },
     { "id": "exp_db",   "module": "mod_export", "label": "export.build_db" },
     { "id": "DONE",     "module": "mod_term",   "label": "COMPLETE",
       "style": { "color": "#d1fae5", "borderColor": "#6ee7b7" } }
@@ -500,7 +564,8 @@ Running `/visualize-project /path/to/data-pipeline --depth 1` produces:
   "edges": [
     { "source": "ing_dl",   "target": "ing_val",  "label": "validate",    "style": "solid", "actor": "script",
       "details": { "script": "scripts/ingest/validate.py", "input": ["raw/*.json"], "output": ["validated/*.json"] } },
-    { "source": "ing_val",  "target": "cln_norm", "label": "normalize",   "style": "solid", "actor": "script" },
+    { "source": "ing_val",  "target": "cln_norm", "label": "normalize",   "style": "solid", "actor": "script",
+      "description": "Passes validated JSON files to the normalization step. Only schema-valid records cross this boundary." },
     { "source": "cln_norm", "target": "cln_dup",  "label": "deduplicate", "style": "solid", "actor": "script" },
     { "source": "cln_dup",  "target": "exp_db",   "label": "build DB",    "style": "solid", "actor": "script" },
     { "source": "exp_db",   "target": "DONE",     "label": "complete",    "style": "solid" }
@@ -508,4 +573,4 @@ Running `/visualize-project /path/to/data-pipeline --depth 1` produces:
 }
 ```
 
-5 modules, 6 nodes, 5 edges — a clean, readable graph.
+4 modules, 6 nodes, 5 edges — a clean, readable graph with natural language descriptions.

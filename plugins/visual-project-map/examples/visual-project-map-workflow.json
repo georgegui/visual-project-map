@@ -1,5 +1,6 @@
 {
   "title": "Visual Project Map — Graph Generation Workflow",
+  "description": "How the visual-project-map skill generates interactive DAGs: discovers project structure, designs modules and edges, assembles JSON, renders via Cytoscape.js, and enables interactive exploration.",
   "modules": [
     { "id": "mod_discover", "label": "Discover", "color": "#dbeafe", "borderColor": "#93c5fd" },
     { "id": "mod_design",   "label": "Design",   "color": "#e0e7ff", "borderColor": "#a5b4fc" },

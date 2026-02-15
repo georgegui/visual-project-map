@@ -5,6 +5,7 @@
   "required": ["title", "modules", "nodes", "edges"],
   "properties": {
     "title": { "type": "string" },
+    "description": { "type": "string", "description": "One-paragraph overview of the graph's purpose and scope" },
     "modules": {
       "type": "array",
       "items": {
@@ -15,6 +16,7 @@
           "label":       { "type": "string" },
           "color":       { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
           "borderColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "description": { "type": "string", "description": "Natural language description of what this module does and why it exists" },
           "parent":      { "type": "string", "description": "ID of parent phase module (for nesting)" },
           "interface": {
             "type": "object",
@@ -60,6 +62,7 @@
           "id":     { "type": "string" },
           "module": { "type": "string" },
           "label":  { "type": "string" },
+          "description": { "type": "string", "description": "Natural language description of what happens at this state or step" },
           "style": {
             "type": "object",
             "properties": {
@@ -109,6 +112,7 @@
           "source": { "type": "string" },
           "target": { "type": "string" },
           "label":  { "type": "string" },
+          "description": { "type": "string", "description": "Natural language description of what this transition does and why it exists" },
           "style":  { "type": "string", "enum": ["solid", "dashed"] },
           "actor":  { "type": "string", "enum": ["human", "ai", "script", "mixed"] },
           "details": {
