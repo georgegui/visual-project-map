@@ -6,10 +6,101 @@ var GraphViewer = (function() {
   var currentView = 'module';
 
   function loadGraph(url) {
-    return fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+    return fetch(url).then(function(r) {
+      if (!r.ok) throw new Error('Failed to load ' + url + ' (' + r.status + ')');
+      return r.json();
+    }).then(function(data) {
       graphData = data;
       return data;
     });
+  }
+
+  function validateGraph(data) {
+    var errors = [];
+    var warnings = [];
+
+    // Required top-level fields
+    ['title', 'modules', 'nodes', 'edges'].forEach(function(f) {
+      if (!data[f]) errors.push('Missing required field: "' + f + '"');
+    });
+    if (errors.length) return { valid: false, errors: errors, warnings: warnings };
+
+    if (!Array.isArray(data.modules)) { errors.push('"modules" must be an array'); return { valid: false, errors: errors, warnings: warnings }; }
+    if (!Array.isArray(data.nodes)) { errors.push('"nodes" must be an array'); return { valid: false, errors: errors, warnings: warnings }; }
+    if (!Array.isArray(data.edges)) { errors.push('"edges" must be an array'); return { valid: false, errors: errors, warnings: warnings }; }
+
+    // Build ID sets, check duplicates
+    var modIds = new Set();
+    data.modules.forEach(function(m) {
+      if (!m.id) { errors.push('Module missing "id"'); return; }
+      if (modIds.has(m.id)) errors.push('Duplicate module ID: "' + m.id + '"');
+      modIds.add(m.id);
+    });
+
+    var nodeIds = new Set();
+    data.nodes.forEach(function(n) {
+      if (!n.id) { errors.push('Node missing "id"'); return; }
+      if (nodeIds.has(n.id) || modIds.has(n.id)) errors.push('Duplicate ID: "' + n.id + '"');
+      nodeIds.add(n.id);
+    });
+
+    // Node -> module references
+    data.nodes.forEach(function(n) {
+      if (!n.id || !n.module) return;
+      if (!modIds.has(n.module)) errors.push('Node "' + n.id + '" references unknown module "' + n.module + '"');
+    });
+
+    // Edge -> node references
+    data.edges.forEach(function(e, i) {
+      var eid = e.id || ('edge ' + i);
+      if (!e.source) errors.push(eid + ': missing "source"');
+      if (!e.target) errors.push(eid + ': missing "target"');
+      if (e.source && !nodeIds.has(e.source)) errors.push(eid + ': source "' + e.source + '" is not a known node');
+      if (e.target && !nodeIds.has(e.target)) errors.push(eid + ': target "' + e.target + '" is not a known node');
+    });
+
+    // Module parent references + cycle detection
+    var parentMap = {};
+    data.modules.forEach(function(m) {
+      if (m.parent) {
+        if (!modIds.has(m.parent)) errors.push('Module "' + m.id + '" parent "' + m.parent + '" not found');
+        parentMap[m.id] = m.parent;
+      }
+    });
+    data.modules.forEach(function(m) {
+      var visited = new Set();
+      var cur = m.id;
+      while (parentMap[cur]) {
+        if (visited.has(cur)) { errors.push('Circular parent chain involving "' + cur + '"'); break; }
+        visited.add(cur);
+        cur = parentMap[cur];
+      }
+    });
+
+    // --- Warnings (non-blocking) ---
+    var connected = new Set();
+    data.edges.forEach(function(e) { connected.add(e.source); connected.add(e.target); });
+    data.nodes.forEach(function(n) {
+      if (n.id && !n._isInterfacePort && !connected.has(n.id)) warnings.push('Orphan node (no edges): "' + n.id + '"');
+    });
+
+    if (data.nodes.length === 0) warnings.push('Graph has no nodes');
+    if (data.edges.length === 0) warnings.push('Graph has no edges');
+
+    return { valid: errors.length === 0, errors: errors, warnings: warnings };
+  }
+
+  function showErrorPanel(errors) {
+    var panel = document.getElementById('error-panel');
+    var list = document.getElementById('error-list');
+    if (!panel || !list) return;
+    list.innerHTML = '';
+    errors.forEach(function(msg) {
+      var li = document.createElement('li');
+      li.textContent = msg;
+      list.appendChild(li);
+    });
+    panel.style.display = 'block';
   }
 
   function buildElements(data) {
@@ -437,6 +528,16 @@ var GraphViewer = (function() {
 
   function init(containerId, legendId, graphUrl) {
     return loadGraph(graphUrl).then(function(data) {
+      var result = validateGraph(data);
+      if (!result.valid) {
+        showErrorPanel(result.errors);
+        throw new Error('Graph validation failed: ' + result.errors[0]);
+      }
+      if (result.warnings.length) {
+        result.warnings.forEach(function(w) { console.warn('[graph]', w); });
+        document.getElementById('status').textContent = result.warnings.length + ' warning(s) \u2014 see console';
+      }
+
       var elements = buildElements(data);
       var styles = buildStyles(data);
 
@@ -460,6 +561,73 @@ var GraphViewer = (function() {
       }
 
       fit(50);
+
+      return { cy: cy, manager: manager, data: data, moduleIds: moduleIds };
+    });
+  }
+
+  // --- PF-2: Watch mode ---
+  var watchTimer = null;
+  var lastModified = null;
+  var graphUrl = null;
+
+  function watchGraph(url, callback) {
+    graphUrl = url;
+    fetch(url, { method: 'HEAD' }).then(function(r) {
+      lastModified = r.headers.get('Last-Modified') || r.headers.get('ETag');
+    }).catch(function() {});
+
+    watchTimer = setInterval(function() {
+      fetch(url, { method: 'HEAD', cache: 'no-store' }).then(function(r) {
+        var current = r.headers.get('Last-Modified') || r.headers.get('ETag');
+        if (current && current !== lastModified) {
+          lastModified = current;
+          callback();
+        }
+      }).catch(function() {});
+    }, 2000);
+  }
+
+  function stopWatch() {
+    if (watchTimer) { clearInterval(watchTimer); watchTimer = null; }
+  }
+
+  function reloadGraph(containerId, legendId, url) {
+    var prevView = currentView;
+    return loadGraph(url).then(function(data) {
+      var result = validateGraph(data);
+      if (!result.valid) {
+        console.warn('[watch] Reload skipped: validation errors', result.errors);
+        return null;
+      }
+
+      var elements = buildElements(data);
+      var styles = buildStyles(data);
+
+      buildLegend(document.getElementById(legendId), data);
+      document.querySelector('#toolbar h1').textContent = data.title;
+
+      // Destroy old instance and create fresh
+      if (cy) cy.destroy();
+      initCytoscape(containerId, elements, styles);
+
+      manager.collapseAll(moduleIds);
+      moduleIds.forEach(function(id) { applyCollapsedStyle(id); });
+      runLayout({ animate: false, fit: true, padding: 50 });
+
+      var termNode = cy.getElementById('mod_term');
+      if (termNode.length && termNode.visible()) {
+        var maxY = -Infinity;
+        cy.nodes().forEach(function(n) {
+          if (n.id() !== 'mod_term' && n.position('y') > maxY) maxY = n.position('y');
+        });
+        termNode.position('y', maxY + 90);
+      }
+      fit(50);
+      setView(prevView);
+
+      var status = document.getElementById('status');
+      status.textContent = 'Graph reloaded';
 
       return { cy: cy, manager: manager, data: data, moduleIds: moduleIds };
     });
@@ -582,6 +750,7 @@ var GraphViewer = (function() {
   return {
     init: init,
     loadGraph: loadGraph,
+    validateGraph: validateGraph,
     buildElements: buildElements,
     buildStyles: buildStyles,
     buildLegend: buildLegend,
@@ -593,6 +762,9 @@ var GraphViewer = (function() {
     fit: fit,
     setView: setView,
     refreshView: refreshView,
+    watchGraph: watchGraph,
+    stopWatch: stopWatch,
+    reloadGraph: reloadGraph,
     getView: function() { return currentView; },
     getGraphData: function() { return graphData; },
     getCy: function() { return cy; },

@@ -10,7 +10,7 @@ Feature proposals organized by which aspect of the project goal they serve:
 ### PF-1: Runtime input validation (extends F25)
 
 - **Priority**: High
-- **Status**: `proposed`
+- **Status**: `implemented` (F49)
 - **Depends on**: F24 (schema)
 
 Bad JSON silently breaks the graph. Users waste time debugging blank screens
@@ -20,7 +20,7 @@ and show actionable error messages in the UI.
 ### PF-2: Auto-refresh / watch mode
 
 - **Priority**: High
-- **Status**: `proposed`
+- **Status**: `implemented` (F50)
 - **Depends on**: F01
 
 After regenerating a graph, the user must manually reload the browser. The
@@ -31,7 +31,7 @@ step in between.
 ### PF-3: Minimap
 
 - **Priority**: Medium
-- **Status**: `proposed`
+- **Status**: `implemented` (F51)
 - **Depends on**: F18 (pan/zoom)
 
 On large graphs users lose spatial context while zoomed in. A small overview
@@ -41,7 +41,7 @@ disorientation and enables click-to-navigate.
 ### PF-4: Breadcrumb navigation
 
 - **Priority**: Medium
-- **Status**: `proposed`
+- **Status**: `implemented` (F52)
 - **Depends on**: F35 (nested hierarchy), F14 (click-to-toggle)
 
 When drilling into nested phases and modules, show a clickable trail

@@ -53,6 +53,48 @@ body {
   vertical-align: middle; margin-right: 4px;
 }
 #cy { position: absolute; top: 80px; left: 0; right: 0; bottom: 0; }
+#breadcrumb {
+  position: fixed; top: 80px; left: 0; right: 0; z-index: 85;
+  background: #ffffff; border-bottom: 1px solid #f1f5f9;
+  padding: 4px 20px; font-size: 12px; color: #64748b;
+  display: none;
+}
+#breadcrumb span { cursor: pointer; }
+#breadcrumb span:hover { color: #3b82f6; text-decoration: underline; }
+#breadcrumb .bc-sep { margin: 0 6px; color: #cbd5e1; cursor: default; }
+#breadcrumb .bc-sep:hover { color: #cbd5e1; text-decoration: none; }
+#breadcrumb .bc-current { color: #1e293b; font-weight: 600; cursor: default; }
+#breadcrumb .bc-current:hover { text-decoration: none; color: #1e293b; }
+#minimap {
+  position: fixed; bottom: 40px; right: 12px; z-index: 90;
+  width: 200px; height: 150px;
+  background: rgba(255,255,255,0.95); border: 1px solid #e2e8f0;
+  border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+#error-panel {
+  display: none; position: fixed; z-index: 400;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: #ffffff; border: 2px solid #ef4444; border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 20px 24px;
+  max-width: 520px; min-width: 300px; max-height: 60vh; overflow-y: auto;
+  font-size: 13px; color: #1e293b;
+}
+#error-panel .ep-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #fecaca;
+  color: #dc2626; font-size: 14px;
+}
+#error-panel .ep-close {
+  background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer;
+  padding: 0 4px; line-height: 1;
+}
+#error-panel .ep-close:hover { color: #475569; }
+#error-list {
+  list-style: disc; padding-left: 20px; margin: 0;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px;
+  color: #991b1b; line-height: 1.6;
+}
 #tooltip {
   display: none; position: fixed; z-index: 200;
   background: rgba(30,41,59,0.92); color: #f1f5f9; padding: 5px 10px;
@@ -185,6 +227,8 @@ body {
   <div class="sep"></div>
   <button id="btn-labels" class="toggle-off">Labels</button>
   <button id="btn-autofocus" class="toggle-off">Autofocus</button>
+  <button id="btn-watch" class="toggle-off">Watch</button>
+  <button id="btn-minimap" class="toggle-on">Minimap</button>
   <div class="sep"></div>
   <button class="view-btn view-active" data-view="module">Module</button>
   <button class="view-btn" data-view="provenance">Provenance</button>
@@ -198,17 +242,24 @@ body {
 </div>
 
 <div id="legend"></div>
+<div id="breadcrumb"></div>
 <div id="cy"></div>
+<canvas id="minimap" width="200" height="150"></canvas>
 <div id="tooltip"></div>
+<div id="error-panel">
+  <div class="ep-header"><strong>Graph Validation Errors</strong><button class="ep-close" onclick="this.closest('#error-panel').style.display='none'">&times;</button></div>
+  <ul id="error-list"></ul>
+</div>
 <div id="detail-backdrop"></div>
 <div id="detail-panel"></div>
 <div id="plan-summary-panel"></div>
 <div id="status">Loading...</div>
-<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: interface/toggle &middot; Click node: trace path &middot; Dbl-click node: details &middot; /: search &middot; E: expand &middot; C: collapse &middot; L: labels &middot; A: autofocus &middot; V: view mode &middot; Esc: clear</div>
+<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: interface/toggle &middot; Click node: trace path &middot; Dbl-click node: details &middot; /: search &middot; E: expand &middot; C: collapse &middot; L: labels &middot; A: autofocus &middot; W: watch &middot; M: minimap &middot; V: view mode &middot; Esc: clear</div>
 
 <script src="src/expand-collapse.js"></script>
 <script src="src/plan-overlay.js"></script>
 <script src="src/viewer.js"></script>
+<script src="src/minimap.js"></script>
 <script src="src/interactions.js"></script>
 <script>
 (function() {
@@ -216,7 +267,7 @@ body {
   var graphUrl = params.get('graph') || '../examples/minimal.json';
 
   GraphViewer.init('cy', 'legend', graphUrl).then(function(result) {
-    Interactions.init(result.cy, result.manager, result.moduleIds);
+    Interactions.init(result.cy, result.manager, result.moduleIds, graphUrl);
   }).catch(function(err) {
     document.getElementById('status').textContent = 'Error: ' + err.message;
     console.error(err);
