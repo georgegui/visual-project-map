@@ -1,0 +1,160 @@
+{
+  "title": "Visual Project Map — Graph Generation Workflow",
+  "modules": [
+    { "id": "mod_discover", "label": "Discover", "color": "#dbeafe", "borderColor": "#93c5fd" },
+    { "id": "mod_design",   "label": "Design",   "color": "#e0e7ff", "borderColor": "#a5b4fc" },
+    { "id": "mod_assemble", "label": "Assemble", "color": "#f5f3ff", "borderColor": "#c4b5fd" },
+    { "id": "mod_render",   "label": "Render",   "color": "#fce7f3", "borderColor": "#f9a8d4" },
+    { "id": "mod_explore",  "label": "Explore",  "color": "#fffbeb", "borderColor": "#fcd34d" }
+  ],
+  "nodes": [
+    { "id": "disc_in", "module": "mod_discover", "label": "Project directory",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "Project directory",
+        "description": "Root directory of the target project to analyze, with optional CLI arguments",
+        "format": "Filesystem path + optional flags: --focus <subdir>, --depth <1|2>, --title <string>",
+        "example": "/Users/me/data-pipeline --depth 2 --title \"My Pipeline\""
+      }
+    },
+    { "id": "disc_docs", "module": "mod_discover", "label": "discover.read_docs", "style": { "shape": "ellipse" },
+      "files": { "reads": ["CLAUDE.md", "README.md", "Makefile", "package.json"] } },
+    { "id": "disc_code", "module": "mod_discover", "label": "discover.scan_code", "style": { "shape": "ellipse" },
+      "files": { "reads": ["**/*.py", "**/*.ts", "**/*.sh"] } },
+    { "id": "disc_io",   "module": "mod_discover", "label": "discover.detect_io", "style": { "shape": "ellipse" } },
+    { "id": "disc_out", "module": "mod_discover", "label": "Project inventory",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "Project inventory",
+        "description": "Structured catalog of documentation files, scripts grouped by directory, and detected file I/O patterns",
+        "format": "{ docs: {path, sections}[], scripts: {path, dir}[], io_patterns: {script, reads, writes}[], workflow_hints: string[] }",
+        "example": "{ docs: [{path: 'CLAUDE.md', sections: ['Workflow']}], scripts: [{path: 'scripts/clean.py', dir: 'scripts/'}], io_patterns: [{script: 'clean.py', reads: ['data/raw/*.csv'], writes: ['data/clean/*.csv']}] }"
+      }
+    },
+
+    { "id": "des_in", "module": "mod_design", "label": "Project inventory",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "Project inventory",
+        "description": "Structured catalog from the discovery phase — docs, scripts, I/O patterns, workflow hints",
+        "format": "{ docs, scripts, io_patterns, workflow_hints }",
+        "example": "See Discover output"
+      }
+    },
+    { "id": "des_boundaries", "module": "mod_design", "label": "design.define_boundaries" },
+    { "id": "des_interfaces", "module": "mod_design", "label": "design.write_contracts" },
+    { "id": "des_check",      "module": "mod_design", "label": "design.verify_chaining", "style": { "shape": "diamond" } },
+    { "id": "des_out", "module": "mod_design", "label": "Module blueprint",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "Module blueprint",
+        "description": "List of modules with interface contracts. Interfaces chain: output of module N matches input of module N+1.",
+        "format": "Module[] where each = { id, label, interface: { inputs: Contract[], outputs: Contract[] } }",
+        "example": "[{id: 'mod_ingest', label: 'Ingest', interface: {inputs: [{name: 'API URL'}], outputs: [{name: 'Raw JSON files'}]}}]"
+      }
+    },
+
+    { "id": "asm_in", "module": "mod_assemble", "label": "Module blueprint",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "Module blueprint",
+        "description": "Module definitions with interface contracts from the design phase",
+        "format": "Module[] with interfaces, boundary rationale, and chaining verification",
+        "example": "See Design output"
+      }
+    },
+    { "id": "asm_nodes",    "module": "mod_assemble", "label": "assemble.populate_nodes" },
+    { "id": "asm_edges",    "module": "mod_assemble", "label": "assemble.connect_edges" },
+    { "id": "asm_validate", "module": "mod_assemble", "label": "assemble.validate", "style": { "shape": "diamond" } },
+    { "id": "asm_write",    "module": "mod_assemble", "label": "assemble.write_json",
+      "files": { "writes": [".graphs/{name}.json"] } },
+    { "id": "asm_out", "module": "mod_assemble", "label": "Graph JSON file",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "Graph JSON file",
+        "description": "Complete graph conforming to schema.json, with interface fields, ready for the viewer",
+        "format": "{ title, modules[], nodes[], edges[], legend? } — written to .graphs/{name}.json",
+        "example": ".graphs/data-pipeline.json"
+      }
+    },
+
+    { "id": "ren_in", "module": "mod_render", "label": "Graph JSON file",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "Graph JSON file",
+        "description": "JSON file served via HTTP, loaded through the ?graph= URL parameter",
+        "format": "URL: http://localhost:8080/viewer/?graph=../examples/{name}.json",
+        "example": "http://localhost:8080/viewer/?graph=../examples/data-pipeline.json"
+      }
+    },
+    { "id": "ren_load",   "module": "mod_render", "label": "render.load_json",
+      "files": { "reads": [".graphs/{name}.json"] } },
+    { "id": "ren_build",  "module": "mod_render", "label": "render.build_elements", "style": { "shape": "ellipse" } },
+    { "id": "ren_layout", "module": "mod_render", "label": "render.dagre_layout", "style": { "shape": "ellipse" } },
+    { "id": "ren_out", "module": "mod_render", "label": "Interactive graph",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "Interactive graph",
+        "description": "Cytoscape.js graph with dagre layout, all modules collapsed, legend rendered",
+        "format": "Browser DOM: #cy canvas with Cytoscape instance, toolbar, legend, status bar",
+        "example": "Browser window showing 5 collapsed modules connected by meta-edges"
+      }
+    },
+
+    { "id": "exp_in", "module": "mod_explore", "label": "Interactive graph",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "Interactive graph",
+        "description": "Rendered Cytoscape graph with expand/collapse, hover, search, view modes, path tracing",
+        "format": "Live browser UI with keyboard shortcuts and mouse interaction",
+        "example": "Graph showing collapsed modules; user can click to expand"
+      }
+    },
+    { "id": "exp_overview", "module": "mod_explore", "label": "explore.collapsed_overview" },
+    { "id": "exp_drill",   "module": "mod_explore", "label": "explore.expand_and_trace" },
+    { "id": "exp_views",   "module": "mod_explore", "label": "explore.switch_views" },
+    { "id": "exp_out", "module": "mod_explore", "label": "User insight",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "User insight",
+        "description": "Understanding of the project's structure, data flow, decision points, and dependencies",
+        "format": "Mental model formed through progressive disclosure — overview first, then drill-down",
+        "example": "User understands: 'Raw data enters via API, gets cleaned, reviewed, exported to SQLite'"
+      }
+    }
+  ],
+  "edges": [
+    { "source": "disc_in",   "target": "disc_docs", "label": "read docs",       "style": "solid", "actor": "ai" },
+    { "source": "disc_docs", "target": "disc_code", "label": "scan structure",   "style": "solid", "actor": "ai" },
+    { "source": "disc_code", "target": "disc_io",   "label": "detect patterns",  "style": "solid", "actor": "ai" },
+    { "source": "disc_io",   "target": "disc_out",  "label": "synthesize",       "style": "solid", "actor": "ai" },
+
+    { "source": "des_in",         "target": "des_boundaries", "label": "identify modules",  "style": "solid", "actor": "ai" },
+    { "source": "des_boundaries", "target": "des_interfaces", "label": "write contracts",    "style": "solid", "actor": "ai" },
+    { "source": "des_interfaces", "target": "des_check",      "label": "verify chaining",    "style": "solid", "actor": "ai" },
+    { "source": "des_check",      "target": "des_out",        "label": "contracts valid",     "style": "solid", "actor": "ai" },
+    { "source": "des_check",      "target": "des_boundaries", "label": "revise boundaries",  "style": "dashed", "actor": "ai" },
+
+    { "source": "asm_in",       "target": "asm_nodes",    "label": "create nodes",  "style": "solid", "actor": "ai" },
+    { "source": "asm_nodes",    "target": "asm_edges",    "label": "connect",       "style": "solid", "actor": "ai" },
+    { "source": "asm_edges",    "target": "asm_validate", "label": "check rules",   "style": "solid", "actor": "ai" },
+    { "source": "asm_validate", "target": "asm_write",    "label": "all valid",     "style": "solid", "actor": "ai" },
+    { "source": "asm_write",    "target": "asm_out",      "label": "write file",    "style": "solid", "actor": "ai" },
+    { "source": "asm_validate", "target": "asm_nodes",    "label": "restructure",   "style": "dashed", "actor": "ai" },
+
+    { "source": "ren_in",    "target": "ren_load",   "label": "fetch",   "style": "solid", "actor": "script" },
+    { "source": "ren_load",  "target": "ren_build",  "label": "parse",   "style": "solid", "actor": "script" },
+    { "source": "ren_build", "target": "ren_layout", "label": "layout",  "style": "solid", "actor": "script" },
+    { "source": "ren_layout","target": "ren_out",    "label": "render",  "style": "solid", "actor": "script" },
+
+    { "source": "exp_in",      "target": "exp_overview", "label": "view overview",  "style": "solid", "actor": "human" },
+    { "source": "exp_overview", "target": "exp_drill",   "label": "drill down",     "style": "solid", "actor": "human" },
+    { "source": "exp_drill",   "target": "exp_views",   "label": "switch lens",     "style": "solid", "actor": "human" },
+    { "source": "exp_views",   "target": "exp_out",     "label": "understand",      "style": "solid", "actor": "human" },
+
+    { "source": "disc_out", "target": "des_in",  "label": "define modules",  "style": "solid", "actor": "ai" },
+    { "source": "des_out",  "target": "asm_in",  "label": "populate graph",  "style": "solid", "actor": "ai" },
+    { "source": "asm_out",  "target": "ren_in",  "label": "serve & load",    "style": "solid", "actor": "script" },
+    { "source": "ren_out",  "target": "exp_in",  "label": "explore",         "style": "solid", "actor": "human" }
+  ]
+}

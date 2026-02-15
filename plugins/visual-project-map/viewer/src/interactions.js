@@ -28,6 +28,14 @@ var Interactions = (function() {
       var node = e.target;
       var id = node.id();
       var wasCollapsed = manager.isCollapsed(id);
+
+      // If collapsed and has interface, show interface panel instead of expanding
+      if (wasCollapsed && node.data('interface')) {
+        clearPathTrace(cy);
+        showModuleInterfacePanel(node, cy, manager, moduleIds);
+        return;
+      }
+
       var parentPos = { x: node.position('x'), y: node.position('y') };
       clearPathTrace(cy);
 
@@ -106,6 +114,12 @@ var Interactions = (function() {
         if (dest) n.animate({ position: dest }, { duration: dur, easing: ease });
       });
       cy.animate({ zoom: vpAfter.zoom, pan: vpAfter.pan, duration: dur, easing: ease });
+    });
+
+    cy.on('tap', 'node[_isInterfacePort]', function(e) {
+      var node = e.target;
+      clearPathTrace(cy);
+      showPortContractPanel(node);
     });
 
     cy.on('tap', 'node:child', function(e) {
@@ -213,6 +227,50 @@ var Interactions = (function() {
     cy.on('mouseout', 'node:child', function() {
       if (pathTraceActive) return;
       cy.elements().removeClass('dimmed').removeClass('highlighted');
+      tooltipEl.style.display = 'none';
+      tooltipEl.style.whiteSpace = 'nowrap';
+    });
+
+    cy.on('mouseover', 'node[_isInterfacePort]', function(e) {
+      var node = e.target;
+      var contract = node.data('interfaceContract');
+      if (!contract) return;
+      var dir = node.data('_portDirection') === 'output' ? 'OUTPUT' : 'INPUT';
+      var tipLines = ['<strong>' + dir + ': ' + escapeHtml(contract.name) + '</strong>'];
+      if (contract.description) tipLines.push(escapeHtml(contract.description.substring(0, 100)) + (contract.description.length > 100 ? '...' : ''));
+      tipLines.push('<span style="color:#94a3b8;font-size:10px">Click for template</span>');
+      tooltipEl.innerHTML = tipLines.join('<br>');
+      tooltipEl.style.display = 'block';
+      tooltipEl.style.whiteSpace = 'normal';
+      tooltipEl.style.left = (mouseX + 14) + 'px';
+      tooltipEl.style.top = (mouseY - 10) + 'px';
+    });
+
+    cy.on('mouseout', 'node[_isInterfacePort]', function() {
+      tooltipEl.style.display = 'none';
+      tooltipEl.style.whiteSpace = 'nowrap';
+    });
+
+    cy.on('mouseover', 'node[_isModule]', function(e) {
+      var node = e.target;
+      var iface = node.data('interface');
+      if (!iface || !manager.isCollapsed(node.id())) return;
+      var tipLines = ['<strong>' + escapeHtml(node.data('label')) + '</strong>'];
+      if (iface.inputs && iface.inputs.length) {
+        tipLines.push('<span style="color:#93c5fd">IN:</span> ' + iface.inputs.map(function(i) { return escapeHtml(i.name); }).join(', '));
+      }
+      if (iface.outputs && iface.outputs.length) {
+        tipLines.push('<span style="color:#86efac">OUT:</span> ' + iface.outputs.map(function(o) { return escapeHtml(o.name); }).join(', '));
+      }
+      tipLines.push('<span style="color:#94a3b8;font-size:10px">Click for details</span>');
+      tooltipEl.innerHTML = tipLines.join('<br>');
+      tooltipEl.style.display = 'block';
+      tooltipEl.style.whiteSpace = 'normal';
+      tooltipEl.style.left = (mouseX + 14) + 'px';
+      tooltipEl.style.top = (mouseY - 10) + 'px';
+    });
+
+    cy.on('mouseout', 'node[_isModule]', function() {
       tooltipEl.style.display = 'none';
       tooltipEl.style.whiteSpace = 'nowrap';
     });
@@ -435,6 +493,132 @@ var Interactions = (function() {
   var actorColors = { human: '#3b82f6', ai: '#f59e0b', script: '#6b7280', mixed: '#14b8a6' };
   var actorLabels = { human: 'Human', ai: 'AI', script: 'Script', mixed: 'Mixed' };
 
+  function showPortContractPanel(node) {
+    var contract = node.data('interfaceContract');
+    if (!contract) return;
+    var direction = node.data('_portDirection') || 'input';
+    var dirLabel = direction === 'input' ? 'Input' : 'Output';
+    var dirColor = direction === 'input' ? '#3b82f6' : '#16a34a';
+    var dirBg = direction === 'input' ? '#eff6ff' : '#f0fdf4';
+
+    var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(contract.name) + '</span>';
+    html += '<span class="dp-actor" style="background:' + dirBg + ';color:' + dirColor + '">' + dirLabel + '</span>';
+    html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
+
+    if (contract.description) {
+      html += '<div class="dp-iface-desc" style="margin-bottom:10px">' + escapeHtml(contract.description) + '</div>';
+    }
+    if (contract.format) {
+      html += '<div class="dp-row"><div class="dp-label">Expected Format</div><div class="dp-value">' + escapeHtml(contract.format) + '</div></div>';
+    }
+    if (contract.example) {
+      html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(contract.example)) + '</div></div>';
+    }
+
+    detailPanel.innerHTML = html;
+    detailPanel.classList.add('dp-wide');
+    detailPanel.style.display = 'block';
+    detailBackdrop.style.display = 'block';
+    document.getElementById('dp-close-btn').addEventListener('click', hideDetailPanel);
+  }
+
+  function showModuleInterfacePanel(node, cy, manager, moduleIds) {
+    var label = node.data('label') || '(module)';
+    var iface = node.data('interface') || {};
+    var id = node.id();
+
+    var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(label) + '</span>';
+    html += '<span class="dp-actor" style="background:#dbeafe;color:#1e40af">Interface</span>';
+    html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
+
+    if (iface.inputs && iface.inputs.length) {
+      html += '<div class="dp-section-label">Inputs</div>';
+      iface.inputs.forEach(function(inp) {
+        html += '<div class="dp-iface-item">';
+        html += '<div class="dp-iface-name">' + escapeHtml(inp.name) + '</div>';
+        if (inp.description) html += '<div class="dp-iface-desc">' + escapeHtml(inp.description) + '</div>';
+        if (inp.format) html += '<div class="dp-row"><div class="dp-label">Format</div><div class="dp-value">' + escapeHtml(inp.format) + '</div></div>';
+        if (inp.example) html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(inp.example)) + '</div></div>';
+        html += '</div>';
+      });
+    }
+
+    if (iface.outputs && iface.outputs.length) {
+      html += '<div class="dp-section-label">Outputs</div>';
+      iface.outputs.forEach(function(out) {
+        html += '<div class="dp-iface-item">';
+        html += '<div class="dp-iface-name">' + escapeHtml(out.name) + '</div>';
+        if (out.description) html += '<div class="dp-iface-desc">' + escapeHtml(out.description) + '</div>';
+        if (out.format) html += '<div class="dp-row"><div class="dp-label">Format</div><div class="dp-value">' + escapeHtml(out.format) + '</div></div>';
+        if (out.example) html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(out.example)) + '</div></div>';
+        html += '</div>';
+      });
+    }
+
+    html += '<button class="dp-expand-btn" id="dp-expand-module-btn">Expand Module</button>';
+
+    detailPanel.innerHTML = html;
+    detailPanel.classList.add('dp-wide');
+    detailPanel.style.display = 'block';
+    detailBackdrop.style.display = 'block';
+
+    document.getElementById('dp-close-btn').addEventListener('click', function() {
+      hideDetailPanel();
+      detailPanel.classList.remove('dp-wide');
+    });
+
+    document.getElementById('dp-expand-module-btn').addEventListener('click', function() {
+      hideDetailPanel();
+      detailPanel.classList.remove('dp-wide');
+      // Trigger the expand
+      var wasCollapsed = manager.isCollapsed(id);
+      if (!wasCollapsed) return;
+      var parentPos = { x: node.position('x'), y: node.position('y') };
+      var posBefore = {};
+      cy.nodes().forEach(function(n) { posBefore[n.id()] = { x: n.position('x'), y: n.position('y') }; });
+      var vpBefore = { zoom: cy.zoom(), pan: { x: cy.pan().x, y: cy.pan().y } };
+
+      if (autofocusMode) {
+        var ancestors = getAncestorModules(id);
+        moduleIds.forEach(function(mid) {
+          if (mid !== id && !ancestors.has(mid) && !manager.isCollapsed(mid)) {
+            manager.collapse(mid);
+            GraphViewer.applyCollapsedStyle(mid);
+          }
+        });
+      }
+      manager.expand(id);
+      GraphViewer.removeCollapsedStyle(id);
+      node.children().forEach(function(child) {
+        if (child.data('_isModule') && manager.isCollapsed(child.id())) {
+          GraphViewer.applyCollapsedStyle(child.id());
+        }
+      });
+
+      GraphViewer.runLayout({ animate: false, fit: false });
+      GraphViewer.refreshView();
+      updateStatus(manager, moduleIds);
+
+      var posAfter = {};
+      cy.nodes().forEach(function(n) { posAfter[n.id()] = { x: n.position('x'), y: n.position('y') }; });
+      cy.fit(null, 40);
+      var vpAfter = { zoom: cy.zoom(), pan: { x: cy.pan().x, y: cy.pan().y } };
+
+      cy.batch(function() {
+        cy.nodes().forEach(function(n) { n.position(posBefore[n.id()] || parentPos); });
+      });
+      cy.viewport({ zoom: vpBefore.zoom, pan: vpBefore.pan });
+
+      var dur = 500;
+      var ease = 'ease-in-out-cubic';
+      cy.nodes().forEach(function(n) {
+        var dest = posAfter[n.id()];
+        if (dest) n.animate({ position: dest }, { duration: dur, easing: ease });
+      });
+      cy.animate({ zoom: vpAfter.zoom, pan: vpAfter.pan, duration: dur, easing: ease });
+    });
+  }
+
   function showDetailPanel(edge) {
     var label = edge.data('label') || '(edge)';
     var actor = edge.data('actor');
@@ -531,6 +715,7 @@ var Interactions = (function() {
 
   function hideDetailPanel() {
     detailPanel.style.display = 'none';
+    detailPanel.classList.remove('dp-wide');
     detailBackdrop.style.display = 'none';
   }
 
