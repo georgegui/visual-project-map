@@ -6,7 +6,7 @@ Visual Project Map solves two related needs:
 
 1. **Map what exists.** Given an existing project, generate a clear visualization of its workflow — the components, how they connect, and what data flows between them.
 
-2. **Design what should exist.** Given an objective, generate a proposed workflow that achieves it — before any code is written. The objective could be a research question ("Estimate the causal effect of X on Y using administrative claims data") or an engineering goal ("Build a tool that visualizes project workflows and highlights where human review is needed").
+2. **Design what should exist.** Given an objective, generate a proposed workflow that achieves it. The objective could be a research question ("Estimate the causal effect of X on Y using administrative claims data") or an engineering goal ("Build a tool that visualizes project workflows and highlights where human review is needed").
 
 In both cases, the visualization must support two modes of understanding:
 
@@ -160,31 +160,102 @@ The human operator inspects intermediate results at the flagged interfaces. They
 
 The workflow map serves as the shared artifact through which human and AI coordinate: the AI marks what it needs help with, the human sees where to look, and the visualization tracks the state of each component.
 
+## From Design to Implementation
+
+After a design-mode graph is generated (steps 1–3 above), the following procedure bridges the gap between the proposed architecture and working code. It creates a closed loop: **design → scaffold → specify → implement → validate → update graph → review**.
+
+### Step A: Scaffold the Folder Structure
+
+From the design graph's modules and interfaces, create the directory tree with documentation stubs:
+
+- One directory per module, named from the module label (lowercase, underscores)
+- Each directory contains a `CLAUDE.md` stating:
+  - The module's **objective** in 1–2 sentences (from the module's `description`)
+  - Its **inputs and outputs** (from the module's `interface` field)
+  - A reference to `SPEC.md` for detailed specifications
+- Each directory also contains a `SPEC.md` stub with placeholders for acceptance criteria, edge cases, and validation checks
+
+The generation skill's Step 3.5b produces a printable scaffolding suggestion. This step materializes it into actual files.
+
+### Step B: Write Component Specs
+
+For each module directory, expand the `SPEC.md` stub with:
+
+- **Acceptance criteria**: What must be true for this module's output to be correct?
+- **Edge cases**: What inputs might break this module?
+- **Validation checks**: How can the AI (or a test suite) verify its own output?
+
+For modules with `needsHumanReview: true`, the spec should explicitly separate what requires domain expertise from what the AI can handle independently. The `checkpointReason` from the design graph is the starting point.
+
+### Step C: Implement Module-by-Module
+
+Work through modules in **topological order** (upstream modules first, following the graph's edge direction). For each module:
+
+1. Read the module's `CLAUDE.md` for objective and interface contract
+2. Read the module's `SPEC.md` for acceptance criteria and edge cases
+3. Implement the module
+4. **Self-validate** — check the implementation against both documents:
+   - Does the module produce the documented outputs from the documented inputs?
+   - Does it satisfy the acceptance criteria in `SPEC.md`?
+   - Do the file paths, formats, and data shapes match the interface contract?
+   - Do any tests pass?
+5. If validation passes → status upgrades from `planned` to `ai-tested`
+6. If validation reveals issues the AI cannot resolve → flag as `needs-review`
+
+### Step D: Update the Graph
+
+After implementing one or more modules, re-scan the project with Input A:
+
+```
+/visualize-project .
+```
+
+Incremental mode detects the design-to-scan transition:
+
+- Modules with corresponding directories and scripts upgrade from `planned` to `draft` or `ai-tested` based on scan evidence
+- Modules still without code remain `planned` (ghost opacity in the viewer)
+- The visualization gains opacity as components are implemented — a natural progress indicator
+- The `_generationMode` field updates from `"design"` to `"scan"` once any module has code
+
+### Step E: Human Review at Checkpoints
+
+Modules flagged with `needsHumanReview: true` require domain expert sign-off before upgrading to `verified`. The checkpoint review focuses on:
+
+- Does the implementation match the `SPEC.md` acceptance criteria?
+- Are the domain-specific decisions (flagged in `checkpointReason`) correct?
+- Are the intermediate outputs at module boundaries interpretable and correct?
+
+After review, the human marks the module as `verified` (or requests changes), and a re-scan reflects the updated status in the graph.
+
+### Why This Procedure Matters
+
+Each module's `CLAUDE.md` serves a dual purpose:
+
+1. **Implementation contract** — the AI reads it before coding to understand what the module should do
+2. **Scanning target** — the generation skill reads it during Input A to infer module boundaries and interfaces (Step 1.2)
+
+Projects that follow this convention produce better graphs on re-scan, which produces better `CLAUDE.md` suggestions on the next design iteration — a virtuous cycle. This is the operational form of Principle 8.
+
 ## What This Means for the Tool
+
+> **Implementation status**: See `spec/features.md` for which principles are
+> fully implemented, partially implemented, or still planned.
 
 ### Principle 1: Interfaces are the primary content
 
 Module inputs and outputs are not annotations or tooltips. They are the primary content of the collapsed (big-picture) view. When modules are collapsed, the user should see named, typed data contracts flowing between boxes — not just edges with verb labels.
 
-**Current gap**: Interface port nodes (`_isInterfacePort`) exist in the schema and are used in the self-referential example (`visual-project-map-workflow.json`), but are absent from most graphs. The generation skill should produce them by default, and the viewer should render them prominently.
-
 ### Principle 2: The default view is the interface map
 
 The collapsed view is not a simplified fallback. It is the main view — the equivalent of a car's dashboard. It should be self-sufficient: a user should be able to understand the overall data flow, identify the critical paths, and locate the human checkpoints without expanding a single module.
-
-**Current gap**: The viewer's auto-zoom on collapse fits too aggressively, and collapsed modules show only their label — no visible I/O ports. The default zoom level should show all modules with readable interface labels. Interface port nodes should remain visible outside the collapsed module box, showing what goes in and what comes out.
 
 ### Principle 3: Complexity lives inside modules, not between them
 
 Cross-module connections should be simple: one edge per module pair. If two modules need multiple connections, the module boundaries are wrong — just as a car component that requires dozens of custom connectors is poorly designed.
 
-**Current state**: The 1-edge-per-module-pair rule is already enforced in the generation skill and graph properties spec. This principle is well-served.
-
 ### Principle 4: Confidence and human-review flags must be visually encoded
 
 The current trust-level system (border styles, tags) encodes data provenance at the node level. But the ideal workflow requires encoding AI confidence and human-review recommendations at the module and edge level — so they are visible in the collapsed interface map without expanding anything.
-
-**Current gap**: Trust levels apply only to individual nodes. There is no schema field for module-level confidence, edge-level confidence, or a "recommended human checkpoint" flag. These need to be added so the interface map can show at a glance: "This module is AI-confident. This one needs your attention."
 
 ### Principle 5: Progressive disclosure follows the interface hierarchy
 
@@ -193,8 +264,6 @@ Each level of detail adds information without overwhelming:
 - **Level 0 (default)**: Modules as boxes with visible I/O ports, edges as data flow between ports, confidence/checkpoint flags on modules
 - **Level 1 (expand module)**: Internal nodes and edges within a module, showing the mechanism, trust levels on individual nodes
 - **Level 2 (node detail)**: File paths, scripts, test results, confidence scores for individual steps
-
-**Current gap**: The viewer supports expand/collapse and node detail panels, but Level 0 does not yet show I/O ports or module-level flags. The progressive disclosure concept is implemented for structure but not yet for confidence information.
 
 ### Principle 6: The generation skill must produce interpretable interfaces by default
 
@@ -206,11 +275,18 @@ Every module the skill generates should have:
 
 This is not optional enrichment — it is the minimum viable output. A graph without interpretable interfaces fails the tool's core objective.
 
-**Current gap**: The skill's Phase 2.1 documents `interface` fields but treats them as optional ("Only include interfaces you have evidence for"). For the "design what should exist" use case, the AI always has evidence because it is proposing the workflow. The skill should always generate interfaces, using its own proposed design as evidence.
-
 ### Principle 7: Critical path identification should be automatic
 
 Given the user's declared objective, the tool should be able to trace which module interfaces are upstream of the final outcome and mark them as critical. An error at a critical interface propagates to the result the user cares about; an error at a non-critical interface may be recoverable or irrelevant.
 
-**Current state**: Not implemented. Path tracing exists as an interactive feature (click a node to highlight upstream/downstream), but there is no concept of a pre-computed critical path encoded in the graph data.
+### Principle 8: Complex modules should be self-documenting via CLAUDE.md
 
+Each component/module subfolder that has non-trivial logic should contain a `CLAUDE.md` file that:
+- States the module's **high-level objective** in 1-2 sentences
+- Lists its **inputs and outputs** (what crosses the boundary)
+- References a `SPEC.md` or `spec/` folder for detailed specifications (schemas, acceptance criteria, edge cases)
+
+The CLAUDE.md stays concise — it is the module's "interface label", not its implementation docs. Detailed specs live in the referenced SPEC.md. This convention:
+- Makes Input A scanning more reliable (the skill already prioritizes CLAUDE.md in Step 1.2)
+- Gives Input B a scaffolding suggestion (design-mode can propose CLAUDE.md files alongside folders)
+- Creates a natural checkpoint document for human review at each module boundary

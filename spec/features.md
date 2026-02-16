@@ -145,10 +145,13 @@ contradictions and against this catalog for duplicates.
 - **Files**: `src/interactions.js` (tap handler)
 - **Properties**: P6.1
 
-### F15: Hover edge tooltip
+### F15: Hover tooltip (edges and nodes)
 - **Status**: `implemented`
-- **Files**: `src/interactions.js` (mouseover/mouseout edge)
+- **Files**: `src/interactions.js` (mouseover/mouseout edge, mouseover/mouseout node:child)
 - **Properties**: P6.2
+- Edge hover shows label, script, and description. Node hover shows label, file I/O
+  indicators, and a description preview (truncated at 120 chars with "click for full
+  detail" hint when longer).
 
 ### F16: Hover node neighborhood highlighting
 - **Status**: `implemented`
@@ -295,13 +298,14 @@ contradictions and against this catalog for duplicates.
   Displayed in tooltip or detail panel on click. No property conflict.
 
 ### F62: Module/edge confidence schema fields
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.11
 - **Workstream**: B1
+- **Files**: `schema.json` (confidence/needsHumanReview/checkpointReason on modules, confidence on edges), `skills/visualize-project/_foundations/graph-schema.md` (field docs + confidence visual encoding table), `skills/visualize-project/_foundations/inference-rules.md` (Design-Mode Confidence Heuristics section)
 - New optional fields: `module.confidence` (high/medium/low/unknown),
   `module.needsHumanReview` (boolean), `module.checkpointReason` (string),
-  `edge.confidence` (high/medium/low/unknown), `graph.criticalPath` (node ID
-  array). Backward-compatible — graphs without these fields render as before.
+  `edge.confidence` (high/medium/low/unknown). Backward-compatible — graphs
+  without these fields render as before. `graph.criticalPath` deferred to F65/F68.
 
 ### F63: needsHumanReview flag and amber badge
 - **Status**: `planned`
@@ -389,12 +393,24 @@ contradictions and against this catalog for duplicates.
   upstream of the final output and records `graph.criticalPath` (node ID array).
 
 ### F69: Design-from-objective skill mode (Input B)
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P1.1–P1.4
 - **Workstream**: D1
-- Add `--objective "text"` argument. Skips project scanning; designs a workflow
-  from domain knowledge. Generates modules, interfaces, edges, confidence,
-  and critical path from the stated objective.
+- **Files**: `skills/visualize-project/SKILL.md` (Phase 1B, design-mode guidance in Phase 2-3, design-mode edge cases, worked example), `skills/visualize-project/_foundations/inference-rules.md` (Design-Mode Defaults section), `schema.json` (`_generationMode`, `_objective`, `_generatedAt` fields)
+- `--objective "text"` and `--objective-file path` arguments. Skips project scanning;
+  designs a workflow from domain knowledge via Phase 1B. Generates modules with
+  interfaces, confidence, and human-review flags. All elements default to
+  `status: "planned"`. Compatible with `--constraints`, `--domain`, `--depth`, `--title`.
+  Design-mode graphs transition to scan mode via incremental regeneration.
+
+### F76: Design-mode CLAUDE.md scaffolding suggestion
+- **Status**: `implemented`
+- **Files**: `skills/visualize-project/SKILL.md` (Step 3.5b)
+- After writing a design-mode graph, the skill prints a suggested folder structure
+  with `CLAUDE.md` stubs for each module. Derives folder names from module labels
+  and stub content from module descriptions and interfaces. Print-only — no files
+  created. Implements SPEC.md Principle 8 (complex modules should be self-documenting
+  via CLAUDE.md).
 
 ## View Modes
 
@@ -415,13 +431,13 @@ contradictions and against this catalog for duplicates.
   Displayed on hover (tooltip with emoji indicators), on double-click (modal detail panel
   showing full paths), and inline in Files view mode (F40).
 
-### F42: Node detail panel (double-click)
-- **Status**: `implemented`
-- **Files**: `src/interactions.js` (dbltap handler, showNodeDetailPanel)
+### F42: Node detail panel (click / double-click)
+- **Status**: `deprecated` (superseded by F73)
+- **Files**: `src/interactions.js` (tap handler, dbltap handler, showNodeDetailPanel)
 - **Properties**: P6.2 (extends detail panel concept from edges to nodes)
-- Double-clicking a leaf node with `files` data opens a modal panel showing the node's
-  trust level badge and full read/write file paths. Same dismiss behavior as edge detail
-  panel (F38).
+- Single-clicking a leaf node with `description` or `files` opened a modal panel showing
+  the node's trust level badge, description, and full read/write file paths. Replaced by
+  the non-blocking side panel (F73).
 
 ### F43: Context-sensitive legend
 - **Status**: `implemented`
@@ -568,6 +584,35 @@ contradictions and against this catalog for duplicates.
   crossing module boundaries. Description fields are preserved during incremental
   regeneration as manual refinements.
 
+## Node Detail
+
+### F73: Node detail side panel
+- **Status**: `implemented`
+- **Files**: `schema.json` (node.io, node.docs), `src/viewer.js` (buildElements io/docs passthrough, ndp-selected style), `src/interactions.js` (showNodeSidePanel, hideNodeSidePanel, rewired tap handler), `index.html` (node-detail-panel div + CSS)
+- **Properties**: P6.2 (extends)
+- Non-blocking left-side panel that opens on click of a child node with detail data
+  (description, io, files, or docs). Shows trust badge, description, docs link, rich I/O
+  sections (inputs/outputs with name/description/format/example), file reads/writes, plan
+  annotation, and a "Trace Path" button. Shift+click bypasses the panel for path trace.
+  Nodes without detail data fall back to path trace on click. Panel closes on Escape,
+  background click, or close button. Supersedes F42 (modal node detail panel).
+
+### F74: Shape-based role distinction (process vs data)
+- **Status**: `implemented`
+- **Files**: `schema.json`, `src/viewer.js` (buildElements, buildStyles)
+- **Properties**: P2.2
+- Modules and nodes with `role: "data"` render as hexagons. Process modules (default) remain round-rectangles. Collapsed data modules are hexagons; expanded data modules have dotted borders. Decision diamonds and interface ports keep their shapes regardless of role.
+
+### F75: Implementation status visual encoding
+- **Status**: `implemented`
+- **Files**: `schema.json` (status enum on module + node), `src/viewer.js` (buildElements status passthrough, buildStyles status selectors), `skills/visualize-project/_foundations/inference-rules.md` (Status Assignment section), `skills/visualize-project/_foundations/graph-schema.md` (status fields + encoding table), `skills/visualize-project/SKILL.md` (status guidance in Phase 2)
+- **Properties**: P2.1 (opacity channel), P2.2 (border channel)
+- Five status levels: `planned` (ghost, 20% opacity, dotted border), `draft` (faded, 45% opacity),
+  `ai-tested` (default, 85% opacity), `needs-review` (full opacity, orange dashed border),
+  `verified` (full opacity, green 3px solid border). Applied to both modules and nodes.
+  Skill guidelines include heuristics for inferring status from test coverage, PR history,
+  and code existence. Default when omitted is `ai-tested` visual treatment.
+
 ---
 
 ## Changelog
@@ -607,3 +652,10 @@ contradictions and against this catalog for duplicates.
 | 2026-02-15 | F57 | Implemented: skill generates descriptions and module interfaces (SKILL.md + inference-rules.md) |
 | 2026-02-15 | F25 | Updated status: proposed → implemented (superseded by F49) |
 | 2026-02-15 | F58–F72 | Added 15 planned features aligned with ROADMAP.md design principles (workstreams A–E) |
+| 2026-02-16 | F73 | Implemented: node detail side panel (left-side non-blocking panel replacing F42 modal) |
+| 2026-02-16 | F42 | Updated status: implemented → deprecated (superseded by F73) |
+| 2026-02-16 | F74 | Implemented: shape-based role distinction (process=round-rectangle, data=hexagon) |
+| 2026-02-16 | F75 | Implemented: status visual encoding (planned/draft/ai-tested/needs-review/verified via opacity+border) |
+| 2026-02-16 | F62 | Implemented: confidence/needsHumanReview/checkpointReason schema fields on modules, confidence on edges |
+| 2026-02-16 | F69 | Implemented: design-from-objective skill mode (Input B) with Phase 1B, design-mode defaults, worked example |
+| 2026-02-16 | F76 | Implemented: design-mode CLAUDE.md scaffolding suggestion (SKILL.md Step 3.5b) |

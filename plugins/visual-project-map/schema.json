@@ -17,6 +17,16 @@
           "color":       { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
           "borderColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
           "description": { "type": "string", "description": "Natural language description of what this module does and why it exists" },
+          "role": {
+            "type": "string",
+            "enum": ["process", "data"],
+            "description": "Visual role: process (does work, round-rectangle) or data (artifact, hexagon)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["planned", "draft", "ai-tested", "needs-review", "verified"],
+            "description": "Implementation status: planned (no code), draft (untested), ai-tested (default), needs-review (flagged), verified (human-approved)"
+          },
           "parent":      { "type": "string", "description": "ID of parent phase module (for nesting)" },
           "interface": {
             "type": "object",
@@ -49,6 +59,19 @@
                 }
               }
             }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low", "unknown"],
+            "description": "How confident the generation is in this module's design (high=standard pattern, medium=reasonable guess, low=needs domain input)"
+          },
+          "needsHumanReview": {
+            "type": "boolean",
+            "description": "True if this module requires domain expertise to validate"
+          },
+          "checkpointReason": {
+            "type": "string",
+            "description": "Why this module needs human review or has low confidence"
           }
         }
       }
@@ -63,6 +86,16 @@
           "module": { "type": "string" },
           "label":  { "type": "string" },
           "description": { "type": "string", "description": "Natural language description of what happens at this state or step" },
+          "role": {
+            "type": "string",
+            "enum": ["process", "data"],
+            "description": "Visual role: process (does work, round-rectangle) or data (artifact, hexagon). Overrides style.shape."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["planned", "draft", "ai-tested", "needs-review", "verified"],
+            "description": "Implementation status: planned (no code), draft (untested), ai-tested (default), needs-review (flagged), verified (human-approved)"
+          },
           "style": {
             "type": "object",
             "properties": {
@@ -98,7 +131,40 @@
               "format":      { "type": "string" },
               "example":     { "type": "string" }
             }
-          }
+          },
+          "io": {
+            "type": "object",
+            "description": "Rich I/O descriptions with concrete examples",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name":        { "type": "string" },
+                    "description": { "type": "string" },
+                    "format":      { "type": "string" },
+                    "example":     { "type": "string" }
+                  },
+                  "required": ["name"]
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name":        { "type": "string" },
+                    "description": { "type": "string" },
+                    "format":      { "type": "string" },
+                    "example":     { "type": "string" }
+                  },
+                  "required": ["name"]
+                }
+              }
+            }
+          },
+          "docs": { "type": "string", "description": "Link to documentation (markdown file path or URL)" }
         }
       }
     },
@@ -124,6 +190,11 @@
               "updates": { "type": "array", "items": { "type": "string" } },
               "docs":    { "type": "string" }
             }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low", "unknown"],
+            "description": "How confident the generation is in this edge's correctness"
           }
         }
       }
@@ -153,6 +224,20 @@
           }
         }
       }
+    },
+    "_generationMode": {
+      "type": "string",
+      "enum": ["scan", "design"],
+      "description": "How this graph was generated: scan (from existing project) or design (from objective)"
+    },
+    "_objective": {
+      "type": "string",
+      "description": "The natural language objective used to generate this graph (design mode only)"
+    },
+    "_generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this graph was generated"
     },
     "plan": {
       "type": "object",

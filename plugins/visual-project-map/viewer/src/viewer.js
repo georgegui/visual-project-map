@@ -3,7 +3,7 @@ var GraphViewer = (function() {
   var manager = null;
   var graphData = null;
   var moduleIds = [];
-  var currentView = 'module';
+  var currentView = 'actor';
 
   function loadGraph(url) {
     return fetch(url).then(function(r) {
@@ -125,6 +125,8 @@ var GraphViewer = (function() {
       if (phaseIds.has(m.id)) nodeData._isPhase = true;
       if (m.interface) nodeData.interface = m.interface;
       if (m.description) nodeData.description = m.description;
+      if (m.role) nodeData.role = m.role;
+      if (m.status) nodeData.status = m.status;
       elements.push({ group: 'nodes', data: nodeData });
     });
 
@@ -159,6 +161,10 @@ var GraphViewer = (function() {
       }
 
       if (n.description) nodeData.description = n.description;
+      if (n.io) nodeData.io = n.io;
+      if (n.docs) nodeData.docs = n.docs;
+      if (n.role) nodeData.role = n.role;
+      if (n.status) nodeData.status = n.status;
 
       if (n.files) {
         nodeData.files = n.files;
@@ -202,6 +208,11 @@ var GraphViewer = (function() {
           'padding': 25, 'text-margin-y': -4
         }
       },
+      { selector: ':parent[role="data"]',
+        style: {
+          'border-style': 'dotted'
+        }
+      },
       { selector: 'node[_isModule]',
         style: {
           'background-color': 'data(bg)', 'border-color': 'data(bc)'
@@ -223,6 +234,12 @@ var GraphViewer = (function() {
           'font-size': 13, 'font-weight': 600, 'color': '#1e293b'
         }
       },
+      { selector: '.collapsed-module[role="data"]',
+        style: {
+          'shape': 'hexagon',
+          'width': 180, 'height': 65
+        }
+      },
       { selector: '.collapsed-phase',
         style: {
           'background-color': 'data(bg)', 'background-opacity': 0.85,
@@ -231,6 +248,12 @@ var GraphViewer = (function() {
           'width': 220, 'height': 60,
           'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
           'font-size': 14, 'font-weight': 700, 'color': '#1e293b'
+        }
+      },
+      { selector: '.collapsed-phase[role="data"]',
+        style: {
+          'shape': 'hexagon',
+          'width': 220, 'height': 70
         }
       },
       { selector: 'node[nodeShape]',
@@ -243,24 +266,30 @@ var GraphViewer = (function() {
           'font-size': 11, 'color': '#1e293b', 'text-wrap': 'none'
         }
       },
+      { selector: 'node[role="data"]',
+        style: {
+          'shape': 'hexagon',
+          'height': 32
+        }
+      },
       { selector: 'node[_isInterfacePort]',
         style: {
-          'width': 130, 'height': 24,
-          'font-size': 9, 'font-weight': 600,
-          'border-width': 2, 'border-style': 'solid',
-          'shape': 'round-rectangle',
+          'width': 160, 'height': 36,
+          'font-size': 11, 'font-weight': 600,
+          'border-width': 2.5, 'border-style': 'dashed',
+          'shape': 'ellipse',
           'text-valign': 'center', 'text-halign': 'center',
           'color': '#475569'
         }
       },
       { selector: 'node[_portDirection="input"]',
         style: {
-          'background-color': '#eff6ff', 'border-color': '#60a5fa'
+          'background-color': '#eff6ff', 'border-color': '#3b82f6'
         }
       },
       { selector: 'node[_portDirection="output"]',
         style: {
-          'background-color': '#f0fdf4', 'border-color': '#4ade80'
+          'background-color': '#f0fdf4', 'border-color': '#16a34a'
         }
       }
     ];
@@ -275,6 +304,22 @@ var GraphViewer = (function() {
         style: { 'border-width': trust.verified.borderWidth || 3.5 }
       });
     }
+
+    // Status visual encoding: opacity + border treatment
+    styles.push(
+      { selector: 'node[status="verified"]',
+        style: { 'background-opacity': 1, 'border-width': 3, 'border-color': '#16a34a', 'border-style': 'solid' }
+      },
+      { selector: 'node[status="needs-review"]',
+        style: { 'background-opacity': 1, 'border-width': 2.5, 'border-color': '#f59e0b', 'border-style': 'dashed' }
+      },
+      { selector: 'node[status="draft"]',
+        style: { 'background-opacity': 0.45, 'border-width': 1, 'border-style': 'solid' }
+      },
+      { selector: 'node[status="planned"]',
+        style: { 'background-opacity': 0.2, 'border-width': 1, 'border-style': 'dotted', 'color': '#94a3b8' }
+      }
+    );
 
     styles.push(
       { selector: 'node[nodeShape="diamond"]',
@@ -328,6 +373,9 @@ var GraphViewer = (function() {
       },
       { selector: '.view-files',
         style: { 'label': 'data(fileLabel)', 'text-wrap': 'wrap', 'text-max-width': 160, 'font-size': 9, 'text-valign': 'center', 'width': 180, 'height': 48 }
+      },
+      { selector: '.ndp-selected',
+        style: { 'border-width': 3, 'border-color': '#3b82f6', 'z-index': 20 }
       },
       { selector: '.highlighted',
         style: { 'opacity': 1, 'z-index': 10 }
@@ -616,6 +664,9 @@ var GraphViewer = (function() {
       }
 
       fit(50);
+
+      // Apply default view
+      setView(currentView);
 
       return { cy: cy, manager: manager, data: data, moduleIds: moduleIds };
     });
