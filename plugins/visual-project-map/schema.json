@@ -72,6 +72,10 @@
           "checkpointReason": {
             "type": "string",
             "description": "Why this module needs human review or has low confidence"
+          },
+          "docPath": {
+            "type": "string",
+            "description": "Path to the module's CLAUDE.md file relative to project root (populated during scan, omitted in design mode)"
           }
         }
       }
@@ -224,6 +228,11 @@
           }
         }
       }
+    },
+    "criticalPath": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Pre-computed critical path as an ordered array of node IDs. P key toggles highlighting in the viewer."
     },
     "_generationMode": {
       "type": "string",

@@ -336,3 +336,46 @@ A user looking at the graph should be able to answer both "Where is this code?" 
 - **One canonical graph per project** stored at `.graphs/{project-name}.json`. This graph maps modules to directories and edges to data flow between them.
 - **Avoid conceptual-only modules** — modules named after workflow stages (e.g., "Discover", "Blueprint") rather than filesystem locations force the reader to mentally map stages back to directories. Module labels should match the codebase structure a developer navigates.
 - **One graph, not many** — multiple overlapping graphs for the same project create confusion about which is canonical. The `.graphs/` directory should contain one graph per project, plus `.prev.json` for diff support.
+
+### Principle 11: One edge per module pair at every hierarchy level
+
+Cross-module edges are the primary source of visual clutter — especially when modules are collapsed and meta-edges accumulate. The graph must enforce a strict structural rule: **at most one edge between any two modules** at every level of the hierarchy.
+
+This principle is what makes graphs readable at scale. A 10-module graph with 1 edge per pair has at most 45 edges in the collapsed view. Without this rule, the same graph could have hundreds of spaghetti edges.
+
+**How to achieve it:**
+
+- **Collector nodes** — when multiple internal paths in module A all lead to module B, add a collector exit node inside A that merges them into one outgoing edge.
+- **Router nodes** — when module B receives edges from multiple nodes in module A, add a router entry node inside B that dispatches internally.
+- **Sub-phase wrapping** — when one source fans out to N parallel modules, wrap them in a sub-phase with a dispatcher at entry and a collector at exit.
+- **Merge modules** — if two modules need 2+ edges between them in both directions, they may be too tightly coupled and should be merged.
+
+**Verification at each level:**
+
+| Level | Rule |
+|-------|------|
+| Phase → Phase | At most 1 forward + 1 backward edge per pair |
+| Module → Module (same phase) | At most 1 edge per pair |
+| Node → Node (same module) | Unconstrained (internal complexity) |
+
+**Relationship to other principles:** This principle is the structural mechanism behind Principle 3 ("complexity lives inside modules, not between them"). Principle 3 states the goal; Principle 11 states the enforceable rule.
+
+### Design-mode applicability
+
+Not all principles apply equally to both generation modes:
+
+| Principle | Input A (scan) | Input B (design) | Notes |
+|-----------|:-:|:-:|-------|
+| 1. Interfaces are primary content | Yes | Yes | Design mode always generates interfaces |
+| 2. Default view is the interface map | Yes | Yes | Both modes produce collapsed views |
+| 3. Complexity inside modules | Yes | Yes | Structural rule, mode-agnostic |
+| 4. Confidence visually encoded | Yes | Yes | Design mode self-assesses confidence |
+| 5. Progressive disclosure | Yes | Yes | Hierarchy works identically |
+| 6. Skill generates interfaces | Yes | Yes | Design mode has even more evidence |
+| 7. Critical path automatic | Partial | Yes | Scan mode needs heuristics; design mode traces from objective |
+| 8. CLAUDE.md per module | Yes | Scaffolding | Design mode can propose but not validate CLAUDE.md |
+| 9. Validate against SPEC.md | Yes | N/A | No SPEC.md exists yet in design mode |
+| 10. Embed folder hierarchy | Yes | N/A | No folders exist yet in design mode |
+| 11. One edge per module pair | Yes | Yes | Structural rule, mode-agnostic |
+
+**Design mode gets a pass on Principles 9 and 10** because they reference artifacts (SPEC.md, folder structure) that don't exist when designing from an objective. As the user implements modules and re-scans with Input A, these principles activate naturally through incremental regeneration.

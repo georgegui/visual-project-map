@@ -56,6 +56,8 @@ Parse `$ARGUMENTS` as follows:
 
 ## Phase 1 — Discovery
 
+> **SPEC principles**: P8 (CLAUDE.md per module), P10 (embed folder hierarchy)
+
 Scan the project to build a mental model of its structure and workflows.
 Do steps 1.1-1.4 in parallel where possible.
 
@@ -234,6 +236,10 @@ have `status: "planned"` and no file annotations.
 
 ## Phase 2 — Graph Generation
 
+> **SPEC principles**: P1 (interfaces as primary content), P3 (complexity inside modules),
+> P4 (confidence encoded), P5 (progressive disclosure), P6 (skill generates interfaces),
+> P10 (modules = directories), P11 (one edge per module pair)
+
 Transform the discovery results into graph JSON elements.
 Consult `_foundations/inference-rules.md` for all lookup tables.
 Consult `_foundations/color-palette.md` for color assignments.
@@ -301,6 +307,12 @@ restructure: merge them, split differently, or wrap in a sub-phase
 
 **Keep it focused:** Aim for 3-10 modules. If you detect >12, merge
 related directories or suggest `--focus`. Target 3-8 nodes per module.
+
+**Module docPath:** For each module, if a CLAUDE.md was found in the
+corresponding directory during Step 1.1, set `docPath` to its relative
+path (e.g., `"plugins/visual-project-map/viewer/src/CLAUDE.md"`). This
+lets the viewer show which modules have documentation (SPEC Principle 8).
+Omit `docPath` in design mode since no files exist yet.
 
 **Module descriptions:** Add a `description` field to every module — one
 sentence explaining what it does and why it exists as a separate boundary.
@@ -496,6 +508,9 @@ When included, use this standard set:
 ---
 
 ## Phase 3 — Assembly & Output
+
+> **SPEC principles**: P2 (default view is interface map), P9 (validate and iterate),
+> P11 (one edge per module pair — verified in Step 2.4b)
 
 ### 3.1: Construct JSON
 

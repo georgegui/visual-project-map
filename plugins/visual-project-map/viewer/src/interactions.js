@@ -11,6 +11,7 @@ var Interactions = (function() {
   var autofocusMode = true;
   var watching = false;
   var breadcrumbPath = [];
+  var criticalPathActive = false;
   var _cy, _manager, _moduleIds, _graphUrl;
 
   function init(cy, manager, moduleIds, graphUrl) {
@@ -421,7 +422,8 @@ var Interactions = (function() {
       }
       if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMinimap(); }
       if (e.key === 'w' || e.key === 'W') { e.preventDefault(); toggleWatch(graphUrl); }
-      if (e.key === 'Escape') { hideDetailPanel(); hideNodeSidePanel(); clearPathTrace(cy); updateStatus(manager, moduleIds); }
+      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); toggleCriticalPath(cy, manager, moduleIds); }
+      if (e.key === 'Escape') { hideDetailPanel(); hideNodeSidePanel(); clearPathTrace(cy); clearCriticalPath(cy); updateStatus(manager, moduleIds); }
       if (e.key === '/' && searchInput) { e.preventDefault(); searchInput.focus(); }
     });
 
@@ -572,6 +574,56 @@ var Interactions = (function() {
     pathTraceActive = false;
   }
 
+  function highlightCriticalPath(cy) {
+    var graphData = GraphViewer.getGraphData();
+    var cpIds = graphData && graphData.criticalPath;
+    if (!cpIds || !cpIds.length) return false;
+
+    var cpNodes = cy.collection();
+    cpIds.forEach(function(id) {
+      var n = cy.getElementById(id);
+      if (n.length) cpNodes = cpNodes.union(n);
+    });
+    if (cpNodes.empty()) return false;
+
+    var cpEdges = cy.edges().filter(function(edge) {
+      return cpNodes.has(edge.source()) && cpNodes.has(edge.target());
+    });
+    var allCp = cpNodes.union(cpEdges);
+    cpNodes.forEach(function(n) {
+      var p = n.parent();
+      if (p.length) allCp = allCp.union(p);
+    });
+
+    cy.elements().not(allCp).addClass('dimmed');
+    allCp.addClass('highlighted');
+    cpEdges.addClass('path-edge');
+    cpNodes.first().addClass('path-source');
+    criticalPathActive = true;
+    return true;
+  }
+
+  function clearCriticalPath(cy) {
+    if (!criticalPathActive) return;
+    cy.elements().removeClass('dimmed highlighted path-source path-edge');
+    criticalPathActive = false;
+  }
+
+  function toggleCriticalPath(cy, manager, moduleIds) {
+    if (criticalPathActive) {
+      clearCriticalPath(cy);
+      updateStatus(manager, moduleIds);
+      return;
+    }
+    clearPathTrace(cy);
+    if (highlightCriticalPath(cy)) {
+      statusEl.textContent = 'Critical path highlighted — P to toggle, Esc to clear';
+    } else {
+      statusEl.textContent = 'No criticalPath defined in graph JSON';
+      setTimeout(function() { updateStatus(manager, moduleIds); }, 2000);
+    }
+  }
+
   function expandAll(cy, manager, moduleIds) {
     clearPathTrace(cy);
     manager.expandAll();
@@ -655,7 +707,12 @@ var Interactions = (function() {
       html += '</ul></div>';
     }
     if (details.docs) {
-      html += '<div class="dp-row"><div class="dp-label">Docs</div><div class="dp-value">' + escapeHtml(details.docs) + '</div></div>';
+      var edgeDocsUrl = details.docs;
+      if (!details.docs.match(/^https?:\/\//)) {
+        var edgeGraphDir = _graphUrl.replace(/[^\/]*$/, '');
+        edgeDocsUrl = edgeGraphDir + details.docs;
+      }
+      html += '<div class="dp-row"><div class="dp-label">Docs</div><div class="dp-value"><a href="' + escapeHtml(edgeDocsUrl) + '" target="_blank">' + escapeHtml(details.docs) + '</a></div></div>';
     }
 
     if (GraphViewer.getView() === 'plan') {
@@ -719,8 +776,13 @@ var Interactions = (function() {
       }
     }
 
+    var docsUrl = docs;
+    if (docs && !docs.match(/^https?:\/\//)) {
+      var graphDir = _graphUrl.replace(/[^\/]*$/, '');
+      docsUrl = graphDir + docs;
+    }
     if (docs) {
-      html += '<a class="ndp-docs-link" href="' + escapeHtml(docs) + '" target="_blank">' + escapeHtml(docs) + '</a>';
+      html += '<a class="ndp-docs-link" href="' + escapeHtml(docsUrl) + '" target="_blank">' + escapeHtml(docs) + '</a>';
       if (docs.match(/\.md$/i)) {
         html += '<div id="ndp-markdown-content" class="ndp-markdown" style="color:#94a3b8;font-style:italic">Loading docs...</div>';
       }
@@ -814,13 +876,7 @@ var Interactions = (function() {
     }
 
     // Fetch and render markdown docs if available
-    if (docs && docs.match(/\.md$/i)) {
-      var docsUrl = docs;
-      // Resolve relative paths against the graph URL's directory
-      if (!docs.match(/^https?:\/\//)) {
-        var graphDir = _graphUrl.replace(/[^\/]*$/, '');
-        docsUrl = graphDir + docs;
-      }
+    if (docsUrl && docs && docs.match(/\.md$/i)) {
       fetch(docsUrl).then(function(r) {
         if (!r.ok) throw new Error(r.status);
         return r.text();

@@ -273,7 +273,7 @@ contradictions and against this catalog for duplicates.
   of the workflow.
 
 ### F65: Critical path schema field and highlighting
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.13, P7.4
 - **Workstream**: B4
 - Pre-computed `graph.criticalPath` (node ID array) stored in the graph JSON.
@@ -616,6 +616,9 @@ contradictions and against this catalog for duplicates.
   annotation, and a "Trace Path" button. Shift+click bypasses the panel for path trace.
   Nodes without detail data fall back to path trace on click. Panel closes on Escape,
   background click, or close button. Supersedes F42 (modal node detail panel).
+- **Schema fields used**: `node.io` (rich I/O with inputs/outputs arrays — same structure
+  as `module.interface`), `node.docs` (link to documentation file or URL). Both are passed
+  through `buildElements()` in viewer.js and rendered in the side panel by interactions.js.
 
 ### F74: Shape-based role distinction (process vs data)
 - **Status**: `implemented`

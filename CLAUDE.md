@@ -66,6 +66,24 @@ No build system, no npm, no bundler. Three global JS modules loaded as `<script>
 - **Edge detail panel** — edges with `details` show a modal panel on click with script path, inputs, outputs, and docs.
 - **Dagre layout fallback** — Uses `longest-path` ranker by default, falls back to `network-simplex` if dagre errors.
 
+## Design Principles
+
+The tool is governed by 11 design principles documented in `SPEC.md`:
+
+1. **Interfaces are primary content** — collapsed modules show named I/O ports, not just edges
+2. **Default view is the interface map** — the collapsed view is the main view, not a simplified fallback
+3. **Complexity inside modules** — cross-module connections should be simple; one edge per module pair
+4. **Confidence visually encoded** — AI confidence and human-review flags visible without expanding
+5. **Progressive disclosure** — three zoom levels: modules → internal nodes → node detail
+6. **Skill generates interfaces** — every module gets named inputs/outputs and a description
+7. **Critical path automatic** — the tool traces which interfaces are upstream of the final outcome
+8. **CLAUDE.md per module** — each non-trivial directory has a CLAUDE.md stating objective and I/O
+9. **Validate against SPEC.md** — AI iterates up to 3 times before escalating to human
+10. **Embed folder hierarchy** — modules = directories, edges = logical dependencies `tree` can't show
+11. **One edge per module pair** — enforced at every hierarchy level via collector/router nodes
+
+See `SPEC.md` for the full exposition, including design-mode applicability.
+
 ## Spec Documents
 
 Feature requirements and graph output constraints live in `spec/`:
