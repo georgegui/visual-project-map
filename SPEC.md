@@ -315,3 +315,24 @@ The AI does not get to say "done" without evidence. For every module it implemen
 - All checks pass on attempt 1-3 → `ai-tested`
 - Escalated after 3 attempts → `needs-review` with the attempt log
 - Human resolves the issue → `verified` (human was in the loop)
+
+### Principle 10: Graphs embed folder hierarchy and reveal logical flow
+
+A graph is a **superset** of the folder tree, not a replacement for it. It embeds the project's directory structure as module nesting, then adds the logical dependencies that the filesystem cannot express.
+
+What the graph shows that `tree` cannot:
+
+- **Module nesting = directory containment** — phases group related modules, just as parent directories group subdirectories. The collapsed view mirrors the top-level folder layout.
+- **Edges = data flow between directories** — which directory's output becomes another directory's input, what transformations happen at each boundary, and where the human checkpoints are. These relationships are invisible in a file browser.
+- **Interface ports = named data contracts** — the specific inputs and outputs crossing each module boundary, making dependencies concrete rather than implicit.
+
+A user looking at the graph should be able to answer both "Where is this code?" (from the hierarchy) and "What depends on what?" (from the edges) in a single view.
+
+**Implications for graph design:**
+
+- **Modules = directories** — each module corresponds to a directory (or small set of files) that a developer can navigate to. Module labels should evoke the directory name.
+- **Module nesting = directory nesting** — if `viewer/src/` is inside `viewer/`, the graph should reflect this as a child module inside a parent phase.
+- **Edges = logical dependencies** — edges encode the relationships the filesystem hides: "spec/ informs the generation skill" and "the skill produces JSON that the viewer renders." These are the graph's added value over `tree`.
+- **One canonical graph per project** stored at `.graphs/{project-name}.json`. This graph maps modules to directories and edges to data flow between them.
+- **Avoid conceptual-only modules** — modules named after workflow stages (e.g., "Discover", "Blueprint") rather than filesystem locations force the reader to mentally map stages back to directories. Module labels should match the codebase structure a developer navigates.
+- **One graph, not many** — multiple overlapping graphs for the same project create confusion about which is canonical. The `.graphs/` directory should contain one graph per project, plus `.prev.json` for diff support.
