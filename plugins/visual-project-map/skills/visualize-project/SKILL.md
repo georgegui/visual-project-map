@@ -38,6 +38,7 @@ Parse `$ARGUMENTS` as follows:
 | `--depth N` | `2` | Module nesting: `1` = flat, `2` = phases + modules |
 | `--title "..."` | Auto from directory/objective | Graph title override |
 | `--force` | `false` | Skip incremental mode; regenerate from scratch |
+| `--scaffold` | `false` | Create CLAUDE.md + SPEC.md stubs in project directories (design mode only) |
 
 **Input A** (scan existing project):
 - `/visualize-project` — current project
@@ -607,8 +608,14 @@ Use the Write tool. Format the JSON with 2-space indentation.
 
 After writing the graph JSON, print a suggested folder structure with `CLAUDE.md`
 stubs for each module. The AI just designed the modules and their interfaces, so
-it can generate the documentation scaffolding. This is **print-only** — do not
-create files. The user decides whether to adopt it.
+it can generate the documentation scaffolding.
+
+Derive the folder name from the module label (lowercase, underscores). Derive the
+CLAUDE.md content from the module's `description` and `interface` fields. If the
+module has `needsHumanReview: true`, append `; see SPEC.md for review criteria`.
+
+**Default behavior (no `--scaffold`):** Print-only. Show the suggested structure
+and let the user decide whether to adopt it.
 
 Format:
 ```
@@ -618,10 +625,6 @@ Suggested folder structure with CLAUDE.md stubs:
       CLAUDE.md    # "{one-sentence objective}; inputs: {input names}; outputs: {output names}"
     ...
 ```
-
-Derive the folder name from the module label (lowercase, underscores). Derive the
-CLAUDE.md comment from the module's `description` and `interface` fields. If the
-module has `needsHumanReview: true`, append `; see SPEC.md for review criteria`.
 
 Example output:
 ```
@@ -635,6 +638,66 @@ Suggested folder structure with CLAUDE.md stubs:
       CLAUDE.md    # "Construct treatment, outcome, and control variables; inputs: clean_panel; outputs: analytical_dataset; see SPEC.md for review criteria"
     ...
 ```
+
+**When `--scaffold` is passed:** Create the directories and files instead of
+just printing them.
+
+1. For each non-phase module in the graph:
+   a. Derive folder path from module label (lowercase, underscores)
+   b. Create directory with `os.makedirs(path, exist_ok=True)` (via Bash)
+   c. Write CLAUDE.md using the Write tool with this format:
+
+      ```markdown
+      # {Module Label}
+
+      {module.description}
+
+      ## Inputs
+      {for each interface.inputs entry:}
+      - **{name}**: {description} ({format})
+
+      ## Outputs
+      {for each interface.outputs entry:}
+      - **{name}**: {description} ({format})
+
+      ## Specs
+      {if needsHumanReview:}
+      See `SPEC.md` for acceptance criteria. Review focus: {checkpointReason}
+      {else:}
+      See `SPEC.md` for acceptance criteria and edge cases.
+      ```
+
+   d. If the module has `needsHumanReview: true`, also write a SPEC.md stub:
+
+      ```markdown
+      # {Module Label} — Specification
+
+      ## Acceptance Criteria
+      {for each interface.outputs entry:}
+      - [ ] Output `{name}` conforms to: {description}
+
+      ## Edge Cases
+      - (to be defined)
+
+      ## Validation Checks
+      - (to be defined)
+
+      ## Human Review Required
+      {checkpointReason}
+
+      ### What requires domain expertise
+      - (to be defined)
+
+      ### What the AI can handle
+      - (to be defined)
+      ```
+
+   e. Print confirmation: `Created {path}/CLAUDE.md` (and `Created {path}/SPEC.md` if applicable)
+
+2. Do NOT overwrite existing CLAUDE.md or SPEC.md files — skip with a note:
+   `Skipped {path}/CLAUDE.md (already exists)`
+
+3. After creating files, print the same summary as the print-only mode
 
 This connects to Principle 8 in SPEC.md: complex modules should be self-documenting
 via CLAUDE.md, with detailed specs in a referenced SPEC.md.

@@ -194,13 +194,13 @@ Work through modules in **topological order** (upstream modules first, following
 1. Read the module's `CLAUDE.md` for objective and interface contract
 2. Read the module's `SPEC.md` for acceptance criteria and edge cases
 3. Implement the module
-4. **Self-validate** — check the implementation against both documents:
-   - Does the module produce the documented outputs from the documented inputs?
-   - Does it satisfy the acceptance criteria in `SPEC.md`?
-   - Do the file paths, formats, and data shapes match the interface contract?
-   - Do any tests pass?
-5. If validation passes → status upgrades from `planned` to `ai-tested`
-6. If validation reveals issues the AI cannot resolve → flag as `needs-review`
+4. **Run the validate-iterate loop** (see Principle 9):
+   a. Run all validation checks from `SPEC.md` — acceptance criteria, edge cases, and any automated tests
+   b. If all checks pass → status upgrades from `planned` to `ai-tested`. Done.
+   c. If any check fails → diagnose the failure, fix the implementation, and re-run from (a).
+   d. Repeat up to **3 attempts**. On each attempt, the AI should try a different approach — not the same fix twice.
+   e. If still failing after 3 attempts → flag as `needs-review` with a clear description of what was tried, what failed, and what the AI believes the root cause is.
+5. The AI must NOT silently skip failing checks or lower the bar. The `SPEC.md` criteria are the contract.
 
 ### Step D: Update the Graph
 
@@ -290,3 +290,28 @@ The CLAUDE.md stays concise — it is the module's "interface label", not its im
 - Makes Input A scanning more reliable (the skill already prioritizes CLAUDE.md in Step 1.2)
 - Gives Input B a scaffolding suggestion (design-mode can propose CLAUDE.md files alongside folders)
 - Creates a natural checkpoint document for human review at each module boundary
+
+### Principle 9: AI must validate against SPEC.md and iterate before escalating
+
+The AI does not get to say "done" without evidence. For every module it implements, the AI must:
+
+1. **Run the checks** — execute every testable acceptance criterion in the module's `SPEC.md`. This includes unit tests, integration checks, format validation, and any automated verification the spec defines. If `SPEC.md` says "output conforms to X", the AI must actually verify that it does.
+
+2. **Iterate on failure** — if any check fails, the AI diagnoses the failure, fixes the implementation, and re-runs. Each attempt should try a **different approach**, not repeat the same fix. The AI records what it tried and why it failed.
+
+3. **Escalate after 3 attempts** — if the module still fails after 3 genuine attempts, the AI must stop and escalate to the human. The escalation includes:
+   - Which specific `SPEC.md` criteria are still failing
+   - What was tried on each of the 3 attempts
+   - The AI's best hypothesis for the root cause
+   - Whether the spec itself might be wrong (specs are not sacred — they can have bugs too)
+
+4. **Never silently skip** — the AI must not lower the bar, skip a failing test, or mark a module as `ai-tested` when checks are still red. If the spec is wrong, escalate that observation — don't just ignore the criterion.
+
+**Why 3 attempts?** One attempt catches simple bugs. Two attempts catches the "I misunderstood the spec" case. Three attempts is enough to exhaust the obvious approaches. Beyond three, the AI is likely stuck in a loop and a human perspective will be more productive than a fourth attempt at the same problem.
+
+**What counts as an attempt?** A genuine implementation change followed by a full re-run of the failing checks. Tweaking a comment or reformatting code is not an attempt. The AI must change something substantive about the approach.
+
+**Status implications:**
+- All checks pass on attempt 1-3 → `ai-tested`
+- Escalated after 3 attempts → `needs-review` with the attempt log
+- Human resolves the issue → `verified` (human was in the loop)
