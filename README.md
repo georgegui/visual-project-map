@@ -1,6 +1,22 @@
 # visual-project-map
 
-Interactive workflow graphs for any codebase. Auto-generate DAG visualizations from project structure using a Claude Code skill, or create them manually with a simple JSON format.
+**Understand complex projects the way a driver understands a car.**
+
+A car has hundreds of components — engine, transmission, fuel injection, ECU — but the driver only sees a few interpretable interfaces: steering wheel, pedals, dashboard gauges. The internal complexity is hidden behind boundaries that expose just what you need.
+
+Visual Project Map applies this principle to codebases. It generates interactive graphs where each module is a black box with clearly labeled inputs and outputs. The default view shows only these interfaces — how subsystems connect and what data flows between them. Open a module only when you need to understand the mechanism inside.
+
+This is not a code visualization tool that tries to show everything. It is an **interface map** that shows you the minimum you need to understand how a project works end-to-end.
+
+## Design Philosophy
+
+1. **Interfaces first, internals on demand.** The collapsed view — showing modules as boxes with their input/output ports — is the primary view, not a simplified fallback. It should be sufficient for someone unfamiliar with the project to understand the overall data flow.
+
+2. **Each module has a contract.** Just as a car's steering column has a defined interface (turn the wheel → wheels turn), each module declares what it takes in and what it produces. These contracts are the most important information in the graph.
+
+3. **Complexity lives inside modules, not between them.** Cross-module connections should be simple (one edge per module pair). If two modules need multiple connections, the module boundaries are wrong — just as a car component that requires dozens of custom connectors is poorly designed.
+
+4. **Progressive disclosure.** Start with the interface map. Click a module to see its internal workflow. Click a node to see file-level details. Each level adds detail without overwhelming.
 
 Built on [Cytoscape.js](https://js.cytoscape.org/) + [dagre](https://github.com/dagrejs/dagre). No build step, no dependencies to install.
 
