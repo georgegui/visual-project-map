@@ -89,6 +89,35 @@ avoids conflict with P2.1 (color=module), P2.2 (border=trust), P2.3
 (shape=role), and P2.7 (edge color=actor) because plan uses the overlay
 channel, not the primary visual encoding channels.
 
+**P2.9 Diff status via overlay coloring.** When the Diff view mode is active,
+elements are colored by their diff status: green = added, amber = modified,
+red = removed, dimmed = unchanged. This uses the same overlay channel as plan
+view (P2.8) and is mutually exclusive with it — only one overlay view is
+active at a time.
+
+**P2.10 Interface port visual encoding.** Interface port nodes
+(`_isInterfacePort: true`) are visually distinct from regular child nodes:
+blue fill for inputs, green fill for outputs, sized at least 160x30 with at
+least 11px font. Ports must be readable at the default zoom level without
+expanding any module.
+
+**P2.11 Confidence via collapsed module border.** When a module has a
+`confidence` field, the collapsed module border encodes it: thick border =
+high confidence, normal border = medium, dashed border = low or unknown. This
+applies only to collapsed modules (the interface map view). When expanded,
+child nodes use trust-level borders (P2.2) instead — no conflict.
+
+**P2.12 Human review flag via amber badge.** Modules with
+`needsHumanReview: true` display a small amber badge (e.g., exclamation mark)
+on the collapsed module box. The badge is visible in the default collapsed
+view without expanding the module.
+
+**P2.13 Critical path highlight.** When the critical path toggle is active,
+nodes and edges on the `graph.criticalPath` array are visually highlighted
+(e.g., thicker borders, saturated colors). Non-critical elements are dimmed.
+This treatment is non-destructive and toggleable (like path tracing, P7.2).
+It does not modify the underlying graph data.
+
 ## P3. Layout Properties
 
 **P3.1 Top-to-bottom flow.** The primary reading direction is top to bottom.
@@ -101,6 +130,11 @@ contained within the module's bounding box with the module's background color.
 **P3.3 No overlapping labels.** Edge labels have opaque backgrounds to prevent
 overlap with edges or nodes beneath them. Node labels are centered within
 their shapes.
+
+**P3.4 Interface port positioning.** Interface port nodes are positioned
+adjacent to their parent module: input ports above the module box, output
+ports below. Positions are recomputed after layout runs and after
+expand/collapse toggles. Ports must not overlap the module box or other ports.
 
 ## P4. Information Density Properties
 
@@ -196,3 +230,9 @@ not removed.
 **P7.3 Search highlights and pans.** Searching for a node by label highlights
 a single matching node and pans the viewport to center it. The search does not
 modify the graph.
+
+**P7.4 Critical path highlighting is non-destructive.** Critical path
+highlighting (P2.13) follows the same principle as path tracing (P7.2):
+highlighted elements are emphasized, non-highlighted elements are dimmed, but
+nothing is removed from the graph data structure. Toggling off restores the
+original view completely.

@@ -36,6 +36,14 @@ contradictions and against this catalog for duplicates.
 - `?graph=path/to/file.json` loads a specific graph. Defaults to
   `examples/rct-workflow.json`.
 
+### F59: Interface port positioning adjacent to modules
+- **Status**: `planned`
+- **Properties**: P3.4
+- **Workstream**: A2
+- Position input ports above collapsed modules and output ports below, so they
+  remain visible in the collapsed (interface map) view. Recompute positions
+  after layout and after expand/collapse toggle.
+
 ## Visual Encoding
 
 ### F04: Module color coding
@@ -73,6 +81,13 @@ contradictions and against this catalog for duplicates.
 - **Files**: `src/viewer.js` (buildStyles)
 - **Properties**: P3.3
 - Opaque text backgrounds prevent label overlap.
+
+### F58: Prominent interface port styling
+- **Status**: `planned`
+- **Properties**: P2.10
+- **Workstream**: A1
+- Enlarge interface port nodes (~180x34, 11px font). Blue fill for inputs,
+  green for outputs. Ports must be visually distinct from regular child nodes.
 
 ## Collapse / Expand
 
@@ -116,6 +131,13 @@ contradictions and against this catalog for duplicates.
 - Edge labels are hidden by default. Toggle via toolbar button or `L` key.
   Labels always appear on path-traced edges (F26) and on hover (F15 tooltip).
 
+### F61: Collapsed module I/O subtitle
+- **Status**: `planned`
+- **Workstream**: A4
+- When a module is collapsed and has no interface port nodes, show a compact
+  I/O summary as a subtitle on the collapsed box (from `module.interface`).
+  Fallback for graphs with interface metadata but no port nodes.
+
 ## Interaction
 
 ### F14: Click module to toggle expand/collapse
@@ -151,6 +173,19 @@ contradictions and against this catalog for duplicates.
 - **Files**: `src/viewer.js` (fit), `src/interactions.js` (btn-fit)
 - **Properties**: P6.6
 
+### F60: Default zoom cap for collapsed view
+- **Status**: `planned`
+- **Workstream**: A3
+- Cap the post-fit zoom at ~1.2x so that all modules plus interface ports are
+  visible at a readable but not overwhelming scale on initial load.
+
+### F71: Animated flow simulation
+- **Status**: `planned`
+- **Workstream**: E2
+- A "play" button that walks a token through the DAG from entry to exit in
+  topological order. Play/pause/step controls. Makes sequencing viscerally
+  obvious instead of requiring mental arrow-tracing.
+
 ## UI Chrome
 
 ### F20: Auto-generated legend
@@ -174,6 +209,13 @@ contradictions and against this catalog for duplicates.
 - **Files**: `index.html`, `src/interactions.js`
 - Expand All, Collapse All, Fit buttons.
 
+### F70: Export as PNG/SVG
+- **Status**: `planned`
+- **Workstream**: E1
+- Toolbar button to export the current view as PNG or SVG using Cytoscape.js
+  built-in `cy.png()`. Biggest reach multiplier — users can paste graphs into
+  PRs, wikis, Slack, and design docs.
+
 ## Schema & Validation
 
 ### F24: JSON Schema for input validation
@@ -182,7 +224,7 @@ contradictions and against this catalog for duplicates.
 - External validation only (not enforced at runtime).
 
 ### F25: Runtime input validation with error messages
-- **Status**: `proposed`
+- **Status**: `implemented` (superseded by F49)
 - Validate JSON against schema.json on load, show actionable errors in the
   UI instead of silently failing.
 - **Properties to verify**: does not conflict with any existing property.
@@ -220,6 +262,14 @@ contradictions and against this catalog for duplicates.
 - Toggle individual modules visible/hidden. Useful for focusing on a subset
   of the workflow.
 
+### F65: Critical path schema field and highlighting
+- **Status**: `planned`
+- **Properties**: P2.13, P7.4
+- **Workstream**: B4
+- Pre-computed `graph.criticalPath` (node ID array) stored in the graph JSON.
+  `P` key toggles highlighting: critical path elements highlighted, rest dimmed.
+  Non-destructive (like path tracing, P7.2).
+
 ## Extended Data Model
 
 ### F30: Optional node status attribute
@@ -244,6 +294,23 @@ contradictions and against this catalog for duplicates.
   an object with `type` (url, commit, file, figure) and `value` (the link).
   Displayed in tooltip or detail panel on click. No property conflict.
 
+### F62: Module/edge confidence schema fields
+- **Status**: `planned`
+- **Properties**: P2.11
+- **Workstream**: B1
+- New optional fields: `module.confidence` (high/medium/low/unknown),
+  `module.needsHumanReview` (boolean), `module.checkpointReason` (string),
+  `edge.confidence` (high/medium/low/unknown), `graph.criticalPath` (node ID
+  array). Backward-compatible — graphs without these fields render as before.
+
+### F63: needsHumanReview flag and amber badge
+- **Status**: `planned`
+- **Properties**: P2.11, P2.12
+- **Workstream**: B2
+- Render confidence on collapsed modules via border treatment (thick=high,
+  normal=medium, dashed=low). Modules with `needsHumanReview: true` show an
+  amber badge. No conflict with P2.2 (trust borders apply to child nodes only).
+
 ## Structural Analysis
 
 ### F33: Orphan detection warning
@@ -257,6 +324,13 @@ contradictions and against this catalog for duplicates.
 - Optional overlay showing nodes with highest in-degree or out-degree. Toggle
   via toolbar button. Visual treatment: thicker glow or badge with degree
   count. No property conflict.
+
+### F72: Circular parent guard in collapse logic
+- **Status**: `planned`
+- **Workstream**: E3
+- Add max-depth guard in `expand-collapse.js`'s `_depth()` function. Runtime
+  validation (F49) already checks for circular parents in JSON, but the
+  collapse logic itself should be defensive against unvalidated input.
 
 ## Actor & Detail Encoding
 
@@ -289,6 +363,38 @@ contradictions and against this catalog for duplicates.
   Supports `--focus`, `--depth`, `--title` arguments. Uses the graph
   schema, color palette, and inference rules from `_foundations/`.
   Turns the graph-viewer into a general-purpose project visualization tool.
+
+### F66: Skill always generates interface port nodes
+- **Status**: `planned`
+- **Properties**: P1.1–P1.4
+- **Workstream**: C1-C2
+- Update SKILL.md to always generate interface port nodes from
+  `module.interface` fields, and to always generate interfaces (removing
+  the "only include interfaces you have evidence for" caveat). Every module
+  must have at least one named input and one named output.
+
+### F67: Skill generates confidence annotations
+- **Status**: `planned`
+- **Properties**: P1.1–P1.4
+- **Workstream**: C3
+- The skill assesses and records confidence per module and edge: high (clear
+  evidence), medium (partial evidence), low (convention-based guess). For
+  design mode (Input B), defaults to medium/low.
+
+### F68: Skill generates critical path
+- **Status**: `planned`
+- **Properties**: P1.1–P1.4
+- **Workstream**: C4
+- Given the user's objective, the skill traces which modules and edges are
+  upstream of the final output and records `graph.criticalPath` (node ID array).
+
+### F69: Design-from-objective skill mode (Input B)
+- **Status**: `planned`
+- **Properties**: P1.1–P1.4
+- **Workstream**: D1
+- Add `--objective "text"` argument. Skips project scanning; designs a workflow
+  from domain knowledge. Generates modules, interfaces, edges, confidence,
+  and critical path from the stated objective.
 
 ## View Modes
 
@@ -325,6 +431,13 @@ contradictions and against this catalog for duplicates.
   Provenance view shows trust level tags, Actor view shows actor line colors, Files view
   shows file emoji indicators. Reduces legend clutter compared to showing all categories
   simultaneously.
+
+### F64: Confidence view mode
+- **Status**: `planned`
+- **Workstream**: B3
+- Add a Confidence view mode to the V-key cycle. Modules and edges colored by
+  confidence level (green=high, yellow=medium, red=low, gray=unknown). Legend
+  updates to show confidence color mapping.
 
 ## Plan Overlay
 
@@ -492,3 +605,5 @@ contradictions and against this catalog for duplicates.
 | 2026-02-15 | F55 | Implemented: incremental regeneration (skill preserves refinements, saves .prev.json) |
 | 2026-02-15 | F56 | Implemented: description fields on graph, modules, nodes, edges (schema + viewer + tooltips + panels) |
 | 2026-02-15 | F57 | Implemented: skill generates descriptions and module interfaces (SKILL.md + inference-rules.md) |
+| 2026-02-15 | F25 | Updated status: proposed → implemented (superseded by F49) |
+| 2026-02-15 | F58–F72 | Added 15 planned features aligned with ROADMAP.md design principles (workstreams A–E) |
