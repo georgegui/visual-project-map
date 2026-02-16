@@ -4,19 +4,19 @@
 
 A car has hundreds of components — engine, transmission, fuel injection, ECU — but the driver only sees a few interpretable interfaces: steering wheel, pedals, dashboard gauges. The internal complexity is hidden behind boundaries that expose just what you need.
 
-Visual Project Map applies this principle to codebases. It generates interactive graphs where each module is a black box with clearly labeled inputs and outputs. The default view shows only these interfaces — how subsystems connect and what data flows between them. Open a module only when you need to understand the mechanism inside.
+Visual Project Map applies this principle to codebases. It generates interactive graphs where each folder is a black box with clearly labeled inputs and outputs. The default view shows only these interfaces — how subsystems connect and what data flows between them. Open a folder only when you need to understand the mechanism inside.
 
 This is not a code visualization tool that tries to show everything. It is an **interface map** that shows you the minimum you need to understand how a project works end-to-end.
 
 ## Design Philosophy
 
-1. **Interfaces first, internals on demand.** The collapsed view — showing modules as boxes with their input/output ports — is the primary view, not a simplified fallback. It should be sufficient for someone unfamiliar with the project to understand the overall data flow.
+1. **Interfaces first, internals on demand.** The collapsed view — showing folders as boxes with their input/output ports — is the primary view, not a simplified fallback. It should be sufficient for someone unfamiliar with the project to understand the overall data flow.
 
-2. **Each module has a contract.** Just as a car's steering column has a defined interface (turn the wheel → wheels turn), each module declares what it takes in and what it produces. These contracts are the most important information in the graph.
+2. **Each folder has a contract.** Just as a car's steering column has a defined interface (turn the wheel → wheels turn), each folder declares what it takes in and what it produces. These contracts are the most important information in the graph.
 
-3. **Complexity lives inside modules, not between them.** Cross-module connections should be simple (one edge per module pair). If two modules need multiple connections, the module boundaries are wrong — just as a car component that requires dozens of custom connectors is poorly designed.
+3. **Complexity lives inside folders, not between them.** Cross-folder connections should be simple (one edge per folder pair). If two folders need multiple connections, the folder boundaries are wrong — just as a car component that requires dozens of custom connectors is poorly designed.
 
-4. **Progressive disclosure.** Start with the interface map. Click a module to see its internal workflow. Click a node to see file-level details. Each level adds detail without overwhelming.
+4. **Progressive disclosure.** Start with the interface map. Click a folder to see its internal workflow. Click a node to see file-level details. Each level adds detail without overwhelming.
 
 Built on [Cytoscape.js](https://js.cytoscape.org/) + [dagre](https://github.com/dagrejs/dagre). No build step, no dependencies to install.
 
@@ -53,9 +53,9 @@ python3 scripts/serve.py
 
 ## Features
 
-- **Collapsible modules** — overview-first, drill into details on click
-- **2-level hierarchy** — phases contain modules contain nodes
-- **Meta-edge deduplication** — collapsed modules show merged cross-boundary edges
+- **Collapsible folders** — overview-first, drill into details on click
+- **2-level hierarchy** — phases contain folders contain nodes
+- **Meta-edge deduplication** — collapsed folders show merged cross-boundary edges
 - **Trust level encoding** — border style/width shows data provenance (raw → automated → AI → verified)
 - **Actor annotations** — edge colors show who does the work (human/AI/script/mixed)
 - **Edge detail panel** — click edges to see script paths, inputs, outputs, docs
@@ -97,7 +97,7 @@ Compound parent nodes that group related child nodes.
 
 ### Nodes
 
-Child nodes within modules.
+Child nodes within folders.
 
 | Field | Required | Description |
 |-------|----------|-------------|
@@ -147,8 +147,8 @@ Trust level definitions with visual styling:
 | Key | Action |
 |-----|--------|
 | `F` | Fit to viewport |
-| `E` | Expand all modules |
-| `C` | Collapse all modules |
+| `E` | Expand all folders |
+| `C` | Collapse all folders |
 | `L` | Toggle edge labels |
 | `/` | Focus search input |
 | `Esc` | Clear selection / search / path trace |
@@ -157,7 +157,7 @@ Trust level definitions with visual styling:
 
 | File | Description |
 |------|-------------|
-| `examples/minimal.json` | Simple 3-module pipeline with trust levels |
+| `examples/minimal.json` | Simple 3-folder pipeline with trust levels |
 | `examples/data-pipeline.json` | ETL pipeline with actor annotations and edge details |
 | `examples/ci-cd-workflow.json` | CI/CD with nested phases and decision gates |
 

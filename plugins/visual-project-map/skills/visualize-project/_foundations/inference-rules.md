@@ -6,12 +6,13 @@ from project structure and documentation.
 ## Module Design Principles
 
 > **Naming note:** These 9 module-level principles (numbered 1–9 below) are
-> implementation rules for graph *structure*. They are distinct from the 11
-> tool-level design principles in `SPEC.md` (Principles 1–11), which govern
-> the tool's overall philosophy. Key correspondences:
-> - SPEC P3 ("complexity inside modules") → enforced by Principles 2, 4, 8 below
-> - SPEC P10 ("embed folder hierarchy") → enforced by Principle 1 below
-> - SPEC P11 ("one edge per module pair") → enforced by Principles 2, 8, 9 below
+> implementation rules for graph *structure*. They are distinct from the
+> tool-level rules in `SPEC.md` (Folder Premise, Graph Constraints, Viewer
+> Behavior, Skill Requirements), which govern the tool's overall philosophy.
+> Key correspondences:
+> - SPEC Folder Premise ("complexity inside folders") → enforced by Principles 2, 4, 8 below
+> - SPEC Folder Premise ("embed folder hierarchy") → enforced by Principle 1 below
+> - SPEC Constraint 2 ("one edge per folder pair") → enforced by Principles 2, 8, 9 below
 
 Modules are **abstraction boundaries**, not just visual groupings. A well-designed
 module hides internal complexity behind a small number of entry and exit points —

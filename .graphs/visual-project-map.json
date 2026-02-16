@@ -3,7 +3,7 @@
   "description": "Component architecture of the Visual Project Map tool. Three phases: specification (design principles and schema defining what the tool should do), generation (AI skill that produces graph JSON from projects or objectives), and rendering (browser-based interactive DAG viewer). Data flows from declarative specs through AI-driven generation to interactive browser rendering.",
   "_generationMode": "scan",
   "_objective": "Build a browser-based interactive DAG viewer for directed acyclic graphs with collapsible module groups, distributed as a Claude Code plugin. The tool must map existing projects (Input A) and design workflows from objectives (Input B), producing graph JSON rendered by a Cytoscape.js viewer with progressive disclosure, confidence encoding, and human-review checkpoint flags.",
-  "_generatedAt": "2026-02-16T22:00:00Z",
+  "_generatedAt": "2026-02-16T23:30:00Z",
   "modules": [
     {
       "id": "phase_spec",
@@ -21,7 +21,7 @@
       "parent": "phase_spec",
       "status": "verified",
       "confidence": "high",
-      "description": "The 10 design principles (SPEC.md), feature catalog with status tracking (spec/features.md), and invariant graph properties (spec/graph-properties.md).",
+      "description": "The 11 design principles (SPEC.md), feature catalog with status tracking (spec/features.md), and invariant graph properties (spec/graph-properties.md).",
       "interface": {
         "inputs": [
           { "name": "product_vision", "description": "High-level objectives and user needs for the tool", "format": "Markdown (SPEC.md)" }
@@ -183,7 +183,7 @@
   ],
   "nodes": [
     { "id": "prn_principles", "module": "mod_principles", "label": "principles.design_principles",
-      "description": "Ten principles governing tool design: interfaces as primary content, progressive disclosure, 1-edge-per-module-pair, confidence encoding, CLAUDE.md per module, graphs embed folder hierarchy and reveal logical flow, etc." },
+      "description": "Eleven principles governing tool design: interfaces as primary content, progressive disclosure, confidence encoding, CLAUDE.md per module, graphs embed folder hierarchy and reveal logical flow, 1-edge-per-module-pair at every hierarchy level, and design-mode applicability table." },
     { "id": "prn_features", "module": "mod_principles", "label": "principles.feature_catalog",
       "description": "Feature catalog (F01–F76) tracking every viewer and skill feature with implementation status, file locations, and property cross-references." },
     { "id": "prn_properties", "module": "mod_principles", "label": "principles.graph_properties",
@@ -194,7 +194,7 @@
       "description": "Required top-level fields (title, modules, nodes, edges) and their object structures with required vs optional fields." },
     { "id": "sch_fields", "module": "mod_schema", "label": "schema.optional_fields",
       "role": "data",
-      "description": "Extended schema fields: confidence, status, role, interface, description, generation metadata (_generationMode, _objective, _generatedAt)." },
+      "description": "Extended schema fields: confidence, status, role, interface, description, criticalPath (node ID array), module.docPath, generation metadata (_generationMode, _objective, _generatedAt)." },
     { "id": "sch_encoding", "module": "mod_schema", "label": "schema.visual_encoding",
       "role": "data",
       "description": "How schema fields map to visual properties: role→shape, status→opacity+border, confidence→border treatment, trust→border style." },
@@ -239,7 +239,7 @@
     { "id": "int_hover", "module": "mod_interactions", "label": "interactions.hover_effects",
       "description": "Hover node → tooltip with label, description preview, file indicators; dim non-neighbors. Hover edge → show label, script name, description. Clear on mouseout." },
     { "id": "int_keyboard", "module": "mod_interactions", "label": "interactions.keyboard_shortcuts",
-      "description": "F=fit, E=expand all, C=collapse all, L=toggle labels, V=cycle views, W=watch mode, M=minimap, P=plan summary, /=search focus, Escape=clear." },
+      "description": "F=fit, E=expand all, C=collapse all, L=toggle labels, V=cycle views, W=watch mode, M=minimap, P=critical path, /=search focus, Escape=clear." },
     { "id": "int_panels", "module": "mod_interactions", "label": "interactions.detail_panels",
       "description": "Node detail side panel (left, non-blocking), edge detail modal (centered), plan summary panel (right slide-in), breadcrumb bar (top, shows drill-down path)." },
 

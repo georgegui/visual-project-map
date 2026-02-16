@@ -311,7 +311,7 @@ related directories or suggest `--focus`. Target 3-8 nodes per module.
 **Module docPath:** For each module, if a CLAUDE.md was found in the
 corresponding directory during Step 1.1, set `docPath` to its relative
 path (e.g., `"plugins/visual-project-map/viewer/src/CLAUDE.md"`). This
-lets the viewer show which modules have documentation (SPEC Principle 8).
+lets the viewer show which folders have documentation (SPEC Folder Premise).
 Omit `docPath` in design mode since no files exist yet.
 
 **Module descriptions:** Add a `description` field to every module — one
@@ -714,8 +714,8 @@ just printing them.
 
 3. After creating files, print the same summary as the print-only mode
 
-This connects to Principle 8 in SPEC.md: complex modules should be self-documenting
-via CLAUDE.md, with detailed specs in a referenced SPEC.md.
+This connects to the Folder Premise in SPEC.md: each non-trivial folder has a
+CLAUDE.md stating its objective, inputs, and outputs.
 
 ### 3.6: Serve and View
 

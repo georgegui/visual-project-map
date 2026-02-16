@@ -69,7 +69,7 @@ is a fallback for graphs that have `interface` metadata but no port nodes.
 
 ## Workstream B: Confidence & Checkpoint Flags
 
-*Principle 4 — Confidence and human-review flags must be visually encoded.*
+*Viewer Behavior — Confidence and review flags are visually encoded (see SPEC.md).*
 
 ### B1: Module/edge confidence schema fields (F62)
 

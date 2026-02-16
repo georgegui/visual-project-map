@@ -418,8 +418,7 @@ contradictions and against this catalog for duplicates.
 - After writing a design-mode graph, the skill prints a suggested folder structure
   with `CLAUDE.md` stubs for each module. Derives folder names from module labels
   and stub content from module descriptions and interfaces. Print-only — no files
-  created. Implements SPEC.md Principle 8 (complex modules should be self-documenting
-  via CLAUDE.md).
+  created. Implements the Folder Premise in SPEC.md (each non-trivial folder has a CLAUDE.md).
 
 ### F77: Executable scaffolding via --scaffold flag
 - **Status**: `implemented`

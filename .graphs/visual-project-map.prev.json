@@ -3,7 +3,7 @@
   "description": "Component architecture of the Visual Project Map tool. Three phases: specification (design principles and schema defining what the tool should do), generation (AI skill that produces graph JSON from projects or objectives), and rendering (browser-based interactive DAG viewer). Data flows from declarative specs through AI-driven generation to interactive browser rendering.",
   "_generationMode": "scan",
   "_objective": "Build a browser-based interactive DAG viewer for directed acyclic graphs with collapsible module groups, distributed as a Claude Code plugin. The tool must map existing projects (Input A) and design workflows from objectives (Input B), producing graph JSON rendered by a Cytoscape.js viewer with progressive disclosure, confidence encoding, and human-review checkpoint flags.",
-  "_generatedAt": "2026-02-16T20:00:00Z",
+  "_generatedAt": "2026-02-16T22:00:00Z",
   "modules": [
     {
       "id": "phase_spec",

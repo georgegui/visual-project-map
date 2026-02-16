@@ -16,4 +16,4 @@ Claude Code skill that analyzes a project directory (Input A) or designs a workf
 - **scaffolding suggestion**: Printed folder structure with CLAUDE.md stubs for each module (design mode only, print or `--scaffold`)
 
 ## Specs
-See `SPEC.md` for acceptance criteria. Review focus: graph structural validity, module boundary design, and cross-module edge minimization.
+See `SPEC.md` for acceptance criteria. Review focus: graph structural validity, module boundary design, and cross-folder edge minimization.
