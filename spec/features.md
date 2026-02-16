@@ -37,12 +37,14 @@ contradictions and against this catalog for duplicates.
   `examples/rct-workflow.json`.
 
 ### F59: Interface port positioning adjacent to modules
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P3.4
 - **Workstream**: A2
-- Position input ports above collapsed modules and output ports below, so they
-  remain visible in the collapsed (interface map) view. Recompute positions
-  after layout and after expand/collapse toggle.
+- **Files**: `src/viewer.js` (positionPorts function), `src/interactions.js` (positionPorts calls after layout)
+- Port nodes use `_moduleRef` instead of Cytoscape `parent`, so they survive
+  collapse naturally. After layout, `positionPorts()` snaps input ports above
+  and output ports below their collapsed module. Called in init and after
+  every expand/collapse toggle.
 
 ## Visual Encoding
 
@@ -83,11 +85,13 @@ contradictions and against this catalog for duplicates.
 - Opaque text backgrounds prevent label overlap.
 
 ### F58: Prominent interface port styling
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.10
 - **Workstream**: A1
-- Enlarge interface port nodes (~180x34, 11px font). Blue fill for inputs,
-  green for outputs. Ports must be visually distinct from regular child nodes.
+- **Files**: `src/viewer.js` (buildStyles port selectors)
+- Enlarge interface port nodes (180x34, 10px italic font). Blue fill for inputs
+  (round-rectangle), green for outputs (tag shape). Ports visually distinct from
+  regular child nodes via dashed border, italic font, and directional shape.
 
 ## Collapse / Expand
 
@@ -132,11 +136,13 @@ contradictions and against this catalog for duplicates.
   Labels always appear on path-traced edges (F26) and on hover (F15 tooltip).
 
 ### F61: Collapsed module I/O subtitle
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: A4
-- When a module is collapsed and has no interface port nodes, show a compact
-  I/O summary as a subtitle on the collapsed box (from `module.interface`).
-  Fallback for graphs with interface metadata but no port nodes.
+- **Files**: `src/viewer.js` (applyCollapsedStyle, removeCollapsedStyle, collapsed-module text-wrap)
+- When a module is collapsed and has no `_isInterfacePort` nodes, appends a
+  compact I/O summary to the label (e.g., "→ inputs | outputs →"). Label is
+  restored on expand via `_origLabel` data. Collapsed-module style now supports
+  `text-wrap: wrap`.
 
 ## Interaction
 
@@ -177,10 +183,11 @@ contradictions and against this catalog for duplicates.
 - **Properties**: P6.6
 
 ### F60: Default zoom cap for collapsed view
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: A3
-- Cap the post-fit zoom at ~1.2x so that all modules plus interface ports are
-  visible at a readable but not overwhelming scale on initial load.
+- **Files**: `src/viewer.js` (fit function maxZoom parameter)
+- `fit()` accepts optional `maxZoom` parameter. Initial load calls `fit(50, 1.2)`
+  so small graphs don't over-zoom. Large graphs naturally fit below 1.2x.
 
 ### F71: Animated flow simulation
 - **Status**: `planned`
@@ -308,12 +315,14 @@ contradictions and against this catalog for duplicates.
   without these fields render as before. `graph.criticalPath` deferred to F65/F68.
 
 ### F63: needsHumanReview flag and amber badge
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.11, P2.12
 - **Workstream**: B2
-- Render confidence on collapsed modules via border treatment (thick=high,
-  normal=medium, dashed=low). Modules with `needsHumanReview: true` show an
-  amber badge. No conflict with P2.2 (trust borders apply to child nodes only).
+- **Files**: `src/viewer.js` (applyCollapsedStyle badge, `.needs-review` style, buildElements confidence passthrough)
+- Collapsed modules with `needsHumanReview: true` get " ⚠" appended to label
+  and `.needs-review` class (amber dashed border with subtle overlay). Removed
+  on expand via `removeCollapsedStyle`. Confidence/review data passed through
+  `buildElements()` from module JSON.
 
 ## Structural Analysis
 
@@ -412,6 +421,16 @@ contradictions and against this catalog for duplicates.
   created. Implements SPEC.md Principle 8 (complex modules should be self-documenting
   via CLAUDE.md).
 
+### F77: Executable scaffolding via --scaffold flag
+- **Status**: `implemented`
+- **Files**: `skills/visualize-project/SKILL.md` (--scaffold argument, Step 3.5b expanded)
+- **Properties**: P1.1–P1.4
+- `--scaffold` flag in design mode creates CLAUDE.md and SPEC.md stubs in project
+  directories instead of just printing them. Creates directories, writes CLAUDE.md
+  with module objective/inputs/outputs, and writes SPEC.md stubs for modules with
+  `needsHumanReview: true`. Skips existing files without overwriting. Without
+  `--scaffold`, behavior is unchanged (print-only). Extends F76.
+
 ## View Modes
 
 ### F40: View mode switcher (Module/Provenance/Actor/Files)
@@ -449,11 +468,12 @@ contradictions and against this catalog for duplicates.
   simultaneously.
 
 ### F64: Confidence view mode
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: B3
-- Add a Confidence view mode to the V-key cycle. Modules and edges colored by
-  confidence level (green=high, yellow=medium, red=low, gray=unknown). Legend
-  updates to show confidence color mapping.
+- **Files**: `src/viewer.js` (confidence styles, setView confidence branch, rebuildLegendForView), `src/interactions.js` (V-key cycle), `index.html` (Confidence toolbar button)
+- Confidence view mode in V-key cycle and toolbar. Modules colored by
+  `module.confidence`: green=high, yellow=medium, red=low, gray=unknown.
+  Non-module nodes dimmed. Legend updates with confidence color key.
 
 ## Plan Overlay
 
@@ -659,3 +679,10 @@ contradictions and against this catalog for duplicates.
 | 2026-02-16 | F62 | Implemented: confidence/needsHumanReview/checkpointReason schema fields on modules, confidence on edges |
 | 2026-02-16 | F69 | Implemented: design-from-objective skill mode (Input B) with Phase 1B, design-mode defaults, worked example |
 | 2026-02-16 | F76 | Implemented: design-mode CLAUDE.md scaffolding suggestion (SKILL.md Step 3.5b) |
+| 2026-02-16 | F77 | Implemented: executable scaffolding via --scaffold flag (SKILL.md Step 3.5b expanded) |
+| 2026-02-16 | F58 | Implemented: enhanced port styling (round-rectangle inputs, tag outputs, italic font) |
+| 2026-02-16 | F59 | Implemented: port positioning after collapse via positionPorts() |
+| 2026-02-16 | F60 | Implemented: zoom cap at 1.2x for collapsed view |
+| 2026-02-16 | F61 | Implemented: I/O subtitle on collapsed modules without port nodes |
+| 2026-02-16 | F63 | Implemented: amber badge + dashed border for needsHumanReview modules |
+| 2026-02-16 | F64 | Implemented: confidence view mode with color encoding and legend |

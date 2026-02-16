@@ -93,6 +93,7 @@ var Interactions = (function() {
 
       // Run layout silently to compute final state
       GraphViewer.runLayout({ animate: false, fit: false });
+      GraphViewer.positionPorts();
       GraphViewer.refreshView();
       updateStatus(manager, moduleIds);
 
@@ -408,7 +409,7 @@ var Interactions = (function() {
       if (e.key === 'a' || e.key === 'A') { e.preventDefault(); toggleAutofocus(); }
       if (e.key === 'v' || e.key === 'V') {
         e.preventDefault();
-        var views = ['module', 'provenance', 'actor', 'files'];
+        var views = ['module', 'provenance', 'actor', 'files', 'confidence'];
         if (PlanOverlay.hasPlan(GraphViewer.getGraphData())) views.push('plan');
         if (GraphViewer.getGraphData()._diff) views.push('diff');
         var cur = GraphViewer.getView();
@@ -476,6 +477,7 @@ var Interactions = (function() {
             breadcrumbPath = breadcrumbPath.slice(0, idx + 1);
             renderBreadcrumb(cy);
             GraphViewer.runLayout({ animate: true, fit: true, padding: 50 });
+            GraphViewer.positionPorts();
             GraphViewer.refreshView();
             updateStatus(manager, moduleIds);
           }
@@ -586,6 +588,7 @@ var Interactions = (function() {
     manager.collapseAll(moduleIds);
     moduleIds.forEach(function(id) { GraphViewer.applyCollapsedStyle(id); });
     GraphViewer.runLayout({ animate: false, fit: true, padding: 50 });
+    GraphViewer.positionPorts();
     var termNode = cy.getElementById('mod_term');
     if (termNode.length && termNode.visible()) {
       var maxY = -Infinity;

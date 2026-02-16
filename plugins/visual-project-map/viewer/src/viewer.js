@@ -127,6 +127,9 @@ var GraphViewer = (function() {
       if (m.description) nodeData.description = m.description;
       if (m.role) nodeData.role = m.role;
       if (m.status) nodeData.status = m.status;
+      if (m.confidence) nodeData.confidence = m.confidence;
+      if (m.needsHumanReview) nodeData.needsHumanReview = true;
+      if (m.checkpointReason) nodeData.checkpointReason = m.checkpointReason;
       elements.push({ group: 'nodes', data: nodeData });
     });
 
@@ -231,7 +234,8 @@ var GraphViewer = (function() {
           'shape': 'round-rectangle',
           'width': 180, 'height': 55,
           'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
-          'font-size': 13, 'font-weight': 600, 'color': '#1e293b'
+          'font-size': 13, 'font-weight': 600, 'color': '#1e293b',
+          'text-wrap': 'wrap', 'text-max-width': 170
         }
       },
       { selector: '.collapsed-module[role="data"]',
@@ -274,22 +278,23 @@ var GraphViewer = (function() {
       },
       { selector: 'node[_isInterfacePort]',
         style: {
-          'width': 160, 'height': 36,
-          'font-size': 11, 'font-weight': 600,
-          'border-width': 2.5, 'border-style': 'dashed',
-          'shape': 'ellipse',
+          'width': 180, 'height': 34,
+          'font-size': 10, 'font-weight': 600, 'font-style': 'italic',
+          'border-width': 3, 'border-style': 'dashed',
+          'shape': 'round-rectangle',
           'text-valign': 'center', 'text-halign': 'center',
-          'color': '#475569'
+          'color': '#475569', 'background-opacity': 0.85
         }
       },
       { selector: 'node[_portDirection="input"]',
         style: {
-          'background-color': '#eff6ff', 'border-color': '#3b82f6'
+          'background-color': '#dbeafe', 'border-color': '#3b82f6'
         }
       },
       { selector: 'node[_portDirection="output"]',
         style: {
-          'background-color': '#f0fdf4', 'border-color': '#16a34a'
+          'background-color': '#dcfce7', 'border-color': '#16a34a',
+          'shape': 'tag'
         }
       }
     ];
@@ -318,6 +323,12 @@ var GraphViewer = (function() {
       },
       { selector: 'node[status="planned"]',
         style: { 'background-opacity': 0.2, 'border-width': 1, 'border-style': 'dotted', 'color': '#94a3b8' }
+      },
+      { selector: '.needs-review',
+        style: {
+          'border-color': '#f59e0b', 'border-width': 3.5, 'border-style': 'dashed',
+          'overlay-color': '#f59e0b', 'overlay-opacity': 0.08, 'overlay-padding': 4
+        }
       }
     );
 
@@ -501,6 +512,24 @@ var GraphViewer = (function() {
       },
       { selector: 'edge.diff-unchanged',
         style: { 'opacity': 0.15 }
+      },
+      { selector: '.view-conf-high',
+        style: { 'background-color': '#d1fae5', 'border-color': '#16a34a', 'background-opacity': 0.85 }
+      },
+      { selector: '.view-conf-medium',
+        style: { 'background-color': '#fef3c7', 'border-color': '#f59e0b', 'background-opacity': 0.85 }
+      },
+      { selector: '.view-conf-low',
+        style: { 'background-color': '#fee2e2', 'border-color': '#ef4444', 'background-opacity': 0.85 }
+      },
+      { selector: '.view-conf-unknown',
+        style: { 'background-color': '#f3f4f6', 'border-color': '#9ca3af', 'background-opacity': 0.85 }
+      },
+      { selector: '.view-conf-dim',
+        style: { 'opacity': 0.4 }
+      },
+      { selector: '.needs-review.view-conf-high, .needs-review.view-conf-medium, .needs-review.view-conf-low, .needs-review.view-conf-unknown',
+        style: { 'border-color': '#f59e0b', 'border-width': 3.5, 'border-style': 'dashed' }
       }
     );
 
@@ -569,6 +598,39 @@ var GraphViewer = (function() {
   function applyCollapsedStyle(moduleId) {
     var node = cy.getElementById(moduleId);
     if (!node.length) return;
+
+    // Store original label for restoration (guard against double-apply)
+    if (node.data('_origLabel') === undefined) {
+      node.data('_origLabel', node.data('label'));
+    }
+    var label = node.data('_origLabel');
+
+    // F63: Human review badge
+    if (node.data('needsHumanReview')) {
+      label += ' \u26a0';
+      node.addClass('needs-review');
+    }
+
+    // F61: I/O subtitle when no port nodes exist for this module
+    var iface = node.data('interface');
+    if (iface && manager) {
+      var hasPortNodes = cy.nodes('[_isInterfacePort]').filter(function(p) {
+        return p.data('_moduleRef') === moduleId;
+      }).length > 0;
+      if (!hasPortNodes) {
+        var parts = [];
+        if (iface.inputs && iface.inputs.length) {
+          parts.push('\u2192 ' + iface.inputs.map(function(i) { return i.name; }).join(', '));
+        }
+        if (iface.outputs && iface.outputs.length) {
+          parts.push(iface.outputs.map(function(o) { return o.name; }).join(', ') + ' \u2192');
+        }
+        if (parts.length) label += '\n' + parts.join(' | ');
+      }
+    }
+
+    node.data('label', label);
+
     if (node.data('_isPhase')) {
       node.addClass('collapsed-phase');
     } else {
@@ -578,7 +640,14 @@ var GraphViewer = (function() {
 
   function removeCollapsedStyle(moduleId) {
     var node = cy.getElementById(moduleId);
-    if (node.length) node.removeClass('collapsed-module collapsed-phase');
+    if (node.length) {
+      node.removeClass('collapsed-module collapsed-phase needs-review');
+      var origLabel = node.data('_origLabel');
+      if (origLabel !== undefined) {
+        node.data('label', origLabel);
+        node.removeData('_origLabel');
+      }
+    }
   }
 
   function runLayout(opts) {
@@ -620,8 +689,49 @@ var GraphViewer = (function() {
     });
   }
 
-  function fit(padding) {
+  function positionPorts() {
+    if (!manager) return;
+    var portNodes = cy.nodes('[_isInterfacePort]');
+    if (portNodes.length === 0) return;
+
+    var portsByModule = {};
+    portNodes.forEach(function(port) {
+      var modId = port.data('_moduleRef');
+      if (!modId) return;
+      if (!portsByModule[modId]) portsByModule[modId] = { inputs: [], outputs: [] };
+      var dir = port.data('_portDirection') === 'output' ? 'outputs' : 'inputs';
+      portsByModule[modId][dir].push(port);
+    });
+
+    Object.keys(portsByModule).forEach(function(modId) {
+      if (!manager.isCollapsed(modId)) return;
+      var mod = cy.getElementById(modId);
+      if (!mod.length) return;
+
+      var pos = mod.position();
+      var h = mod.outerHeight() || 55;
+      var inputPorts = portsByModule[modId].inputs;
+      var outputPorts = portsByModule[modId].outputs;
+      var spacing = 50;
+
+      inputPorts.forEach(function(port, i) {
+        var offsetX = (i - (inputPorts.length - 1) / 2) * spacing;
+        port.position({ x: pos.x + offsetX, y: pos.y - h / 2 - 30 });
+      });
+
+      outputPorts.forEach(function(port, i) {
+        var offsetX = (i - (outputPorts.length - 1) / 2) * spacing;
+        port.position({ x: pos.x + offsetX, y: pos.y + h / 2 + 30 });
+      });
+    });
+  }
+
+  function fit(padding, maxZoom) {
     cy.fit(null, padding || 40);
+    if (maxZoom && cy.zoom() > maxZoom) {
+      cy.zoom(maxZoom);
+      cy.center();
+    }
   }
 
   function init(containerId, legendId, graphUrl) {
@@ -663,7 +773,8 @@ var GraphViewer = (function() {
         termNode.position('y', maxY + 90);
       }
 
-      fit(50);
+      positionPorts();
+      fit(50, 1.2);
 
       // Apply default view
       setView(currentView);
@@ -729,7 +840,8 @@ var GraphViewer = (function() {
         });
         termNode.position('y', maxY + 90);
       }
-      fit(50);
+      positionPorts();
+      fit(50, 1.2);
       setView(prevView);
 
       var status = document.getElementById('status');
@@ -776,7 +888,7 @@ var GraphViewer = (function() {
   function setView(mode) {
     currentView = mode;
     var allNodes = cy.nodes();
-    var viewClasses = 'view-provenance view-files view-actor-human view-actor-ai view-actor-script view-actor-mixed';
+    var viewClasses = 'view-provenance view-files view-actor-human view-actor-ai view-actor-script view-actor-mixed view-conf-high view-conf-medium view-conf-low view-conf-unknown view-conf-dim';
     allNodes.removeClass(viewClasses);
     PlanOverlay.clear(cy);
     if (typeof GraphDiff !== 'undefined') GraphDiff.clearOverlay(cy);
@@ -802,6 +914,12 @@ var GraphViewer = (function() {
       allNodes.filter(function(n) { return !!n.data('_isModule'); }).forEach(function(mod) {
         mod.addClass('view-actor-' + getModuleDominantActor(mod.id()));
       });
+    } else if (mode === 'confidence') {
+      allNodes.filter(function(n) { return !!n.data('_isModule'); }).forEach(function(mod) {
+        var conf = mod.data('confidence') || 'unknown';
+        mod.addClass('view-conf-' + conf);
+      });
+      allNodes.filter(function(n) { return !n.data('_isModule') && !n.data('_isInterfacePort'); }).addClass('view-conf-dim');
     }
 
     rebuildLegendForView(mode);
@@ -840,6 +958,17 @@ var GraphViewer = (function() {
       ];
       actors.forEach(function(a) {
         html += '<span><span class="swatch" style="background:' + a.color + ';border-color:' + a.bc + '"></span>' + a.label + '</span> ';
+      });
+    } else if (mode === 'confidence') {
+      html += '<strong>Confidence:</strong> ';
+      var levels = [
+        { label: 'High', color: '#d1fae5', bc: '#16a34a' },
+        { label: 'Medium', color: '#fef3c7', bc: '#f59e0b' },
+        { label: 'Low', color: '#fee2e2', bc: '#ef4444' },
+        { label: 'Unknown', color: '#f3f4f6', bc: '#9ca3af' }
+      ];
+      levels.forEach(function(l) {
+        html += '<span><span class="swatch" style="background:' + l.color + ';border-color:' + l.bc + '"></span>' + l.label + '</span> ';
       });
     } else if (mode === 'plan') {
       html += '<strong>Plan:</strong> ';
@@ -884,6 +1013,7 @@ var GraphViewer = (function() {
     applyCollapsedStyle: applyCollapsedStyle,
     removeCollapsedStyle: removeCollapsedStyle,
     fit: fit,
+    positionPorts: positionPorts,
     setView: setView,
     refreshView: refreshView,
     watchGraph: watchGraph,

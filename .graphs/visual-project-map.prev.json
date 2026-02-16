@@ -1,6 +1,6 @@
 {
   "title": "Visual Project Map — End-to-End Workflow",
-  "description": "How the visual-project-map tool works: an AI skill generates interactive DAGs from project structure (Input A) or from a natural language objective (Input B), and a Cytoscape.js viewer renders them in the browser with progressive disclosure. Data artifacts between stages are shown as separate clickable modules.",
+  "description": "How the visual-project-map tool works: an AI skill generates interactive DAGs from project structure, and a Cytoscape.js viewer renders them in the browser with progressive disclosure. Data artifacts between stages are shown as separate clickable modules.",
   "modules": [
     {
       "id": "mod_discover",
@@ -8,7 +8,7 @@
       "color": "#dbeafe",
       "borderColor": "#93c5fd",
       "status": "verified",
-      "description": "Phase 1 of the skill: scan the target project's documentation, scripts, and file structure to build a structured inventory of its workflow. Or, for design mode (Input B), parse an objective and decompose it into workflow stages.",
+      "description": "Phase 1 of the skill: scan the target project's documentation, scripts, and file structure to build a structured inventory of its workflow.",
       "interface": {
         "inputs": [{ "name": "Project directory", "description": "Filesystem path + optional --focus, --depth, --title flags" }],
         "outputs": [{ "name": "Project inventory", "description": "Structured catalog of docs, scripts, I/O patterns, workflow hints" }]
@@ -58,7 +58,7 @@
       "color": "#f5f3ff",
       "borderColor": "#c4b5fd",
       "status": "draft",
-      "description": "Phase 3: populate the blueprint with nodes and edges, validate against schema.json and graph properties, enforce the 1-edge-per-module-pair rule, write the JSON file, and optionally scaffold CLAUDE.md/SPEC.md stubs.",
+      "description": "Phase 3: populate the blueprint with nodes and edges, validate against schema.json and graph properties, enforce the 1-edge-per-module-pair rule, and write the JSON file.",
       "interface": {
         "inputs": [{ "name": "Module blueprint", "description": "Verified module definitions with interfaces" }],
         "outputs": [{ "name": "Graph JSON file", "description": "Complete graph conforming to schema.json" }]
@@ -128,17 +128,6 @@
       }
     },
     {
-      "id": "disc_obj_in", "module": "mod_discover", "label": "Objective text",
-      "_isInterfacePort": true, "_portDirection": "input",
-      "description": "Natural language objective describing the workflow to design, via --objective or --objective-file.",
-      "interfaceContract": {
-        "name": "Objective text",
-        "description": "Natural language description of the workflow to design (Input B)",
-        "format": "String via --objective or file via --objective-file",
-        "example": "--objective \"Estimate causal effect of policy on employment using diff-in-diff\""
-      }
-    },
-    {
       "id": "disc_docs", "module": "mod_discover", "label": "discover.read_docs",
       "style": { "shape": "ellipse" },
       "description": "Find and read CLAUDE.md, README.md, Makefile, package.json. Extract workflow sections, command blocks, and actor signals.",
@@ -154,16 +143,6 @@
       "id": "disc_io", "module": "mod_discover", "label": "discover.detect_io",
       "style": { "shape": "ellipse" },
       "description": "Grep key scripts for I/O patterns: open/read_csv (inputs), to_csv/json.dump (outputs), import paths (dependencies)."
-    },
-    {
-      "id": "disc_parse", "module": "mod_discover", "label": "design.parse_objective",
-      "style": { "shape": "ellipse" },
-      "description": "Parse the objective text to extract domain, deliverable, key entities, constraints, and human/AI signals. Decompose into sequential workflow stages using domain knowledge."
-    },
-    {
-      "id": "disc_design", "module": "mod_discover", "label": "design.assess_confidence",
-      "style": { "shape": "diamond" },
-      "description": "For each designed stage, assess confidence (high/medium/low), flag modules needing human review, and define data flow artifacts between stages."
     },
     {
       "id": "disc_synth", "module": "mod_discover", "label": "discover.synthesize",
@@ -276,11 +255,6 @@
       "description": "Write the complete graph to .graphs/{name}.json with 2-space indentation. Present summary table to user before writing.",
       "files": { "writes": [".graphs/{name}.json"] }
     },
-    {
-      "id": "asm_scaffold", "module": "mod_assemble", "label": "assemble.scaffold_docs",
-      "description": "If --scaffold flag is passed (design mode only): create directories and write CLAUDE.md/SPEC.md stubs for each module. Skip existing files. Without --scaffold, print the suggested structure.",
-      "files": { "writes": ["{module_path}/CLAUDE.md", "{module_path}/SPEC.md"] }
-    },
 
     {
       "id": "json_structure", "module": "mod_json", "label": "json.structure", "role": "data",
@@ -371,12 +345,6 @@
     { "source": "disc_code", "target": "disc_io", "label": "detect patterns", "style": "solid", "actor": "ai" },
     { "source": "disc_io", "target": "disc_synth", "label": "combine signals", "style": "solid", "actor": "ai" },
 
-    { "source": "disc_obj_in", "target": "disc_parse", "label": "parse objective", "style": "solid", "actor": "ai",
-      "description": "Input B path: parse the natural language objective to extract domain, deliverable, entities, and constraints" },
-    { "source": "disc_parse", "target": "disc_design", "label": "assess stages", "style": "solid", "actor": "ai" },
-    { "source": "disc_design", "target": "disc_synth", "label": "converge", "style": "solid", "actor": "ai",
-      "description": "Design-mode stages merge into the same synthesize step, producing a structured inventory identical in format to the scan-mode output" },
-
     { "source": "disc_synth", "target": "inv_docs", "label": "produce inventory", "style": "solid", "actor": "ai",
       "description": "Discovery outputs a structured project inventory: documentation files with workflow sections, scripts grouped by directory, detected file I/O patterns, and workflow hints from docs" },
 
@@ -406,8 +374,6 @@
     { "source": "asm_validate", "target": "asm_nodes", "label": "restructure", "style": "dashed", "actor": "ai",
       "description": "If validation fails, restructure nodes and edges" },
     { "source": "asm_validate", "target": "asm_write", "label": "all valid", "style": "solid", "actor": "ai" },
-    { "source": "asm_write", "target": "asm_scaffold", "label": "scaffold docs", "style": "dashed", "actor": "ai",
-      "description": "Design mode only: if --scaffold is passed, create CLAUDE.md and SPEC.md stubs in project directories for each module. Without --scaffold, print the suggested structure." },
 
     { "source": "asm_write", "target": "json_structure", "label": "write file", "style": "solid", "actor": "ai",
       "description": "The complete graph is written to .graphs/{name}.json" },
