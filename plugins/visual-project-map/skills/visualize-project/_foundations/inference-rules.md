@@ -392,13 +392,15 @@ prefer the folder structure — it reflects actual organization.
 ### Trust Level Assignment
 
 Only include trust levels when the project has clear provenance semantics.
+Trust levels drive the Provenance view mode color scheme, not borders.
+Border treatment is reserved for implementation status (see Status Assignment).
 
-| Signal | Trust | Border |
-|--------|-------|--------|
-| Raw input, unprocessed data | `normal` | solid, thin |
-| Script output, automated result | `auto` | solid, thin + tag |
-| AI/LLM-generated content | `ai` | dashed + tag |
-| Human-reviewed, manually verified | `verified` | solid, thick + tag |
+| Signal | Trust | Provenance View Color |
+|--------|-------|-----------------------|
+| Raw input, unprocessed data | `normal` | Default (module color) |
+| Script output, automated result | `auto` | Default + tag |
+| AI/LLM-generated content | `ai` | Trust color + tag |
+| Human-reviewed, manually verified | `verified` | Trust color + tag |
 
 ### Node ID Convention
 

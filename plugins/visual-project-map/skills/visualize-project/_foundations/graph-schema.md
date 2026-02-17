@@ -104,13 +104,17 @@ to the adjacent module's port, visualizing the data contract between modules.
 
 ## Trust Levels (legend.trustLevels)
 
+Trust levels drive the **Provenance view mode** color scheme (not borders).
+Border treatment is reserved for implementation status (see Status Visual
+Encoding below).
+
 Each key maps to:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `label` | string | Human-readable name |
-| `borderStyle` | string | `"solid"` or `"dashed"` |
-| `borderWidth` | number | Border thickness (1.5 normal, 3.5 thick) |
+| `borderStyle` | string | Legacy field, retained for backward compatibility |
+| `borderWidth` | number | Legacy field, retained for backward compatibility |
 | `color` | string | Background color for provenance view |
 | `borderColor` | string | Border color for provenance view |
 | `tag` | object | Optional `{ text, bg, color }` for badge display |
@@ -136,14 +140,19 @@ Diamond-shaped nodes and interface ports keep their shape regardless of role.
 
 When `status` is omitted, `ai-tested` is the visual default (no special styling applied).
 
-## Confidence Visual Encoding (future viewer implementation)
+## Confidence Visual Encoding
 
-| Confidence | Border Treatment (collapsed) | Badge | Meaning |
-|-----------|------------------------------|-------|---------|
-| `high` | Thick border (3px) | None | Standard pattern, high certainty |
-| `medium` | Normal border (1.5px) | None | Reasonable guess, may need refinement |
-| `low` | Dashed border (1.5px) | Amber | Needs domain input to validate |
-| `unknown` | Dotted border (1px) | Gray | Insufficient information to assess |
+Confidence is encoded via the **Confidence view mode** (toggled via toolbar
+or `V` key), which colors modules by confidence level. Confidence does NOT
+use the border channel — border is reserved for implementation status.
 
-Modules with `needsHumanReview: true` show an amber badge regardless of confidence level.
-`checkpointReason` text appears in the module's tooltip when present.
+| Confidence | View Mode Color | Meaning |
+|-----------|-----------------|---------|
+| `high` | Green (#d1fae5 / #16a34a) | Standard pattern, high certainty |
+| `medium` | Yellow (#fef3c7 / #f59e0b) | Reasonable guess, may need refinement |
+| `low` | Red (#fee2e2 / #ef4444) | Needs domain input to validate |
+| `unknown` | Gray (#f3f4f6 / #9ca3af) | Insufficient information to assess |
+
+Modules with `needsHumanReview: true` show an amber badge (⚠) on the
+collapsed label. `checkpointReason` text appears in the module's tooltip
+when present.

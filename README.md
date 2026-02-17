@@ -56,7 +56,7 @@ python3 scripts/serve.py
 - **Collapsible folders** — overview-first, drill into details on click
 - **2-level hierarchy** — phases contain folders contain nodes
 - **Meta-edge deduplication** — collapsed folders show merged cross-boundary edges
-- **Trust level encoding** — border style/width shows data provenance (raw → automated → AI → verified)
+- **Implementation status** — border style/color shows maturity (planned → draft → ai-tested → needs-review → verified)
 - **Actor annotations** — edge colors show who does the work (human/AI/script/mixed)
 - **Edge detail panel** — click edges to see script paths, inputs, outputs, docs
 - **Path tracing** — click a node to highlight all upstream/downstream connections
@@ -124,7 +124,8 @@ Directed connections between nodes.
 
 ### Legend (optional)
 
-Trust level definitions with visual styling:
+Trust level definitions for provenance view mode (border treatment is driven
+by `status`, not trust levels):
 
 ```json
 {

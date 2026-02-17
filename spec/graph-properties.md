@@ -28,16 +28,18 @@ artifacts (meta-edges) computed during collapse.
 border) color pair. All children of that module inherit the module's colors
 unless explicitly overridden.
 
-**P2.2 Trust/provenance via border treatment.** Node border style and width
-encode the provenance of the data or action the node represents:
-- Solid thin border = normal or automated
-- Dashed border = AI/LLM-generated
-- Solid thick border = human-verified
+**P2.2 Implementation status via border treatment.** Node and module border
+style, width, and color encode implementation maturity:
+- Dotted 1px gray = `planned` (ghost/placeholder, not yet built)
+- Solid 1px = `draft` (exists but incomplete)
+- Solid 1.5px = `ai-tested` (default when status is omitted)
+- Dashed 2.5px orange = `needs-review` (needs human review)
+- Solid 3px green = `verified` (human-verified, production-ready)
 
-The specific trust levels and their visual mappings are defined in the input
-JSON's `legend.trustLevels` and can vary per graph. But the principle holds:
-border treatment is reserved for provenance encoding. Do not overload border
-style for other semantics.
+Status is the only semantic encoded via border treatment. Do not overload
+border style for other semantics (trust, confidence, etc.). Trust/provenance
+is encoded via the Provenance view mode color channel (see F40). Confidence
+is encoded via the Confidence view mode color channel (see F64).
 
 **P2.3 Semantic role via node shape.**
 - `round-rectangle` (default) = state or data point
@@ -85,7 +87,7 @@ unused visual channel:
 
 These treatments are only active in Plan view mode. Switching to any other
 view (Module, Provenance, Actor, Files) removes all plan styling. This
-avoids conflict with P2.1 (color=module), P2.2 (border=trust), P2.3
+avoids conflict with P2.1 (color=module), P2.2 (border=status), P2.3
 (shape=role), and P2.7 (edge color=actor) because plan uses the overlay
 channel, not the primary visual encoding channels.
 
@@ -101,11 +103,11 @@ blue fill for inputs, green fill for outputs, sized at least 160x30 with at
 least 11px font. Ports must be readable at the default zoom level without
 expanding any module.
 
-**P2.11 Confidence via collapsed module border.** When a module has a
-`confidence` field, the collapsed module border encodes it: thick border =
-high confidence, normal border = medium, dashed border = low or unknown. This
-applies only to collapsed modules (the interface map view). When expanded,
-child nodes use trust-level borders (P2.2) instead — no conflict.
+**P2.11 Confidence via view mode.** Module confidence is encoded via the
+Confidence view mode (F64), which colors modules by confidence level:
+green = high, yellow = medium, red = low, gray = unknown. Confidence does
+NOT use the border channel — border is reserved for implementation status
+(P2.2). The confidence view mode is toggled via the toolbar or `V` key cycle.
 
 **P2.12 Human review flag via amber badge.** Modules with
 `needsHumanReview: true` display a small amber badge (e.g., exclamation mark)

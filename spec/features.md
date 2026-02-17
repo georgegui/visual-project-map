@@ -54,11 +54,15 @@ contradictions and against this catalog for duplicates.
 - **Properties**: P2.1
 - Modules define (color, borderColor). Children inherit unless overridden.
 
-### F05: Trust level border encoding
+### F05: Trust level visual encoding
 - **Status**: `implemented`
 - **Files**: `src/viewer.js` (buildStyles)
 - **Properties**: P2.2
-- Border style/width driven by `legend.trustLevels` in the input JSON.
+- Trust levels defined in `legend.trustLevels` drive the Provenance view mode
+  color scheme (F40). Legacy `borderStyle`/`borderWidth` fields in trust level
+  definitions are retained for backward compatibility but are overridden by
+  implementation status border encoding (F75, P2.2). Border is reserved for
+  status; trust is encoded via view-mode color.
 
 ### F06: Node shape semantics
 - **Status**: `implemented`

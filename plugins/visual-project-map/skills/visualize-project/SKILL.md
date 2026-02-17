@@ -514,6 +514,8 @@ Use ALL CAPS for terminals (`INCLUDED`, `COMPLETE`, `FAILED`).
 **Trust levels:** Only add `style.trust` if the project has clear
 provenance semantics (raw → automated → AI → verified). For most
 projects, omit trust and the `legend.trustLevels` section entirely.
+Trust drives the Provenance view mode color scheme, not borders.
+Border treatment is reserved for implementation status (see below).
 
 **File annotations:** When a node represents a step with known file I/O
 (detected in Step 1.4), add the `files` field:
@@ -633,7 +635,9 @@ paths — only include file paths you actually found.
 Only include `legend.trustLevels` if the project explicitly tracks
 provenance (raw/auto/ai/verified states). For most projects, omit it.
 
-When included, use this standard set:
+When included, use this standard set. Note: `borderStyle`/`borderWidth` are
+legacy fields retained for backward compatibility; border treatment is driven
+by `status`, not trust levels:
 
 ```json
 {
