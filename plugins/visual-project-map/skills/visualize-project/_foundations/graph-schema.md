@@ -16,6 +16,7 @@
 | `description` | string | One-paragraph overview of the graph's purpose and scope |
 | `legend` | object | Contains `trustLevels` definitions |
 | `plan` | object | Plan overlay annotations (see visualize-plan skill) |
+| `criticalPath` | array of strings | Pre-computed critical path as an ordered array of node IDs (entry → terminal). `P` key toggles highlighting in the viewer. |
 | `_generationMode` | string | `"scan"` (from existing project), `"design"` (from objective), or `"refactor"` (scan + redesign) |
 | `_objective` | string | Natural language objective used to generate graph (design mode only) |
 | `_generatedAt` | string | ISO 8601 timestamp of when the graph was generated |

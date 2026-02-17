@@ -85,6 +85,38 @@ If `--focus` is set, scope all globs under that subdirectory.
 Skip `node_modules/`, `venv/`, `.venv/`, `.git/`, `__pycache__/`,
 `dist/`, `build/`, `.next/`.
 
+### Step 1.1b: Detect test coverage and review evidence
+
+Use Glob to find test files alongside the documentation scan:
+```
+**/test_*.py
+**/*_test.py
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+**/tests/
+**/__tests__/
+```
+
+For each test file found, note which module directory it corresponds to.
+A module with test files gets a higher confidence and status assignment
+than one without.
+
+Use Grep on key scripts (the ~10 most important from Step 1.1) to detect
+quality signals:
+
+| Pattern | Signal | Effect |
+|---------|--------|--------|
+| `TODO`, `FIXME`, `HACK`, `XXX` | Unfinished work | Lowers confidence, flags `needsHumanReview` |
+| `@pytest.mark`, `describe(`, `it(`, `test(` | Test presence in source | Confirms test coverage |
+| `assert`, `expect(`, `assertEqual` | Assertions | Confirms meaningful tests |
+
+**Do not run tests** — just detect the presence of test infrastructure.
+These signals feed into status assignment (Step 2.1) and confidence
+assignment (see `_foundations/inference-rules.md` § "Scan-Mode Confidence
+Heuristics").
+
 ### Step 1.2: Read documentation
 
 Read each CLAUDE.md and README.md found. Extract:
@@ -460,7 +492,18 @@ Extract these from script I/O detected in Step 1.4. Example:
   }
 }
 ```
-Only include interfaces you have evidence for — don't invent formats.
+Generate interfaces for **every** non-phase, non-terminal module. Use
+evidence from Step 1.4 when available (concrete file I/O patterns).
+For modules without direct I/O evidence, infer the interface from:
+1. The module's position in the data flow (what does the upstream module
+   output? That becomes this module's input)
+2. The module's description and exit node labels
+3. Directory naming conventions (e.g., `data/clean/` → output is "clean data")
+
+At minimum, every module must have at least one named input and one named
+output. Use `"format": "unknown"` when the format cannot be determined —
+this is better than omitting the interface entirely, because the collapsed
+view (the default) depends on interfaces to show the data contract.
 
 **Module role:** Assign `role: "data"` to modules that represent data
 artifacts, storage, or configuration — things described with nouns
@@ -493,6 +536,17 @@ and `planned` for unimplemented components.
 - Module `description` is especially important in design mode — it's the primary
   documentation since no code or CLAUDE.md exists
 
+**Scan-mode modules** (when using Input A / directory scan):
+- **Always** include `confidence` per the heuristics in
+  `_foundations/inference-rules.md` § "Scan-Mode Confidence Heuristics"
+- **Always** include `needsHumanReview` when confidence is `low` or when
+  `TODO`/`FIXME` signals were detected in Step 1.1b
+- Include `checkpointReason` when `needsHumanReview` is true — explain what
+  triggered the flag (e.g., "No test coverage", "Contains FIXME comments",
+  "Complex logic without documentation")
+- **Always** include `interface` with `inputs` and `outputs` — infer from
+  I/O evidence (Step 1.4) or from the module's position in the data flow
+
 ### 2.2: Define Nodes
 
 **From workflow steps:** Each numbered step, documented state, or
@@ -523,6 +577,32 @@ Trust drives the Provenance view mode color scheme, not borders (P2.2).
 ```
 Only include paths you actually found in the codebase. Use directory paths
 (without trailing slash) when the step reads/writes an entire directory.
+
+**Node I/O annotations:** For nodes representing steps with structured
+inputs and outputs (detected in Step 1.4), add the `io` field with the
+same structure as `module.interface`:
+```json
+{
+  "io": {
+    "inputs": [{ "name": "raw_json", "description": "Raw API response files", "format": "JSON" }],
+    "outputs": [{ "name": "validated_json", "description": "Schema-valid records", "format": "JSON" }]
+  }
+}
+```
+Focus on nodes at module boundaries (entry/exit points) and complex
+processing steps. Simple pass-through nodes do not need `io`. The `io`
+field populates the node detail side panel (F73) with richer information
+than `files` alone — use `io` for semantic descriptions and `files` for
+raw file paths.
+
+**Node documentation:** If a node corresponds to a script or function with
+associated documentation (a dedicated README section, docstring, or docs
+page), set `docs` to the relative file path or URL:
+```json
+{ "docs": "docs/api/validate.md" }
+```
+Only include `docs` when a dedicated documentation artifact exists — do not
+point to generic project-level docs.
 
 **Node descriptions:** Add a `description` field to nodes where the label
 alone is ambiguous or the step is non-trivial. Not every node needs one —
@@ -629,6 +709,76 @@ paths — only include file paths you actually found.
   human-in-the-loop → `"mixed"`
 - Edge `label` should describe the transformation or handoff, not a script name
 
+**Scan-mode edges** (when using Input A / directory scan):
+- **Always** include `confidence` per the heuristics in
+  `_foundations/inference-rules.md` § "Scan-Mode Confidence Heuristics"
+  (based on evidence quality: documented = high, file I/O inferred = high,
+  directory adjacency only = low)
+
+### 2.3b: Generate Interface Port Nodes
+
+> **SPEC principle**: P1 (interfaces as primary content), P2.10 (port visual
+> encoding), P3.4 (port positioning)
+
+For each non-phase, non-terminal module with an `interface` field, create
+interface port nodes that make the data contract visible in the collapsed
+view. This is what transforms the graph from "boxes connected by edges"
+into an **interface map** — the SPEC's primary design promise.
+
+**For each `interface.inputs` entry**, create a port node:
+```json
+{
+  "id": "{mod_short}_in_{name_slug}",
+  "module": "{module_id}",
+  "label": "{input_name}",
+  "_isInterfacePort": true,
+  "_portDirection": "input",
+  "interfaceContract": { "name": "...", "description": "...", "format": "...", "example": "..." }
+}
+```
+
+**For each `interface.outputs` entry**, create a port node:
+```json
+{
+  "id": "{mod_short}_out_{name_slug}",
+  "module": "{module_id}",
+  "label": "{output_name}",
+  "_isInterfacePort": true,
+  "_portDirection": "output",
+  "interfaceContract": { "name": "...", "description": "...", "format": "...", "example": "..." }
+}
+```
+
+**Port IDs:** Use `{mod_short}_in_{slug}` and `{mod_short}_out_{slug}`.
+The slug is the interface entry name, lowercased with spaces/hyphens
+replaced by underscores. Examples: `ing_in_api_config`,
+`ing_out_validated_json`, `cln_in_validated_json`.
+
+**Edge routing through ports:** After creating port nodes, reroute
+cross-module edges to pass through them:
+
+1. For each cross-module edge `A_exit → B_entry`:
+   - Find the output port on module A that matches the data being passed
+   - Find the input port on module B that matches the data being received
+   - Replace with three edges:
+     ```
+     A_exit → A_out_port    (intra-module, no label)
+     A_out_port → B_in_port  (cross-module, carries the original label + description)
+     B_in_port → B_entry     (intra-module, no label)
+     ```
+2. Intra-module edges to/from ports are unlabeled routing connectors
+3. The cross-module port-to-port edge carries the semantic label,
+   description, actor, confidence, and details from the original edge
+
+**When collapsed**, the viewer hides internal nodes but keeps port nodes
+visible. The user sees: module boxes with named input/output ports
+connected by labeled edges — the interface map.
+
+**Scope:** Generate port nodes for all non-phase, non-terminal modules.
+Terminal modules (containing COMPLETE, FAILED, etc.) do not need ports.
+Phase modules do not get ports — their interfaces are expressed through
+their child modules' ports.
+
 ### 2.4: Define Legend (optional)
 
 Only include `legend.trustLevels` if the project explicitly tracks
@@ -687,6 +837,45 @@ After defining all edges, verify cross-module connections following
    that each phase pair also has at most 1 edge
 4. Terminal nodes: route through module exit nodes, not directly
 
+### 2.4c: Compute Critical Path
+
+> **SPEC principles**: P2.13 (critical path highlight), P7.4 (non-destructive)
+
+After finalizing all edges, compute the critical path — the longest
+dependency chain from an entry node to the final output. The viewer
+highlights this path when the user presses `P` (F65).
+
+1. **Identify the primary terminal node**: The success terminal (typically
+   `COMPLETE` or the last output node in the final module). If the graph
+   has multiple terminals, use the primary success path.
+
+2. **Trace backward from the terminal**: Follow incoming edges backward.
+   At each branch, choose the path that:
+   - Passes through the most **cross-module boundaries** (these represent
+     the major pipeline stages)
+   - Uses **solid edges** (forward flow) over dashed edges (feedback loops)
+   - Is the **longest path** in terms of node count if still ambiguous
+
+3. **Collect the path**: Record node IDs in forward order (entry → terminal).
+   Include both internal nodes and port nodes on the critical path.
+
+4. **Emit**: Add the path to the graph root:
+   ```json
+   { "criticalPath": ["first_node", "second_node", ..., "terminal_node"] }
+   ```
+
+**Example**: For a pipeline `Ingest → Clean → Export → COMPLETE`, the
+critical path includes the main processing nodes from each module:
+```json
+"criticalPath": ["ing_in_api", "ing_dl", "ing_val", "ing_out_json",
+  "cln_in_json", "cln_norm", "cln_dup", "cln_out_csv",
+  "exp_in_csv", "exp_db", "exp_out_db", "DONE"]
+```
+
+The critical path helps users identify which modules are on the longest
+dependency chain — changes to these modules have the highest impact on the
+overall pipeline.
+
 ### 3.2: Validate
 
 Before writing, verify:
@@ -709,6 +898,12 @@ Before writing, verify:
   leaving from it is a dead end — it means that node's output is lost.
   Fix by: adding the missing edge to the module's exit/collector node,
   or rethinking whether the node belongs in a different module.
+- Every non-phase, non-terminal module has an `interface` with at least one input and one output
+- Every non-phase, non-terminal module has `confidence` assigned
+- Every module with `interface` has corresponding `_isInterfacePort` nodes
+- Cross-module edges route through port nodes (port-to-port, not internal-to-internal)
+- `criticalPath` array is present and contains valid node IDs forming a connected path
+- `_generationMode` is set (`"scan"`, `"design"`, or `"refactor"`)
 
 ### 3.3: Scope Check
 
@@ -1063,47 +1258,96 @@ Running `/visualize-project /path/to/data-pipeline --depth 1` produces:
 {
   "title": "Data Pipeline Workflow",
   "description": "ETL pipeline that downloads records from an API, normalizes and deduplicates them, then loads the results into a SQLite database.",
+  "_generationMode": "scan",
+  "_generatedAt": "2026-02-16T14:30:00Z",
   "modules": [
     { "id": "mod_ingest", "label": "Ingest", "color": "#dbeafe", "borderColor": "#93c5fd",
-      "status": "verified",
+      "status": "verified", "confidence": "high",
       "description": "Downloads raw JSON from the API and validates schema conformance.",
+      "docPath": "scripts/ingest/CLAUDE.md",
       "interface": {
         "inputs": [{ "name": "api_config", "description": "Source API endpoints and credentials", "format": "YAML" }],
         "outputs": [{ "name": "validated_json", "description": "Schema-valid JSON files", "format": "JSON, one file per record" }]
       }
     },
     { "id": "mod_clean", "label": "Clean", "color": "#e0e7ff", "borderColor": "#a5b4fc",
-      "status": "ai-tested",
-      "description": "Normalizes field formats and removes duplicate records." },
+      "status": "ai-tested", "confidence": "medium", "needsHumanReview": true,
+      "checkpointReason": "Deduplication logic has no test coverage (no test_*.py found)",
+      "description": "Normalizes field formats and removes duplicate records.",
+      "interface": {
+        "inputs": [{ "name": "validated_json", "description": "Schema-valid JSON files from ingest", "format": "JSON" }],
+        "outputs": [{ "name": "deduped_csv", "description": "Deduplicated records in CSV format", "format": "CSV" }]
+      }
+    },
     { "id": "mod_export", "label": "Export", "color": "#fef2f2", "borderColor": "#fca5a5",
-      "status": "draft",
-      "description": "Builds the final SQLite database from deduplicated CSV." },
+      "status": "draft", "confidence": "low", "needsHumanReview": true,
+      "checkpointReason": "No tests, draft code only, contains TODO comments",
+      "description": "Builds the final SQLite database from deduplicated CSV.",
+      "interface": {
+        "inputs": [{ "name": "deduped_csv", "description": "Deduplicated CSV records", "format": "CSV" }],
+        "outputs": [{ "name": "sqlite_db", "description": "Final SQLite database", "format": "SQLite" }]
+      }
+    },
     { "id": "mod_term", "label": "Terminals", "color": "#f1f5f9", "borderColor": "#94a3b8" }
   ],
   "nodes": [
-    { "id": "ing_dl",   "module": "mod_ingest", "label": "ingest.download" },
-    { "id": "ing_val",  "module": "mod_ingest", "label": "ingest.validate",
-      "description": "Checks each JSON file against the expected schema. Invalid files are logged and skipped." },
-    { "id": "cln_norm", "module": "mod_clean",  "label": "clean.normalize" },
-    { "id": "cln_dup",  "module": "mod_clean",  "label": "clean.deduplicate",
+    { "id": "ing_in_api",   "module": "mod_ingest", "label": "api_config",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": { "name": "api_config", "description": "Source API endpoints and credentials", "format": "YAML" } },
+    { "id": "ing_dl",       "module": "mod_ingest", "label": "ingest.download" },
+    { "id": "ing_val",      "module": "mod_ingest", "label": "ingest.validate",
+      "description": "Checks each JSON file against the expected schema. Invalid files are logged and skipped.",
+      "io": {
+        "inputs":  [{ "name": "raw_json", "description": "Raw API response files", "format": "JSON" }],
+        "outputs": [{ "name": "validated_json", "description": "Schema-conformant records", "format": "JSON" }]
+      } },
+    { "id": "ing_out_json", "module": "mod_ingest", "label": "validated_json",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": { "name": "validated_json", "description": "Schema-valid JSON files", "format": "JSON" } },
+    { "id": "cln_in_json",  "module": "mod_clean",  "label": "validated_json",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": { "name": "validated_json", "description": "Schema-valid JSON files", "format": "JSON" } },
+    { "id": "cln_norm",     "module": "mod_clean",  "label": "clean.normalize" },
+    { "id": "cln_dup",      "module": "mod_clean",  "label": "clean.deduplicate",
       "description": "Removes exact and fuzzy duplicates using title + DOI matching." },
-    { "id": "exp_db",   "module": "mod_export", "label": "export.build_db" },
-    { "id": "DONE",     "module": "mod_term",   "label": "COMPLETE",
+    { "id": "cln_out_csv",  "module": "mod_clean",  "label": "deduped_csv",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": { "name": "deduped_csv", "description": "Deduplicated records", "format": "CSV" } },
+    { "id": "exp_in_csv",   "module": "mod_export", "label": "deduped_csv",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": { "name": "deduped_csv", "description": "Deduplicated CSV records", "format": "CSV" } },
+    { "id": "exp_db",       "module": "mod_export", "label": "export.build_db" },
+    { "id": "exp_out_db",   "module": "mod_export", "label": "sqlite_db",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": { "name": "sqlite_db", "description": "Final SQLite database", "format": "SQLite" } },
+    { "id": "DONE",         "module": "mod_term",   "label": "COMPLETE",
       "style": { "color": "#d1fae5", "borderColor": "#6ee7b7" } }
   ],
   "edges": [
-    { "source": "ing_dl",   "target": "ing_val",  "label": "validate",    "style": "solid", "actor": "script",
+    { "source": "ing_in_api",  "target": "ing_dl",      "style": "solid" },
+    { "source": "ing_dl",      "target": "ing_val",      "label": "validate", "style": "solid", "actor": "script",
       "details": { "script": "scripts/ingest/validate.py", "input": ["raw/*.json"], "output": ["validated/*.json"] } },
-    { "source": "ing_val",  "target": "cln_norm", "label": "normalize",   "style": "solid", "actor": "script",
-      "description": "Passes validated JSON files to the normalization step. Only schema-valid records cross this boundary." },
-    { "source": "cln_norm", "target": "cln_dup",  "label": "deduplicate", "style": "solid", "actor": "script" },
-    { "source": "cln_dup",  "target": "exp_db",   "label": "build DB",    "style": "solid", "actor": "script" },
-    { "source": "exp_db",   "target": "DONE",     "label": "complete",    "style": "solid" }
-  ]
+    { "source": "ing_val",     "target": "ing_out_json", "style": "solid" },
+    { "source": "ing_out_json","target": "cln_in_json",  "label": "normalize", "style": "solid", "actor": "script",
+      "description": "Passes validated JSON files to the normalization step. Only schema-valid records cross this boundary.",
+      "confidence": "high" },
+    { "source": "cln_in_json", "target": "cln_norm",     "style": "solid" },
+    { "source": "cln_norm",    "target": "cln_dup",      "label": "deduplicate", "style": "solid", "actor": "script" },
+    { "source": "cln_dup",     "target": "cln_out_csv",  "style": "solid" },
+    { "source": "cln_out_csv", "target": "exp_in_csv",   "label": "build DB", "style": "solid", "actor": "script",
+      "confidence": "high" },
+    { "source": "exp_in_csv",  "target": "exp_db",       "style": "solid" },
+    { "source": "exp_db",      "target": "exp_out_db",   "style": "solid" },
+    { "source": "exp_out_db",  "target": "DONE",         "label": "complete", "style": "solid",
+      "confidence": "high" }
+  ],
+  "criticalPath": ["ing_in_api", "ing_dl", "ing_val", "ing_out_json",
+    "cln_in_json", "cln_norm", "cln_dup", "cln_out_csv",
+    "exp_in_csv", "exp_db", "exp_out_db", "DONE"]
 }
 ```
 
-4 modules, 6 nodes, 5 edges — a clean, readable graph with descriptions and status annotations.
+4 modules, 12 nodes (6 internal + 6 ports), 11 edges (5 intra-module routing + 3 cross-module port-to-port + 3 internal processing). Demonstrates: interface ports on every non-terminal module, scan-mode confidence with `needsHumanReview` flags, `node.io` on a key processing node, edge confidence on cross-module connections, and `criticalPath` tracing the full pipeline.
 
 ---
 
@@ -1280,11 +1524,22 @@ Running `/visualize-project --objective "Estimate the causal effect of a stagger
       "description": "Pass formatted tables and figures to narrative drafting.", "confidence": "high" },
     { "source": "wr_draft", "target": "wr_review", "label": "review", "style": "solid", "actor": "human",
       "description": "Co-author reviews the draft and provides feedback.", "confidence": "high" }
-  ]
+  ],
+  "criticalPath": ["acq_fetch", "acq_merge", "cln_restrict", "cln_balance",
+    "cln_missing", "var_treatment", "var_outcome", "var_controls",
+    "diag_trends", "diag_check", "est_run", "est_cluster",
+    "rob_alt_spec", "rob_placebo", "rob_compare",
+    "tab_summary", "tab_main", "tab_event", "wr_draft", "wr_review"]
 }
 ```
 
 3 phases, 8 modules, 20 nodes, 20 edges — all `status: "planned"`, no `files`, no `details`, no `trustLevels`. Domain-specific modules (`mod_variables`, `mod_estimate`, `mod_robustness`, `mod_writeup`) flagged with `needsHumanReview: true` and specific `checkpointReason` explaining what requires expertise.
+
+**Note on interface port nodes:** This example omits port nodes for brevity.
+In a complete graph, every module would also have `_isInterfacePort` input
+and output nodes generated per Step 2.3b, and cross-module edges would
+route through them. See the scan-mode worked example above for the full
+port node pattern.
 
 ---
 
@@ -1384,69 +1639,18 @@ pipeline/
 
 ---
 
-## Known Generation Gaps
+## Known Generation Gaps (Resolved)
 
-Features the SPEC requires but this skill does not yet generate. Each gap
-references the planned feature in `spec/features.md`. The SPEC text is the
-target — these items need skill procedure updates, not SPEC softening.
+Gaps between the SPEC's requirements and the skill's generation procedure.
+Previously these were unimplemented; they are now addressed in the steps
+listed below.
 
-### GAP-1: Interface port nodes (F66)
-
-The SPEC says "every folder has named interfaces" and the viewer renders
-`_isInterfacePort` nodes with directional styling (F58, F59). This skill
-generates `module.interface` objects but never creates the corresponding
-**port nodes** (`_isInterfacePort: true`, `_portDirection`, `interfaceContract`).
-Until F66 is implemented, the collapsed view shows I/O subtitles (F61) as a
-fallback but not the full interface map the SPEC envisions.
-
-### GAP-2: Critical path (F68)
-
-The SPEC says "critical path identification is automatic." The schema supports
-`graph.criticalPath` (node ID array) and the viewer highlights it (F65, `P`
-key). This skill has no step to compute or emit `criticalPath`. The
-generation procedure needs a step after edge definition that traces from
-final output nodes backward through cross-module edges to identify the
-critical chain.
-
-### GAP-3: Scan-mode confidence and needsHumanReview (F67)
-
-Design mode generates `confidence` and `needsHumanReview` per the heuristics
-in `inference-rules.md`. Scan mode has **no confidence heuristics** — the
-inference-rules.md confidence section is scoped to design mode only. The SPEC
-says confidence should be visible for all actions including `describe` (scan).
-Scan-mode confidence heuristics are needed — e.g., modules with extensive
-tests → high, modules with no tests → low, modules with TODO/FIXME → medium
-with `needsHumanReview: true`.
-
-### GAP-4: Scan-mode `_generationMode` metadata
-
-Step 3.5 sets `_generationMode: "design"` for design mode and
-`_generationMode: "refactor"` for refactor mode. For scan mode (Input A),
-the skill never instructs setting `_generationMode` at all. Fresh scan-mode
-graphs should include `"_generationMode": "scan"`.
-
-### GAP-5: `node.io` and `node.docs` fields
-
-The schema supports `node.io` (rich I/O with inputs/outputs arrays) and
-`node.docs` (documentation link) for the node detail side panel (F73). This
-skill generates `node.files` and `node.description` but never `node.io` or
-`node.docs`. For nodes representing complex processing steps with clear
-inputs/outputs, `node.io` would provide richer detail than `files` alone.
-
-### GAP-6: Status inference data collection (Phase 1)
-
-The status heuristics in inference-rules.md check for test files, passing
-tests, reviewed PRs, and CI status. Phase 1 discovery (Steps 1.1–1.4) does
-not collect these signals — it looks for documentation and scripts but never
-globs for `test_*.py` / `*.test.ts`, runs tests, or checks git history. As a
-result, most scan-mode modules default to `ai-tested`. Phase 1 needs a step
-to detect test coverage and review evidence.
-
-### GAP-7: Scan-mode interface completeness
-
-The SPEC says "every folder gets named inputs, named outputs." Step 2.1 says
-"only include interfaces you have evidence for — don't invent formats." These
-directly contradict. For scan mode, many modules will lack `interface` fields
-because the evidence bar is high. F66 (when implemented) should resolve this
-by requiring interfaces on every module regardless of mode, using best-effort
-inference when direct evidence is limited.
+| Gap | Feature | Resolution |
+|-----|---------|------------|
+| GAP-1 | Interface port nodes (F66) | **Resolved** — Step 2.3b generates `_isInterfacePort` nodes from `module.interface` |
+| GAP-2 | Critical path (F68) | **Resolved** — Step 2.4c computes `criticalPath` array |
+| GAP-3 | Scan-mode confidence (F67) | **Resolved** — inference-rules.md § "Scan-Mode Confidence Heuristics" + Step 2.1 scan-mode instructions |
+| GAP-4 | Scan-mode `_generationMode` | **Resolved** — Step 3.5 now instructs setting `"scan"` for Input A |
+| GAP-5 | `node.io` and `node.docs` | **Resolved** — Step 2.2 now includes generation instructions |
+| GAP-6 | Status data collection | **Resolved** — Step 1.1b collects test files, TODO/FIXME, assertion patterns |
+| GAP-7 | Interface completeness | **Resolved** — Step 2.1 now requires interfaces on all non-terminal modules (infer when evidence is limited) |

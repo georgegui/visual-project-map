@@ -379,32 +379,33 @@ contradictions and against this catalog for duplicates.
   Turns the graph-viewer into a general-purpose project visualization tool.
 
 ### F66: Skill always generates interface port nodes
-- **Status**: `planned`
-- **Properties**: P1.1–P1.4
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4, P2.10, P3.4
 - **Workstream**: C1-C2
-- Update SKILL.md to always generate interface port nodes from
-  `module.interface` fields, and to always generate interfaces (removing
-  the "only include interfaces you have evidence for" caveat). Every module
-  must have at least one named input and one named output.
+- SKILL.md Step 2.3b generates `_isInterfacePort` nodes from
+  `module.interface` fields. Step 2.1 now requires interfaces on all
+  non-phase, non-terminal modules (removing the "only include interfaces
+  you have evidence for" caveat). Cross-module edges route through port
+  nodes (port-to-port).
 
 ### F67: Skill generates confidence annotations
-- **Status**: `planned` (partially implemented — design mode generates confidence; scan mode does not)
-- **Properties**: P1.1–P1.4
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4, P2.11, P2.12
 - **Workstream**: C3
 - The skill assesses and records confidence per module and edge: high (clear
-  evidence), medium (partial evidence), low (convention-based guess). For
-  design mode (Input B), defaults to medium/low.
-- **Gap**: Design-mode confidence generation is implemented in SKILL.md (Step 2.1
-  design-mode defaults) and inference-rules.md (Design-Mode Confidence Heuristics).
-  Scan-mode confidence generation has no heuristics yet — the skill has no
-  mechanism to assign confidence when scanning an existing project.
+  evidence), medium (partial evidence), low (convention-based guess).
+  Design mode uses `inference-rules.md` § "Design-Mode Confidence Heuristics".
+  Scan mode uses `inference-rules.md` § "Scan-Mode Confidence Heuristics"
+  (based on test coverage, documentation, TODO/FIXME signals from Step 1.1b).
+  Both modes always include `confidence` and `needsHumanReview` on modules.
 
 ### F68: Skill generates critical path
-- **Status**: `planned`
-- **Properties**: P1.1–P1.4
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4, P2.13, P7.4
 - **Workstream**: C4
-- Given the user's objective, the skill traces which modules and edges are
-  upstream of the final output and records `graph.criticalPath` (node ID array).
+- SKILL.md Step 2.4c traces the longest dependency chain from entry to
+  terminal and emits `graph.criticalPath` (ordered node ID array). Works
+  in all modes (scan, design, refactor).
 
 ### F69: Design-from-objective skill mode (Input B)
 - **Status**: `implemented`
@@ -717,4 +718,6 @@ contradictions and against this catalog for duplicates.
 | 2026-02-16 | F78 | Implemented: `refactor` action (Phase 1C in SKILL.md — scan + redesign + plan overlay) |
 | 2026-02-16 | F79 | Proposed: `plan` action (detect SPEC.md changes, propose new folders, plan overlay) |
 | 2026-02-17 | F30 | Deprecated: superseded by F75 (top-level `status` field) |
-| 2026-02-17 | F67 | Updated: noted design-mode confidence is implemented, scan-mode still planned |
+| 2026-02-17 | F66 | Implemented: SKILL.md Step 2.3b generates interface port nodes, Step 2.1 requires interfaces on all modules |
+| 2026-02-17 | F67 | Implemented: scan-mode confidence heuristics added to inference-rules.md + SKILL.md |
+| 2026-02-17 | F68 | Implemented: SKILL.md Step 2.4c computes critical path |
