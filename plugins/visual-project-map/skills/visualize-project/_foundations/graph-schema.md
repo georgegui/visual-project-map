@@ -121,8 +121,7 @@ Each key maps to:
 
 ## Role Visual Encoding
 
-Role is encoded exclusively via **shape** (P2.3). Border is reserved for
-implementation status (P2.2) — role must never use border style.
+Role is encoded via shape only (see P2.3 for the full rule).
 
 | Role | Module (collapsed) | Module (expanded) | Child Node |
 |------|-------------------|-------------------|------------|

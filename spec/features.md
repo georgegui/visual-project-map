@@ -647,9 +647,8 @@ contradictions and against this catalog for duplicates.
 - **Files**: `schema.json`, `src/viewer.js` (buildElements, buildStyles)
 - **Properties**: P2.3
 - Modules and nodes with `role: "data"` render as hexagons. Process modules
-  (default) remain round-rectangles. Role is encoded exclusively via shape
-  (P2.3), never via border (reserved for status, P2.2). Decision diamonds
-  and interface ports keep their shapes regardless of role.
+  (default) remain round-rectangles. See P2.3 for the channel rule. Decision
+  diamonds and interface ports keep their shapes regardless of role.
 
 ### F75: Implementation status visual encoding
 - **Status**: `implemented`
