@@ -199,7 +199,6 @@ var GraphViewer = (function() {
   }
 
   function buildStyles(data) {
-    var trust = (data.legend && data.legend.trustLevels) || {};
     var styles = [
       { selector: ':parent',
         style: {
