@@ -1,0 +1,283 @@
+{
+  "title": "DiD: Policy Effect on Employment",
+  "description": "Causal inference workflow using difference-in-differences to estimate the effect of a policy intervention on employment outcomes from administrative claims data. Three phases: data preparation (acquire, clean, construct sample), analysis (construct variables, run diagnostics, estimate), and validation/output (robustness checks, reporting).",
+  "_generationMode": "design",
+  "_objective": "Estimate the causal effect of a policy intervention on employment outcomes using difference-in-differences with administrative claims data.",
+  "_generatedAt": "2026-02-16T22:00:00Z",
+  "modules": [
+    {
+      "id": "phase_data",
+      "label": "Data Preparation",
+      "color": "#e8edf3",
+      "borderColor": "#a8b8cc",
+      "status": "planned",
+      "description": "Acquire administrative claims data, standardize formats, and construct the analysis sample with treatment and control groups."
+    },
+    {
+      "id": "mod_acquire",
+      "label": "Data Acquisition",
+      "color": "#dbeafe",
+      "borderColor": "#93c5fd",
+      "parent": "phase_data",
+      "status": "planned",
+      "confidence": "high",
+      "description": "Obtain raw administrative claims records and policy adoption dates from source databases or file transfers.",
+      "interface": {
+        "inputs": [
+          { "name": "claims_source", "description": "Administrative claims database or flat file extract", "format": "CSV or database connection" },
+          { "name": "policy_schedule", "description": "Policy adoption dates by jurisdiction", "format": "CSV with columns: jurisdiction_id, adoption_date, policy_variant" }
+        ],
+        "outputs": [
+          { "name": "raw_claims", "description": "Unprocessed claims records with all original fields", "format": "Parquet or CSV, one file per source year" }
+        ]
+      }
+    },
+    {
+      "id": "mod_clean",
+      "label": "Data Cleaning",
+      "color": "#e0e7ff",
+      "borderColor": "#a5b4fc",
+      "parent": "phase_data",
+      "status": "planned",
+      "confidence": "high",
+      "description": "Standardize field formats, resolve coding inconsistencies, deduplicate records, and handle missing values.",
+      "interface": {
+        "inputs": [
+          { "name": "raw_claims", "description": "Unprocessed claims records", "format": "Parquet or CSV" }
+        ],
+        "outputs": [
+          { "name": "clean_claims", "description": "Standardized claims with consistent coding, no duplicates, missing values flagged", "format": "Parquet with columns: person_id, date, jurisdiction, employment_status, ..." }
+        ]
+      }
+    },
+    {
+      "id": "mod_sample",
+      "label": "Sample Construction",
+      "color": "#fef2f2",
+      "borderColor": "#fca5a5",
+      "parent": "phase_data",
+      "status": "planned",
+      "confidence": "medium",
+      "needsHumanReview": true,
+      "checkpointReason": "Inclusion/exclusion criteria (age range, tenure, industry, geographic scope) and treatment/control group definitions are substantive choices that affect external validity and the estimand",
+      "description": "Apply sample restrictions, define treatment and control groups based on policy adoption timing, and construct a balanced panel.",
+      "interface": {
+        "inputs": [
+          { "name": "clean_claims", "description": "Standardized claims records", "format": "Parquet" },
+          { "name": "policy_schedule", "description": "Policy adoption dates", "format": "CSV" }
+        ],
+        "outputs": [
+          { "name": "analysis_sample", "description": "Balanced panel with treatment/control assignment and sample restriction flags", "format": "Parquet with columns: person_id, period, jurisdiction, treated, post, in_sample" }
+        ]
+      }
+    },
+    {
+      "id": "phase_analysis",
+      "label": "Analysis",
+      "color": "#f3ede8",
+      "borderColor": "#ccb8a8",
+      "status": "planned",
+      "description": "Construct analytical variables, verify identifying assumptions, and estimate the causal effect."
+    },
+    {
+      "id": "mod_variables",
+      "label": "Variable Construction",
+      "color": "#fff7ed",
+      "borderColor": "#fdba74",
+      "parent": "phase_analysis",
+      "status": "planned",
+      "confidence": "low",
+      "needsHumanReview": true,
+      "checkpointReason": "Outcome operationalization (employment indicator vs hours vs earnings vs labor force participation), control variable selection, and treatment intensity coding require domain expertise and may determine the sign and magnitude of the estimate",
+      "description": "Define and compute outcome variables, treatment indicators, and time-varying controls from the analysis sample.",
+      "interface": {
+        "inputs": [
+          { "name": "analysis_sample", "description": "Balanced panel with treatment assignment", "format": "Parquet" }
+        ],
+        "outputs": [
+          { "name": "analytical_dataset", "description": "Panel with outcome Y, treatment D, post indicator, interaction DxPost, and control vector X", "format": "Parquet" }
+        ]
+      }
+    },
+    {
+      "id": "mod_diagnostic",
+      "label": "Pre-Estimation Diagnostics",
+      "color": "#fefce8",
+      "borderColor": "#fde047",
+      "parent": "phase_analysis",
+      "status": "planned",
+      "confidence": "medium",
+      "needsHumanReview": true,
+      "checkpointReason": "Parallel trends test specification (number of leads/lags, functional form) and interpretation of results require econometric judgment — a marginal failure may or may not invalidate the design",
+      "description": "Test the parallel trends assumption, check for anticipation effects, and assess covariate balance between treatment and control groups.",
+      "interface": {
+        "inputs": [
+          { "name": "analytical_dataset", "description": "Panel with all variables constructed", "format": "Parquet" }
+        ],
+        "outputs": [
+          { "name": "diagnostic_results", "description": "Pre-trends coefficients, balance table, event-study pre-period plot data", "format": "JSON with arrays: pre_trend_coefs, balance_stats, event_study_data" }
+        ]
+      }
+    },
+    {
+      "id": "mod_estimate",
+      "label": "Main Estimation",
+      "color": "#f0fdf4",
+      "borderColor": "#86efac",
+      "parent": "phase_analysis",
+      "status": "planned",
+      "confidence": "low",
+      "needsHumanReview": true,
+      "checkpointReason": "DiD specification (TWFE vs robust estimator), standard error clustering level (jurisdiction vs state vs person), and whether to use covariates or not are methodological decisions with direct impact on the point estimate and inference",
+      "description": "Estimate the average treatment effect on the treated using the chosen DiD specification with appropriate standard errors.",
+      "interface": {
+        "inputs": [
+          { "name": "analytical_dataset", "description": "Panel with all variables", "format": "Parquet" },
+          { "name": "diagnostic_results", "description": "Diagnostics confirming design validity", "format": "JSON" }
+        ],
+        "outputs": [
+          { "name": "did_estimates", "description": "Point estimate, standard error, confidence interval, event-study coefficients", "format": "JSON with fields: att, se, ci_lower, ci_upper, event_study[]" }
+        ]
+      }
+    },
+    {
+      "id": "phase_output",
+      "label": "Validation & Output",
+      "color": "#e8f3ed",
+      "borderColor": "#a8ccb8",
+      "status": "planned",
+      "description": "Validate findings through robustness checks and compile into publication-ready output."
+    },
+    {
+      "id": "mod_robustness",
+      "label": "Robustness Checks",
+      "color": "#eff6ff",
+      "borderColor": "#93c5fd",
+      "parent": "phase_output",
+      "status": "planned",
+      "confidence": "low",
+      "needsHumanReview": true,
+      "checkpointReason": "Which robustness checks are appropriate depends on the empirical setting: alternative outcome measures, different control groups, varying treatment windows, placebo jurisdictions, leave-one-out sensitivity",
+      "description": "Run sensitivity analyses to assess whether the main finding is robust to alternative specifications, sample definitions, and placebo tests.",
+      "interface": {
+        "inputs": [
+          { "name": "analytical_dataset", "description": "Panel with all variables", "format": "Parquet" },
+          { "name": "did_estimates", "description": "Main specification results for comparison", "format": "JSON" }
+        ],
+        "outputs": [
+          { "name": "robustness_table", "description": "Matrix of estimates across specifications with main result highlighted", "format": "CSV with columns: specification, estimate, se, ci_lower, ci_upper, note" }
+        ]
+      }
+    },
+    {
+      "id": "mod_reporting",
+      "label": "Reporting",
+      "color": "#f5f3ff",
+      "borderColor": "#c4b5fd",
+      "parent": "phase_output",
+      "status": "planned",
+      "confidence": "high",
+      "description": "Generate publication-ready tables, event-study plots, and a results narrative.",
+      "interface": {
+        "inputs": [
+          { "name": "did_estimates", "description": "Main estimation results", "format": "JSON" },
+          { "name": "robustness_table", "description": "Sensitivity analysis results", "format": "CSV" },
+          { "name": "diagnostic_results", "description": "Pre-trends and balance diagnostics", "format": "JSON" }
+        ],
+        "outputs": [
+          { "name": "tables", "description": "LaTeX-formatted regression and summary tables", "format": "LaTeX (.tex)" },
+          { "name": "figures", "description": "Event-study plot, pre-trends plot, robustness comparison", "format": "PDF" },
+          { "name": "results_draft", "description": "Narrative results section with embedded references to tables and figures", "format": "LaTeX or Markdown" }
+        ]
+      }
+    }
+  ],
+  "nodes": [
+    { "id": "acq_import", "module": "mod_acquire", "label": "acquire.import_claims",
+      "description": "Import raw administrative claims records from source database or flat file extract." },
+    { "id": "acq_policy", "module": "mod_acquire", "label": "acquire.load_policy_dates",
+      "description": "Load policy adoption schedule mapping jurisdictions to adoption dates." },
+    { "id": "acq_merge", "module": "mod_acquire", "label": "acquire.merge_sources",
+      "description": "Merge claims records with policy adoption dates on jurisdiction and time period." },
+
+    { "id": "cln_standardize", "module": "mod_clean", "label": "clean.standardize_fields",
+      "description": "Harmonize field names, date formats, and coding schemes across source years." },
+    { "id": "cln_dedup", "module": "mod_clean", "label": "clean.deduplicate",
+      "description": "Remove duplicate claims records using person-date-jurisdiction matching." },
+    { "id": "cln_missing", "module": "mod_clean", "label": "clean.flag_missing",
+      "description": "Identify and flag records with missing key fields; apply imputation or exclusion rules." },
+
+    { "id": "smp_restrict", "module": "mod_sample", "label": "sample.apply_criteria",
+      "description": "Apply inclusion criteria: age range, tenure, industry, geographic scope." },
+    { "id": "smp_assign", "module": "mod_sample", "label": "sample.assign_groups",
+      "description": "Assign treatment and control group status based on jurisdiction policy adoption timing.",
+      "style": { "shape": "diamond" } },
+    { "id": "smp_balance", "module": "mod_sample", "label": "sample.construct_panel",
+      "description": "Construct balanced panel from assigned groups, handling entry and exit over time." },
+
+    { "id": "var_outcome", "module": "mod_variables", "label": "variables.define_outcome",
+      "description": "Operationalize the employment outcome: indicator (0/1), hours worked, earnings, or LFP." },
+    { "id": "var_treatment", "module": "mod_variables", "label": "variables.code_treatment",
+      "description": "Construct treatment dummy (D), post-period indicator, and the interaction term DxPost." },
+    { "id": "var_controls", "module": "mod_variables", "label": "variables.select_controls",
+      "description": "Choose and compute control variables: demographics, pre-treatment outcomes, jurisdiction characteristics." },
+
+    { "id": "diag_trends", "module": "mod_diagnostic", "label": "diagnostic.parallel_trends",
+      "description": "Regress outcome on leads of treatment to test for differential pre-trends between groups." },
+    { "id": "diag_balance", "module": "mod_diagnostic", "label": "diagnostic.covariate_balance",
+      "description": "Compare covariate distributions between treatment and control groups; flag imbalances." },
+    { "id": "diag_gate", "module": "mod_diagnostic", "label": "diagnostic.assess_validity",
+      "description": "Evaluate whether diagnostics support proceeding with estimation or require specification revision.",
+      "style": { "shape": "diamond" } },
+
+    { "id": "est_specify", "module": "mod_estimate", "label": "estimate.specify_model",
+      "description": "Choose DiD estimator (TWFE, Callaway-Sant'Anna, or other robust estimator) and SE clustering level." },
+    { "id": "est_run", "module": "mod_estimate", "label": "estimate.run_regression",
+      "description": "Estimate the model and compute the ATT with clustered standard errors." },
+    { "id": "est_event", "module": "mod_estimate", "label": "estimate.event_study",
+      "description": "Estimate dynamic treatment effects by event time to examine effect trajectory." },
+
+    { "id": "rob_specs", "module": "mod_robustness", "label": "robustness.alt_specifications",
+      "description": "Re-estimate under alternative outcome definitions, control sets, sample windows, and estimators." },
+    { "id": "rob_placebo", "module": "mod_robustness", "label": "robustness.placebo_tests",
+      "description": "Run placebo tests with fake treatment dates and untreated-only subsamples." },
+
+    { "id": "rep_tables", "module": "mod_reporting", "label": "reporting.generate_tables",
+      "description": "Produce LaTeX regression tables, summary statistics, and robustness comparison matrix." },
+    { "id": "rep_draft", "module": "mod_reporting", "label": "reporting.write_narrative",
+      "description": "Draft the results section interpreting the estimates, diagnostics, and robustness findings." }
+  ],
+  "edges": [
+    { "source": "acq_import", "target": "acq_policy", "label": "load dates", "style": "solid" },
+    { "source": "acq_policy", "target": "acq_merge", "label": "merge", "style": "solid" },
+    { "source": "acq_merge", "target": "cln_standardize", "label": "standardize", "style": "solid",
+      "description": "Pass merged raw claims to cleaning pipeline for format harmonization.", "confidence": "high" },
+    { "source": "cln_standardize", "target": "cln_dedup", "label": "dedup", "style": "solid" },
+    { "source": "cln_dedup", "target": "cln_missing", "label": "flag missing", "style": "solid" },
+    { "source": "cln_missing", "target": "smp_restrict", "label": "apply criteria", "style": "solid",
+      "description": "Pass clean claims to sample construction for inclusion/exclusion filtering.", "confidence": "high" },
+    { "source": "smp_restrict", "target": "smp_assign", "label": "assign groups", "style": "solid" },
+    { "source": "smp_assign", "target": "smp_balance", "label": "balance panel", "style": "solid" },
+    { "source": "smp_balance", "target": "var_outcome", "label": "construct variables", "style": "solid",
+      "description": "Pass balanced analysis sample to variable construction for outcome and treatment coding.", "confidence": "high" },
+    { "source": "var_outcome", "target": "var_treatment", "label": "code treatment", "style": "solid" },
+    { "source": "var_treatment", "target": "var_controls", "label": "add controls", "style": "solid" },
+    { "source": "var_controls", "target": "diag_trends", "label": "run diagnostics", "style": "solid",
+      "description": "Pass complete analytical dataset to pre-estimation diagnostics for assumption testing.", "confidence": "high" },
+    { "source": "diag_trends", "target": "diag_balance", "label": "check balance", "style": "solid" },
+    { "source": "diag_balance", "target": "diag_gate", "label": "assess", "style": "solid" },
+    { "source": "diag_gate", "target": "est_specify", "label": "design valid", "style": "solid",
+      "description": "Proceed to estimation if parallel trends hold and covariates are balanced.", "confidence": "medium" },
+    { "source": "diag_gate", "target": "var_outcome", "label": "revise spec", "style": "dashed",
+      "description": "If diagnostics fail, return to variable construction to adjust outcome definition or controls.", "confidence": "low" },
+    { "source": "est_specify", "target": "est_run", "label": "estimate", "style": "solid" },
+    { "source": "est_run", "target": "est_event", "label": "event study", "style": "solid" },
+    { "source": "est_event", "target": "rob_specs", "label": "check robustness", "style": "solid",
+      "description": "Pass main estimates to robustness module for sensitivity analysis across specifications.", "confidence": "high" },
+    { "source": "rob_specs", "target": "rob_placebo", "label": "placebo", "style": "solid" },
+    { "source": "rob_placebo", "target": "rep_tables", "label": "generate output", "style": "solid",
+      "description": "Pass all estimation and robustness results to reporting for table and figure generation.", "confidence": "high" },
+    { "source": "rep_tables", "target": "rep_draft", "label": "write narrative", "style": "solid", "actor": "human",
+      "description": "Draft the results narrative interpreting the findings; requires domain expertise for framing.", "confidence": "high" }
+  ]
+}

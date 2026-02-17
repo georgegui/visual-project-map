@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A standalone browser-based graph viewer for directed acyclic graphs with collapsible module groups, distributed as a Claude Code plugin. Built on Cytoscape.js + dagre layout with no build step — just vanilla JS loaded via CDN script tags.
+A standalone browser-based graph viewer for directed acyclic graphs with collapsible folder groups, distributed as a Claude Code plugin. Built on Cytoscape.js + dagre layout with no build step — just vanilla JS loaded via CDN script tags.
 
 ## Running
 
@@ -58,13 +58,34 @@ No build system, no npm, no bundler. Three global JS modules loaded as `<script>
 ## Key Design Decisions
 
 - **No expand-collapse extension** — the custom `CollapseManager` does collapse via `cy.remove()`/`cy.add()` rather than using cytoscape-expand-collapse. Meta-edges are rebuilt from the stored `originalEdges` array on every toggle.
-- **Nested modules (2-level)** — Modules can have a `parent` field pointing to a phase module. Phases group related modules. Collapse/expand works at both levels.
-- **Modules start collapsed** — `init()` calls `collapseAll()` then runs layout.
+- **Nested folders (2-level)** — Folders can have a `parent` field pointing to a phase folder. Phases group related folders. Collapse/expand works at both levels.
+- **Folders start collapsed** — `init()` calls `collapseAll()` then runs layout.
 - **Edge labels hidden by default** — Labels appear on hover (tooltip), during path tracing, or via the Labels toggle (`L` key).
 - **Trust levels** drive node border styling (solid/dashed/thick) from the `legend.trustLevels` object in the input JSON.
 - **Actor annotations** on edges — optional `actor` field (`human`/`ai`/`script`/`mixed`) colors edge lines.
 - **Edge detail panel** — edges with `details` show a modal panel on click with script path, inputs, outputs, and docs.
 - **Dagre layout fallback** — Uses `longest-path` ranker by default, falls back to `network-simplex` if dagre errors.
+
+## Design Principles
+
+The tool's premise: the unit of organization is the **folder**. The graph's boxes are directories; edges show logical data flow between them that the filesystem can't express. See `SPEC.md` for the full exposition.
+
+**Graph Output Constraints:**
+1. **Every folder has named interfaces** — collapsed folders show named I/O ports, not just edges
+2. **One edge per folder pair** — enforced at every hierarchy level via collector/router nodes
+
+**Viewer Behavior:**
+- **Default view is the interface map** — collapsed folders with I/O ports; the main view, not a fallback
+- **Confidence visually encoded** — AI confidence and human-review flags visible without expanding
+- **Progressive disclosure** — three zoom levels: folders → internal nodes → node detail
+
+**Skill Requirements:**
+- **Skill generates interfaces** — every folder gets named inputs/outputs and a description
+- **Critical path automatic** — traces which interfaces are upstream of the final outcome
+
+**Workflow:**
+- **CLAUDE.md per folder** — each non-trivial directory has a CLAUDE.md stating objective and I/O
+- **Validate against SPEC.md** — AI iterates up to 3 times before escalating to human
 
 ## Spec Documents
 
@@ -109,7 +130,7 @@ If the update still shows the old version, uninstall and reinstall:
 
 ## Input JSON Schema
 
-Validated by `schema.json`. Four required top-level fields: `title`, `modules`, `nodes`, `edges`. Optional `legend` with `trustLevels`. Optional `description` (string) on graph root, modules, nodes, and edges for natural language documentation.
+Validated by `schema.json`. Four required top-level fields: `title`, `modules` (folders in SPEC.md terminology), `nodes`, `edges`. Optional `legend` with `trustLevels`. Optional `description` (string) on graph root, modules, nodes, and edges for natural language documentation.
 
 - Graph root, modules, nodes, and edges may have an optional `description` string (natural language documentation shown in tooltips and detail panels)
 - Modules may have an optional `parent` field pointing to another module (creating a phase grouping)

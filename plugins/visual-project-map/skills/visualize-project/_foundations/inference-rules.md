@@ -5,6 +5,15 @@ from project structure and documentation.
 
 ## Module Design Principles
 
+> **Naming note:** These 9 module-level principles (numbered 1–9 below) are
+> implementation rules for graph *structure*. They are distinct from the
+> tool-level rules in `SPEC.md` (Folder Premise, Graph Constraints, Viewer
+> Behavior, Skill Requirements), which govern the tool's overall philosophy.
+> Key correspondences:
+> - SPEC Folder Premise ("complexity inside folders") → enforced by Principles 2, 4, 8 below
+> - SPEC Folder Premise ("embed folder hierarchy") → enforced by Principle 1 below
+> - SPEC Constraint 2 ("one edge per folder pair") → enforced by Principles 2, 8, 9 below
+
 Modules are **abstraction boundaries**, not just visual groupings. A well-designed
 module hides internal complexity behind a small number of entry and exit points —
 the same encapsulation principle as classes in software engineering.
@@ -147,6 +156,200 @@ Follow this order to produce clean graphs:
 The anti-pattern is "draw all nodes, draw all edges, then group into modules."
 That produces spaghetti because module boundaries become afterthoughts. Design
 modules top-down as abstractions, then populate them with nodes.
+
+---
+
+## Role Assignment (process vs data)
+
+The `role` field distinguishes **process** modules/nodes (things that do work)
+from **data** modules/nodes (artifacts that are produced or consumed). This lets
+viewers instantly see what the key computational components are versus what the
+inputs and outputs are.
+
+### Module Role Inference
+
+| Signal | Role | Example |
+|--------|------|---------|
+| Directory named `data/`, `datasets/`, `corpus/`, `assets/`, `resources/` | `data` | `data/raw/`, `data/processed/` |
+| Directory whose contents are primarily non-code (CSV, JSON data, images) | `data` | `output/`, `results/`, `figures/` |
+| Module whose primary purpose is storing/holding artifacts between stages | `data` | "Project Inventory", "Graph JSON" |
+| Config/template directories | `data` | `config/`, `templates/` |
+| Directory with scripts that transform, validate, or process | `process` | `scripts/clean/`, `src/` |
+| Module whose primary purpose is computation/transformation | `process` | "Discovery", "Rendering" |
+| Default (no clear signal) | omit (defaults to `process`) | |
+
+**Rule of thumb**: If you describe the module with a noun (inventory, config,
+output), it's likely `data`. If you describe it with a verb (discover, clean,
+export), it's likely `process`.
+
+### Node Role Inference
+
+| Signal | Role | Example |
+|--------|------|---------|
+| Node represents a file, directory, or dataset | `data` | "raw_json", "output.csv" |
+| Node represents an intermediate artifact between steps | `data` | "validated_records", "clean_corpus" |
+| Node represents config, templates, or static input | `data` | "schema.json", "prompt_template" |
+| Node represents a computation, transformation, or action | `process` | "validate", "normalize" |
+| Decision/gate nodes | `process` (keep diamond shape) | "quality_check" |
+| Terminal nodes (COMPLETE, FAILED) | `process` (default) | "COMPLETE" |
+| Default (no clear signal) | omit (defaults to `process`) | |
+
+**Interaction with shapes**: `role: "data"` sets the shape to hexagon, but
+diamond-shaped nodes (decisions) and interface port nodes (ellipses) keep their
+shapes regardless of role. Only set `role: "data"` on nodes that truly represent
+artifacts, not on process nodes that happen to produce output.
+
+### When to use role
+
+- **Always assign** `role: "data"` to modules/nodes that are clearly data
+  artifacts. This is the primary visual signal for distinguishing I/O from logic.
+- **Never assign** `role: "process"` explicitly — it's the default when `role`
+  is omitted. Only use the field to mark data elements.
+- **Mixed modules**: If a module contains both processing and data nodes, set
+  the module role based on its primary purpose. Individual nodes within can
+  have their own role overrides.
+
+---
+
+## Status Assignment (implementation maturity)
+
+The `status` field conveys how mature each component is — from a gleam in
+someone's eye (`planned`) to human-approved production code (`verified`). In
+AI-assisted workflows, this is critical: viewers need to see at a glance which
+parts of the graph represent real, working code and which are aspirational.
+
+### Status Values
+
+| Status | Meaning | Typical Signal |
+|--------|---------|----------------|
+| `verified` | Human reviewed and approved | Has tests, passing CI, reviewed PR |
+| `ai-tested` | AI iterated and tests pass | AI wrote it, tests pass, no human review yet |
+| `needs-review` | AI flags for human attention | Complex logic, security-sensitive, or AI uncertain |
+| `draft` | AI wrote first pass, untested | Code exists but no tests or validation |
+| `planned` | Described but no code yet | Documented in specs/plans but not implemented |
+
+### Module Status Inference
+
+| Signal | Status |
+|--------|--------|
+| Module's scripts all have test files + tests pass + has reviewed PRs | `verified` |
+| Module's scripts have tests, tests pass, no human review evidence | `ai-tested` |
+| Module has scripts but AI is uncertain about correctness or coverage | `needs-review` |
+| Module has scripts but no test coverage | `draft` |
+| Module described in docs/plans but directory is empty or doesn't exist | `planned` |
+| No clear signal | omit (defaults to `ai-tested` visual treatment) |
+
+### Node Status Inference
+
+| Signal | Status |
+|--------|--------|
+| Node represents a step with tested, reviewed implementation | `verified` |
+| Node represents a step with AI-written code + passing tests | `ai-tested` |
+| Node represents complex/sensitive logic that AI flagged | `needs-review` |
+| Node represents a step with initial code but no validation | `draft` |
+| Node represents a step described in plans but not yet coded | `planned` |
+| No clear signal | omit (defaults to `ai-tested` visual treatment) |
+
+### Inference Heuristics
+
+When scanning a project, use these signals to determine status:
+
+| Evidence | Inferred Status |
+|----------|----------------|
+| File has corresponding `test_*.py` or `*.test.ts` + tests pass | `ai-tested` or higher |
+| File appears in merged/reviewed PRs | `verified` |
+| File has TODO/FIXME/HACK comments | `needs-review` |
+| File exists but is mostly boilerplate or stubs | `draft` |
+| Path referenced in docs/plans but `ls` shows no file | `planned` |
+| Directory exists but is empty | `planned` |
+| No test file exists for the script | `draft` |
+| Complex business logic without clear test coverage | `needs-review` |
+
+### When to assign status
+
+- **Always assign** status to modules. This is the most impactful level — users
+  see module status when the graph is collapsed (the default view).
+- **Assign to nodes** when they vary within a module. If all nodes in a module
+  share the same status, set it on the module and omit from individual nodes.
+- **Omit** when the default (`ai-tested`) is accurate. Only add the field to
+  distinguish from the default.
+- **For new projects** being visualized for the first time, default to `ai-tested`
+  for existing code and `planned` for documented-but-unimplemented components.
+- **For design-mode graphs** (`--objective`), default all to `planned` since
+  no code exists yet.
+
+---
+
+## Design-Mode Confidence Heuristics
+
+When generating a graph from a natural language objective (`--objective`), the LLM
+must self-assess confidence for each module and edge. There is no codebase to scan,
+so confidence reflects how standard vs domain-specific each stage is.
+
+### Module Confidence
+
+| Stage Type | Confidence | needsHumanReview | Rationale |
+|-----------|-----------|-----------------|-----------|
+| Standard data loading (fetch, parse, store) | `high` | `false` | Well-understood patterns with minimal domain variation |
+| Standard cleaning (normalize, deduplicate, filter) | `high` | `false` | Generic transformations that apply across domains |
+| Standard output/export (format, serialize, deliver) | `high` | `false` | Well-defined transformation to target format |
+| Domain-specific variable construction | `low` | `true` | "Requires domain knowledge to choose correct operationalization" |
+| Statistical/analytical modeling choices | `low` | `true` | "Multiple valid strategies; choice affects conclusions" |
+| Quality thresholds and acceptance criteria | `medium` | `true` | "Thresholds depend on domain norms and use case" |
+| Novel or custom algorithm | `low` | `true` | "Non-standard approach; correctness hard to verify automatically" |
+| Integration/orchestration (glue between stages) | `medium` | `false` | Dependencies clear but ordering may need refinement |
+| Human review/approval gates | `high` | `false` | Gate structure is standard; criteria are domain-specific (captured in description) |
+
+### Edge Confidence
+
+| Edge Type | Confidence | Rationale |
+|----------|-----------|-----------|
+| Sequential within standard stages | `high` | Ordering is self-evident |
+| Cross-module handoff with clear artifact | `high` | Data contract is explicit |
+| Conditional branching | `medium` | Branch conditions may need domain refinement |
+| Feedback/retry loops | `low` | Loop termination criteria are domain-specific |
+| Edges involving domain-specific stages | `low` | Data requirements may be wrong |
+
+### When to set needsHumanReview
+
+Set `needsHumanReview: true` on a module when ANY of these apply:
+- The module involves domain-specific decisions (variable definitions, model selection)
+- The module sets thresholds or acceptance criteria
+- The module's correctness depends on context the LLM cannot verify
+- The `checkpointReason` would be non-trivial (i.e., there's something specific to flag)
+
+Always provide a `checkpointReason` string when `needsHumanReview` is true.
+
+---
+
+## Design-Mode Defaults
+
+When generating a graph from `--objective` (design mode), no code exists yet.
+Apply these defaults throughout graph generation:
+
+| Field | Default | Rationale |
+|-------|---------|-----------|
+| All `status` | `"planned"` | No code exists yet |
+| `module.confidence` | Per heuristic table above | Self-assessed certainty |
+| `module.needsHumanReview` | Per heuristic table above | Flag domain-specific stages |
+| `module.checkpointReason` | Required when `needsHumanReview: true` | Explain what needs expert input |
+| `module.interface` | **Always required** | AI is designing, so always has evidence for the data contract |
+| `node.files` | **Omit** | No files exist |
+| `node.style.trust` | **Omit** | No provenance yet |
+| `edge.details` | **Omit** | No scripts exist |
+| `edge.description` | **Required on cross-module edges** | No code files to reference; descriptions are primary documentation |
+| `edge.actor` | Inferred from stage type | Use domain knowledge (e.g., "human review" → `human`) |
+| `legend.trustLevels` | **Omit** | Not meaningful without real provenance |
+| `_generationMode` | `"design"` | Marks graph as design-mode output |
+| `_objective` | The user's objective text | Preserves the original intent |
+| `_generatedAt` | Current ISO 8601 timestamp | Records when the design was created |
+
+### Visual appearance of design-mode graphs
+
+Because all elements have `status: "planned"`, the graph renders at 20% opacity
+with dotted borders and gray labels. This immediately communicates "nothing is built
+yet." As the user implements components and re-scans with Input A (`/visualize-project .`),
+elements gradually gain opacity — a natural progress indicator.
 
 ---
 

@@ -3,12 +3,15 @@ var Interactions = (function() {
   var statusEl;
   var detailPanel;
   var detailBackdrop;
+  var nodeDetailPanel;
+  var activeNodeId = null;
   var mouseX = 0, mouseY = 0;
   var pathTraceActive = false;
   var labelsHidden = true;
-  var autofocusMode = false;
+  var autofocusMode = true;
   var watching = false;
   var breadcrumbPath = [];
+  var criticalPathActive = false;
   var _cy, _manager, _moduleIds, _graphUrl;
 
   function init(cy, manager, moduleIds, graphUrl) {
@@ -20,6 +23,7 @@ var Interactions = (function() {
     statusEl = document.getElementById('status');
     detailPanel = document.getElementById('detail-panel');
     detailBackdrop = document.getElementById('detail-backdrop');
+    nodeDetailPanel = document.getElementById('node-detail-panel');
     var searchInput = document.getElementById('search-input');
 
     document.addEventListener('mousemove', function(e) {
@@ -36,13 +40,6 @@ var Interactions = (function() {
       var id = node.id();
       var wasCollapsed = manager.isCollapsed(id);
 
-      // If collapsed and has interface, show interface panel instead of expanding
-      if (wasCollapsed && node.data('interface')) {
-        clearPathTrace(cy);
-        showModuleInterfacePanel(node, cy, manager, moduleIds);
-        return;
-      }
-
       var parentPos = { x: node.position('x'), y: node.position('y') };
       clearPathTrace(cy);
 
@@ -54,6 +51,8 @@ var Interactions = (function() {
       var vpBefore = { zoom: cy.zoom(), pan: { x: cy.pan().x, y: cy.pan().y } };
 
       if (wasCollapsed) {
+        // Close side panel when expanding (drilling in)
+        if (activeNodeId === id) hideNodeSidePanel();
         if (autofocusMode) {
           var ancestors = getAncestorModules(id);
           moduleIds.forEach(function(mid) {
@@ -72,6 +71,22 @@ var Interactions = (function() {
         });
         updateBreadcrumbForExpand(id, cy);
       } else if (node.isParent()) {
+        // Close side panel if it shows this module or any of its children
+        if (activeNodeId) {
+          if (activeNodeId === id) {
+            hideNodeSidePanel();
+          } else {
+            var activeNode = cy.getElementById(activeNodeId);
+            if (activeNode.length) {
+              var isChild = activeNode.data('parent') === id || activeNode.data('_moduleRef') === id;
+              if (!isChild) {
+                var desc = node.descendants();
+                desc.forEach(function(d) { if (d.id() === activeNodeId) isChild = true; });
+              }
+              if (isChild) hideNodeSidePanel();
+            }
+          }
+        }
         manager.collapse(id);
         GraphViewer.applyCollapsedStyle(id);
         updateBreadcrumbForCollapse(id);
@@ -79,8 +94,23 @@ var Interactions = (function() {
 
       // Run layout silently to compute final state
       GraphViewer.runLayout({ animate: false, fit: false });
+      GraphViewer.positionPorts();
       GraphViewer.refreshView();
       updateStatus(manager, moduleIds);
+
+      // Close side panel if the active node is no longer visible or its module is collapsed
+      if (activeNodeId) {
+        var activeEl = cy.getElementById(activeNodeId);
+        if (!activeEl.length || activeEl.removed()) {
+          hideNodeSidePanel();
+        } else {
+          // Interface ports aren't removed by collapse — check if their module is collapsed
+          var modRef = activeEl.data('_moduleRef') || activeEl.data('parent');
+          if (modRef && manager.isCollapsed(modRef)) {
+            hideNodeSidePanel();
+          }
+        }
+      }
 
       // Snapshot final node positions
       var posAfter = {};
@@ -128,18 +158,31 @@ var Interactions = (function() {
     cy.on('tap', 'node[_isInterfacePort]', function(e) {
       var node = e.target;
       clearPathTrace(cy);
-      showPortContractPanel(node);
+      showNodeSidePanel(node);
     });
 
     cy.on('tap', 'node:child', function(e) {
       var node = e.target;
       if (node.data('_isModule')) return;
+      if (node.data('_isInterfacePort')) return;
       clearPathTrace(cy);
-      tracePath(cy, node);
+      if (e.originalEvent && e.originalEvent.shiftKey) {
+        tracePath(cy, node);
+        return;
+      }
+      var hasDetail = node.data('io') || node.data('files') || node.data('description') || node.data('docs');
+      if (hasDetail) {
+        showNodeSidePanel(node);
+      } else {
+        tracePath(cy, node);
+      }
     });
 
     cy.on('tap', function(e) {
-      if (e.target === cy) clearPathTrace(cy);
+      if (e.target === cy) {
+        clearPathTrace(cy);
+        hideNodeSidePanel();
+      }
     });
 
     cy.on('mouseover', 'edge', function(e) {
@@ -188,15 +231,6 @@ var Interactions = (function() {
       showDetailPanel(edge);
     });
 
-    cy.on('dbltap', 'node:child', function(e) {
-      var node = e.target;
-      if (node.data('_isModule')) return;
-      var files = node.data('files');
-      var desc = node.data('description');
-      if (!files && !desc) return;
-      showNodeDetailPanel(node);
-    });
-
     detailBackdrop.addEventListener('click', hideDetailPanel);
 
     cy.on('mouseover', 'node:child', function(e) {
@@ -225,10 +259,14 @@ var Interactions = (function() {
         }
       } else {
         if (desc || files) tipLines.push(node.data('label'));
-        if (desc) tipLines.push(desc);
         if (files) {
           if (files.reads && files.reads.length) tipLines.push('\u{1F4D6} ' + files.reads.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
           if (files.writes && files.writes.length) tipLines.push('\u{1F4DD} ' + files.writes.map(function(f) { return f.replace(/\/+$/, '').split('/').pop() || f; }).join(', '));
+        }
+        if (desc) {
+          var preview = desc.length > 120 ? desc.substring(0, 120) + '\u2026' : desc;
+          tipLines.push(preview);
+          if (desc.length > 120) tipLines.push('click for full detail');
         }
       }
 
@@ -372,7 +410,7 @@ var Interactions = (function() {
       if (e.key === 'a' || e.key === 'A') { e.preventDefault(); toggleAutofocus(); }
       if (e.key === 'v' || e.key === 'V') {
         e.preventDefault();
-        var views = ['module', 'provenance', 'actor', 'files'];
+        var views = ['module', 'provenance', 'actor', 'files', 'confidence'];
         if (PlanOverlay.hasPlan(GraphViewer.getGraphData())) views.push('plan');
         if (GraphViewer.getGraphData()._diff) views.push('diff');
         var cur = GraphViewer.getView();
@@ -384,7 +422,8 @@ var Interactions = (function() {
       }
       if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMinimap(); }
       if (e.key === 'w' || e.key === 'W') { e.preventDefault(); toggleWatch(graphUrl); }
-      if (e.key === 'Escape') { hideDetailPanel(); clearPathTrace(cy); updateStatus(manager, moduleIds); }
+      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); toggleCriticalPath(cy, manager, moduleIds); }
+      if (e.key === 'Escape') { hideDetailPanel(); hideNodeSidePanel(); clearPathTrace(cy); clearCriticalPath(cy); updateStatus(manager, moduleIds); }
       if (e.key === '/' && searchInput) { e.preventDefault(); searchInput.focus(); }
     });
 
@@ -411,6 +450,7 @@ var Interactions = (function() {
         if (!target) return;
         var action = target.getAttribute('data-action');
         if (action === 'collapse-all') {
+          hideNodeSidePanel();
           collapseAll(cy, manager, moduleIds);
           breadcrumbPath = [];
           renderBreadcrumb(cy);
@@ -418,8 +458,18 @@ var Interactions = (function() {
           var modId = target.getAttribute('data-module');
           var idx = breadcrumbPath.indexOf(modId);
           if (idx >= 0) {
-            // Collapse everything deeper than this level
+            // If side panel shows a node inside a collapsing module, switch to that module
             var toCollapse = breadcrumbPath.slice(idx + 1);
+            if (activeNodeId && toCollapse.length > 0) {
+              var targetMod = cy.getElementById(modId);
+              if (targetMod.length && targetMod.data('_isModule')) {
+                var hasDetail = targetMod.data('description') || targetMod.data('interface');
+                if (hasDetail) showNodeSidePanel(targetMod);
+                else hideNodeSidePanel();
+              } else {
+                hideNodeSidePanel();
+              }
+            }
             for (var i = toCollapse.length - 1; i >= 0; i--) {
               if (!manager.isCollapsed(toCollapse[i])) {
                 manager.collapse(toCollapse[i]);
@@ -429,6 +479,7 @@ var Interactions = (function() {
             breadcrumbPath = breadcrumbPath.slice(0, idx + 1);
             renderBreadcrumb(cy);
             GraphViewer.runLayout({ animate: true, fit: true, padding: 50 });
+            GraphViewer.positionPorts();
             GraphViewer.refreshView();
             updateStatus(manager, moduleIds);
           }
@@ -523,6 +574,56 @@ var Interactions = (function() {
     pathTraceActive = false;
   }
 
+  function highlightCriticalPath(cy) {
+    var graphData = GraphViewer.getGraphData();
+    var cpIds = graphData && graphData.criticalPath;
+    if (!cpIds || !cpIds.length) return false;
+
+    var cpNodes = cy.collection();
+    cpIds.forEach(function(id) {
+      var n = cy.getElementById(id);
+      if (n.length) cpNodes = cpNodes.union(n);
+    });
+    if (cpNodes.empty()) return false;
+
+    var cpEdges = cy.edges().filter(function(edge) {
+      return cpNodes.has(edge.source()) && cpNodes.has(edge.target());
+    });
+    var allCp = cpNodes.union(cpEdges);
+    cpNodes.forEach(function(n) {
+      var p = n.parent();
+      if (p.length) allCp = allCp.union(p);
+    });
+
+    cy.elements().not(allCp).addClass('dimmed');
+    allCp.addClass('highlighted');
+    cpEdges.addClass('path-edge');
+    cpNodes.first().addClass('path-source');
+    criticalPathActive = true;
+    return true;
+  }
+
+  function clearCriticalPath(cy) {
+    if (!criticalPathActive) return;
+    cy.elements().removeClass('dimmed highlighted path-source path-edge');
+    criticalPathActive = false;
+  }
+
+  function toggleCriticalPath(cy, manager, moduleIds) {
+    if (criticalPathActive) {
+      clearCriticalPath(cy);
+      updateStatus(manager, moduleIds);
+      return;
+    }
+    clearPathTrace(cy);
+    if (highlightCriticalPath(cy)) {
+      statusEl.textContent = 'Critical path highlighted — P to toggle, Esc to clear';
+    } else {
+      statusEl.textContent = 'No criticalPath defined in graph JSON';
+      setTimeout(function() { updateStatus(manager, moduleIds); }, 2000);
+    }
+  }
+
   function expandAll(cy, manager, moduleIds) {
     clearPathTrace(cy);
     manager.expandAll();
@@ -539,6 +640,7 @@ var Interactions = (function() {
     manager.collapseAll(moduleIds);
     moduleIds.forEach(function(id) { GraphViewer.applyCollapsedStyle(id); });
     GraphViewer.runLayout({ animate: false, fit: true, padding: 50 });
+    GraphViewer.positionPorts();
     var termNode = cy.getElementById('mod_term');
     if (termNode.length && termNode.visible()) {
       var maxY = -Infinity;
@@ -569,137 +671,6 @@ var Interactions = (function() {
 
   var actorColors = { human: '#3b82f6', ai: '#f59e0b', script: '#6b7280', mixed: '#14b8a6' };
   var actorLabels = { human: 'Human', ai: 'AI', script: 'Script', mixed: 'Mixed' };
-
-  function showPortContractPanel(node) {
-    var contract = node.data('interfaceContract');
-    if (!contract) return;
-    var direction = node.data('_portDirection') || 'input';
-    var dirLabel = direction === 'input' ? 'Input' : 'Output';
-    var dirColor = direction === 'input' ? '#3b82f6' : '#16a34a';
-    var dirBg = direction === 'input' ? '#eff6ff' : '#f0fdf4';
-
-    var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(contract.name) + '</span>';
-    html += '<span class="dp-actor" style="background:' + dirBg + ';color:' + dirColor + '">' + dirLabel + '</span>';
-    html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
-
-    if (contract.description) {
-      html += '<div class="dp-iface-desc" style="margin-bottom:10px">' + escapeHtml(contract.description) + '</div>';
-    }
-    if (contract.format) {
-      html += '<div class="dp-row"><div class="dp-label">Expected Format</div><div class="dp-value">' + escapeHtml(contract.format) + '</div></div>';
-    }
-    if (contract.example) {
-      html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(contract.example)) + '</div></div>';
-    }
-
-    detailPanel.innerHTML = html;
-    detailPanel.classList.add('dp-wide');
-    detailPanel.style.display = 'block';
-    detailBackdrop.style.display = 'block';
-    document.getElementById('dp-close-btn').addEventListener('click', hideDetailPanel);
-  }
-
-  function showModuleInterfacePanel(node, cy, manager, moduleIds) {
-    var label = node.data('label') || '(module)';
-    var iface = node.data('interface') || {};
-    var desc = node.data('description');
-    var id = node.id();
-
-    var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(label) + '</span>';
-    html += '<span class="dp-actor" style="background:#dbeafe;color:#1e40af">Interface</span>';
-    html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
-
-    if (desc) {
-      html += '<div class="dp-desc">' + escapeHtml(desc) + '</div>';
-    }
-
-    if (iface.inputs && iface.inputs.length) {
-      html += '<div class="dp-section-label">Inputs</div>';
-      iface.inputs.forEach(function(inp) {
-        html += '<div class="dp-iface-item">';
-        html += '<div class="dp-iface-name">' + escapeHtml(inp.name) + '</div>';
-        if (inp.description) html += '<div class="dp-iface-desc">' + escapeHtml(inp.description) + '</div>';
-        if (inp.format) html += '<div class="dp-row"><div class="dp-label">Format</div><div class="dp-value">' + escapeHtml(inp.format) + '</div></div>';
-        if (inp.example) html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(inp.example)) + '</div></div>';
-        html += '</div>';
-      });
-    }
-
-    if (iface.outputs && iface.outputs.length) {
-      html += '<div class="dp-section-label">Outputs</div>';
-      iface.outputs.forEach(function(out) {
-        html += '<div class="dp-iface-item">';
-        html += '<div class="dp-iface-name">' + escapeHtml(out.name) + '</div>';
-        if (out.description) html += '<div class="dp-iface-desc">' + escapeHtml(out.description) + '</div>';
-        if (out.format) html += '<div class="dp-row"><div class="dp-label">Format</div><div class="dp-value">' + escapeHtml(out.format) + '</div></div>';
-        if (out.example) html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(out.example)) + '</div></div>';
-        html += '</div>';
-      });
-    }
-
-    html += '<button class="dp-expand-btn" id="dp-expand-module-btn">Expand Module</button>';
-
-    detailPanel.innerHTML = html;
-    detailPanel.classList.add('dp-wide');
-    detailPanel.style.display = 'block';
-    detailBackdrop.style.display = 'block';
-
-    document.getElementById('dp-close-btn').addEventListener('click', function() {
-      hideDetailPanel();
-      detailPanel.classList.remove('dp-wide');
-    });
-
-    document.getElementById('dp-expand-module-btn').addEventListener('click', function() {
-      hideDetailPanel();
-      detailPanel.classList.remove('dp-wide');
-      // Trigger the expand
-      var wasCollapsed = manager.isCollapsed(id);
-      if (!wasCollapsed) return;
-      var parentPos = { x: node.position('x'), y: node.position('y') };
-      var posBefore = {};
-      cy.nodes().forEach(function(n) { posBefore[n.id()] = { x: n.position('x'), y: n.position('y') }; });
-      var vpBefore = { zoom: cy.zoom(), pan: { x: cy.pan().x, y: cy.pan().y } };
-
-      if (autofocusMode) {
-        var ancestors = getAncestorModules(id);
-        moduleIds.forEach(function(mid) {
-          if (mid !== id && !ancestors.has(mid) && !manager.isCollapsed(mid)) {
-            manager.collapse(mid);
-            GraphViewer.applyCollapsedStyle(mid);
-          }
-        });
-      }
-      manager.expand(id);
-      GraphViewer.removeCollapsedStyle(id);
-      node.children().forEach(function(child) {
-        if (child.data('_isModule') && manager.isCollapsed(child.id())) {
-          GraphViewer.applyCollapsedStyle(child.id());
-        }
-      });
-
-      GraphViewer.runLayout({ animate: false, fit: false });
-      GraphViewer.refreshView();
-      updateStatus(manager, moduleIds);
-
-      var posAfter = {};
-      cy.nodes().forEach(function(n) { posAfter[n.id()] = { x: n.position('x'), y: n.position('y') }; });
-      cy.fit(null, 40);
-      var vpAfter = { zoom: cy.zoom(), pan: { x: cy.pan().x, y: cy.pan().y } };
-
-      cy.batch(function() {
-        cy.nodes().forEach(function(n) { n.position(posBefore[n.id()] || parentPos); });
-      });
-      cy.viewport({ zoom: vpBefore.zoom, pan: vpBefore.pan });
-
-      var dur = 500;
-      var ease = 'ease-in-out-cubic';
-      cy.nodes().forEach(function(n) {
-        var dest = posAfter[n.id()];
-        if (dest) n.animate({ position: dest }, { duration: dur, easing: ease });
-      });
-      cy.animate({ zoom: vpAfter.zoom, pan: vpAfter.pan, duration: dur, easing: ease });
-    });
-  }
 
   function showDetailPanel(edge) {
     var label = edge.data('label') || '(edge)';
@@ -736,7 +707,12 @@ var Interactions = (function() {
       html += '</ul></div>';
     }
     if (details.docs) {
-      html += '<div class="dp-row"><div class="dp-label">Docs</div><div class="dp-value">' + escapeHtml(details.docs) + '</div></div>';
+      var edgeDocsUrl = details.docs;
+      if (!details.docs.match(/^https?:\/\//)) {
+        var edgeGraphDir = _graphUrl.replace(/[^\/]*$/, '');
+        edgeDocsUrl = edgeGraphDir + details.docs;
+      }
+      html += '<div class="dp-row"><div class="dp-label">Docs</div><div class="dp-value"><a href="' + escapeHtml(edgeDocsUrl) + '" target="_blank">' + escapeHtml(details.docs) + '</a></div></div>';
     }
 
     if (GraphViewer.getView() === 'plan') {
@@ -756,40 +732,117 @@ var Interactions = (function() {
     document.getElementById('dp-close-btn').addEventListener('click', hideDetailPanel);
   }
 
-  function showNodeDetailPanel(node) {
+  function showNodeSidePanel(node) {
     var label = node.data('label') || '(node)';
     var trust = node.data('trust') || '';
     var files = node.data('files') || {};
     var desc = node.data('description');
+    var io = node.data('io');
+    var docs = node.data('docs');
     var gd = GraphViewer.getGraphData();
     var trustDefs = (gd && gd.legend && gd.legend.trustLevels) || {};
     var td = trustDefs[trust];
 
-    var html = '<div class="dp-header"><span class="dp-title">' + escapeHtml(label) + '</span>';
-    if (td && td.tag) {
-      html += '<span class="dp-actor" style="background:' + td.tag.bg + ';color:' + td.tag.color + '">' + td.tag.text + '</span>';
+    // Clear previous selection
+    if (activeNodeId) {
+      var prev = _cy.getElementById(activeNodeId);
+      if (prev.length) prev.removeClass('ndp-selected');
     }
-    html += '<button class="dp-close" id="dp-close-btn">&times;</button></div>';
+    activeNodeId = node.id();
+    node.addClass('ndp-selected');
+
+    var isPort = node.data('_isInterfacePort');
+    var portDir = node.data('_portDirection');
+    var contract = node.data('interfaceContract');
+
+    var html = '<div class="ndp-header"><span class="ndp-title">' + escapeHtml(label) + '</span>';
+    if (isPort) {
+      var dirLabel = portDir === 'output' ? 'Output' : 'Input';
+      var dirColor = portDir === 'output' ? '#16a34a' : '#3b82f6';
+      var dirBg = portDir === 'output' ? '#f0fdf4' : '#eff6ff';
+      html += '<span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:' + dirBg + ';color:' + dirColor + ';margin-left:8px">' + dirLabel + '</span>';
+    } else if (td && td.tag) {
+      html += '<span style="padding:1px 5px;border-radius:3px;font-weight:600;font-size:10px;background:' + td.tag.bg + ';color:' + td.tag.color + ';margin-left:8px">' + td.tag.text + '</span>';
+    }
+    html += '<button class="ndp-close" id="ndp-close-btn">&times;</button></div>';
+
+    html += '<div class="ndp-body">';
 
     if (desc) {
-      html += '<div class="dp-desc">' + escapeHtml(desc) + '</div>';
+      var isLong = desc.length > 300;
+      html += '<div class="dp-desc' + (isLong ? ' ndp-desc-capped' : '') + '" id="ndp-desc">' + escapeHtml(desc) + '</div>';
+      if (isLong) {
+        html += '<button class="ndp-show-more" id="ndp-show-more">Show more</button>';
+      }
     }
-    if (td) {
+
+    var docsUrl = docs;
+    if (docs && !docs.match(/^https?:\/\//)) {
+      var graphDir = _graphUrl.replace(/[^\/]*$/, '');
+      docsUrl = graphDir + docs;
+    }
+    if (docs) {
+      html += '<a class="ndp-docs-link" href="' + escapeHtml(docsUrl) + '" target="_blank">' + escapeHtml(docs) + '</a>';
+      if (docs.match(/\.md$/i)) {
+        html += '<div id="ndp-markdown-content" class="ndp-markdown" style="color:#94a3b8;font-style:italic">Loading docs...</div>';
+      }
+    }
+
+    if (td && !isPort) {
       html += '<div class="dp-row"><div class="dp-label">Trust</div><div class="dp-value">' + escapeHtml(td.label) + '</div></div>';
     }
+
+    if (contract) {
+      if (contract.description) {
+        html += '<div class="dp-iface-desc" style="margin-bottom:10px">' + escapeHtml(contract.description) + '</div>';
+      }
+      if (contract.format) {
+        html += '<div class="dp-row"><div class="dp-label">Expected Format</div><div class="dp-value">' + escapeHtml(contract.format) + '</div></div>';
+      }
+      if (contract.example) {
+        html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(contract.example)) + '</div></div>';
+      }
+    }
+
+    if (io && io.inputs && io.inputs.length) {
+      html += '<div class="dp-section-label">Inputs</div>';
+      io.inputs.forEach(function(inp) {
+        html += '<div class="dp-iface-item">';
+        html += '<div class="dp-iface-name">' + escapeHtml(inp.name) + '</div>';
+        if (inp.description) html += '<div class="dp-iface-desc">' + escapeHtml(inp.description) + '</div>';
+        if (inp.format) html += '<div class="dp-row"><div class="dp-label">Format</div><div class="dp-value">' + escapeHtml(inp.format) + '</div></div>';
+        if (inp.example) html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(inp.example)) + '</div></div>';
+        html += '</div>';
+      });
+    }
+
+    if (io && io.outputs && io.outputs.length) {
+      html += '<div class="dp-section-label">Outputs</div>';
+      io.outputs.forEach(function(out) {
+        html += '<div class="dp-iface-item">';
+        html += '<div class="dp-iface-name">' + escapeHtml(out.name) + '</div>';
+        if (out.description) html += '<div class="dp-iface-desc">' + escapeHtml(out.description) + '</div>';
+        if (out.format) html += '<div class="dp-row"><div class="dp-label">Format</div><div class="dp-value">' + escapeHtml(out.format) + '</div></div>';
+        if (out.example) html += '<div class="dp-row"><div class="dp-label">Example</div><div class="dp-value dp-example">' + escapeHtml(String(out.example)) + '</div></div>';
+        html += '</div>';
+      });
+    }
+
     if (files.reads && files.reads.length) {
-      html += '<div class="dp-row"><div class="dp-label">Reads</div><ul class="dp-list">';
-      files.reads.forEach(function(f) { html += '<li class="dp-value">' + escapeHtml(f) + '</li>'; });
-      html += '</ul></div>';
+      html += '<div class="dp-section-label">Reads</div>';
+      html += '<ul class="dp-list">';
+      files.reads.forEach(function(f) { html += '<li class="dp-value"><a class="ndp-file-link" href="#" data-file="' + escapeHtml(f) + '">' + escapeHtml(f) + '</a></li>'; });
+      html += '</ul>';
     }
     if (files.writes && files.writes.length) {
-      html += '<div class="dp-row"><div class="dp-label">Writes</div><ul class="dp-list">';
-      files.writes.forEach(function(f) { html += '<li class="dp-value">' + escapeHtml(f) + '</li>'; });
-      html += '</ul></div>';
+      html += '<div class="dp-section-label">Writes</div>';
+      html += '<ul class="dp-list">';
+      files.writes.forEach(function(f) { html += '<li class="dp-value"><a class="ndp-file-link" href="#" data-file="' + escapeHtml(f) + '">' + escapeHtml(f) + '</a></li>'; });
+      html += '</ul>';
     }
 
     if (GraphViewer.getView() === 'plan') {
-      var pa = PlanOverlay.getAnnotation(GraphViewer.getGraphData(), 'nodes', node.id());
+      var pa = PlanOverlay.getAnnotation(gd, 'nodes', node.id());
       if (pa) {
         html += '<div class="dp-row" style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:4px"><div class="dp-label">Plan: ' + escapeHtml(pa.status.toUpperCase()) + '</div>';
         if (pa.description) html += '<div class="dp-value">' + escapeHtml(pa.description) + '</div>';
@@ -797,10 +850,101 @@ var Interactions = (function() {
       }
     }
 
-    detailPanel.innerHTML = html;
-    detailPanel.style.display = 'block';
-    detailBackdrop.style.display = 'block';
-    document.getElementById('dp-close-btn').addEventListener('click', hideDetailPanel);
+    html += '<button class="ndp-trace-btn" id="ndp-trace-btn">Trace Path</button>';
+    html += '</div>';
+
+    nodeDetailPanel.innerHTML = html;
+    nodeDetailPanel.classList.add('open');
+
+    document.getElementById('ndp-close-btn').addEventListener('click', hideNodeSidePanel);
+    document.getElementById('ndp-trace-btn').addEventListener('click', function() {
+      clearPathTrace(_cy);
+      tracePath(_cy, node);
+    });
+    var showMoreBtn = document.getElementById('ndp-show-more');
+    if (showMoreBtn) {
+      showMoreBtn.addEventListener('click', function() {
+        var descEl = document.getElementById('ndp-desc');
+        if (descEl.classList.contains('ndp-desc-capped')) {
+          descEl.classList.remove('ndp-desc-capped');
+          showMoreBtn.textContent = 'Show less';
+        } else {
+          descEl.classList.add('ndp-desc-capped');
+          showMoreBtn.textContent = 'Show more';
+        }
+      });
+    }
+
+    // Fetch and render markdown docs if available
+    if (docsUrl && docs && docs.match(/\.md$/i)) {
+      fetch(docsUrl).then(function(r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.text();
+      }).then(function(md) {
+        var el = document.getElementById('ndp-markdown-content');
+        if (el && typeof marked !== 'undefined') {
+          // Strip YAML frontmatter (---...---)
+          md = md.replace(/^---\n[\s\S]*?\n---\n/, '');
+          el.style.color = '';
+          el.style.fontStyle = '';
+          el.innerHTML = marked.parse(md);
+        }
+      }).catch(function() {
+        var el = document.getElementById('ndp-markdown-content');
+        if (el) {
+          el.textContent = 'Could not load ' + docs;
+        }
+      });
+    }
+
+    // File link click handler — render .md inline, open others in new tab
+    nodeDetailPanel.querySelectorAll('.ndp-file-link').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var filePath = link.getAttribute('data-file');
+        var graphDir = _graphUrl.replace(/[^\/]*$/, '');
+        var fileUrl = graphDir + '../' + filePath;
+        if (filePath.match(/\.md$/i)) {
+          // Remove any existing inline file preview
+          var existing = document.getElementById('ndp-file-preview');
+          if (existing) existing.remove();
+          var previewDiv = document.createElement('div');
+          previewDiv.id = 'ndp-file-preview';
+          previewDiv.className = 'ndp-markdown';
+          previewDiv.style.color = '#94a3b8';
+          previewDiv.style.fontStyle = 'italic';
+          previewDiv.textContent = 'Loading ' + filePath + '...';
+          link.closest('ul').after(previewDiv);
+          fetch(fileUrl).then(function(r) {
+            if (!r.ok) throw new Error(r.status);
+            return r.text();
+          }).then(function(md) {
+            if (typeof marked !== 'undefined') {
+              // Strip YAML frontmatter (---...---)
+              md = md.replace(/^---\n[\s\S]*?\n---\n/, '');
+              previewDiv.style.color = '';
+              previewDiv.style.fontStyle = '';
+              previewDiv.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong style="font-size:11px;color:#64748b">' + escapeHtml(filePath) + '</strong><button style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px" onclick="this.closest(\'.ndp-markdown\').remove()">&times;</button></div>' + marked.parse(md);
+            }
+          }).catch(function() {
+            previewDiv.textContent = 'Could not load ' + filePath;
+            previewDiv.style.fontStyle = '';
+          });
+        } else {
+          window.open(fileUrl, '_blank');
+        }
+      });
+    });
+  }
+
+  function hideNodeSidePanel() {
+    if (!nodeDetailPanel) return;
+    nodeDetailPanel.classList.remove('open');
+    if (activeNodeId) {
+      var prev = _cy.getElementById(activeNodeId);
+      if (prev.length) prev.removeClass('ndp-selected');
+      activeNodeId = null;
+    }
   }
 
   function hideDetailPanel() {

@@ -37,12 +37,14 @@ contradictions and against this catalog for duplicates.
   `examples/rct-workflow.json`.
 
 ### F59: Interface port positioning adjacent to modules
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P3.4
 - **Workstream**: A2
-- Position input ports above collapsed modules and output ports below, so they
-  remain visible in the collapsed (interface map) view. Recompute positions
-  after layout and after expand/collapse toggle.
+- **Files**: `src/viewer.js` (positionPorts function), `src/interactions.js` (positionPorts calls after layout)
+- Port nodes use `_moduleRef` instead of Cytoscape `parent`, so they survive
+  collapse naturally. After layout, `positionPorts()` snaps input ports above
+  and output ports below their collapsed module. Called in init and after
+  every expand/collapse toggle.
 
 ## Visual Encoding
 
@@ -83,11 +85,13 @@ contradictions and against this catalog for duplicates.
 - Opaque text backgrounds prevent label overlap.
 
 ### F58: Prominent interface port styling
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.10
 - **Workstream**: A1
-- Enlarge interface port nodes (~180x34, 11px font). Blue fill for inputs,
-  green for outputs. Ports must be visually distinct from regular child nodes.
+- **Files**: `src/viewer.js` (buildStyles port selectors)
+- Enlarge interface port nodes (180x34, 10px italic font). Blue fill for inputs
+  (round-rectangle), green for outputs (tag shape). Ports visually distinct from
+  regular child nodes via dashed border, italic font, and directional shape.
 
 ## Collapse / Expand
 
@@ -132,11 +136,13 @@ contradictions and against this catalog for duplicates.
   Labels always appear on path-traced edges (F26) and on hover (F15 tooltip).
 
 ### F61: Collapsed module I/O subtitle
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: A4
-- When a module is collapsed and has no interface port nodes, show a compact
-  I/O summary as a subtitle on the collapsed box (from `module.interface`).
-  Fallback for graphs with interface metadata but no port nodes.
+- **Files**: `src/viewer.js` (applyCollapsedStyle, removeCollapsedStyle, collapsed-module text-wrap)
+- When a module is collapsed and has no `_isInterfacePort` nodes, appends a
+  compact I/O summary to the label (e.g., "→ inputs | outputs →"). Label is
+  restored on expand via `_origLabel` data. Collapsed-module style now supports
+  `text-wrap: wrap`.
 
 ## Interaction
 
@@ -145,10 +151,13 @@ contradictions and against this catalog for duplicates.
 - **Files**: `src/interactions.js` (tap handler)
 - **Properties**: P6.1
 
-### F15: Hover edge tooltip
+### F15: Hover tooltip (edges and nodes)
 - **Status**: `implemented`
-- **Files**: `src/interactions.js` (mouseover/mouseout edge)
+- **Files**: `src/interactions.js` (mouseover/mouseout edge, mouseover/mouseout node:child)
 - **Properties**: P6.2
+- Edge hover shows label, script, and description. Node hover shows label, file I/O
+  indicators, and a description preview (truncated at 120 chars with "click for full
+  detail" hint when longer).
 
 ### F16: Hover node neighborhood highlighting
 - **Status**: `implemented`
@@ -174,10 +183,11 @@ contradictions and against this catalog for duplicates.
 - **Properties**: P6.6
 
 ### F60: Default zoom cap for collapsed view
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: A3
-- Cap the post-fit zoom at ~1.2x so that all modules plus interface ports are
-  visible at a readable but not overwhelming scale on initial load.
+- **Files**: `src/viewer.js` (fit function maxZoom parameter)
+- `fit()` accepts optional `maxZoom` parameter. Initial load calls `fit(50, 1.2)`
+  so small graphs don't over-zoom. Large graphs naturally fit below 1.2x.
 
 ### F71: Animated flow simulation
 - **Status**: `planned`
@@ -263,7 +273,7 @@ contradictions and against this catalog for duplicates.
   of the workflow.
 
 ### F65: Critical path schema field and highlighting
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.13, P7.4
 - **Workstream**: B4
 - Pre-computed `graph.criticalPath` (node ID array) stored in the graph JSON.
@@ -295,21 +305,24 @@ contradictions and against this catalog for duplicates.
   Displayed in tooltip or detail panel on click. No property conflict.
 
 ### F62: Module/edge confidence schema fields
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.11
 - **Workstream**: B1
+- **Files**: `schema.json` (confidence/needsHumanReview/checkpointReason on modules, confidence on edges), `skills/visualize-project/_foundations/graph-schema.md` (field docs + confidence visual encoding table), `skills/visualize-project/_foundations/inference-rules.md` (Design-Mode Confidence Heuristics section)
 - New optional fields: `module.confidence` (high/medium/low/unknown),
   `module.needsHumanReview` (boolean), `module.checkpointReason` (string),
-  `edge.confidence` (high/medium/low/unknown), `graph.criticalPath` (node ID
-  array). Backward-compatible — graphs without these fields render as before.
+  `edge.confidence` (high/medium/low/unknown). Backward-compatible — graphs
+  without these fields render as before. `graph.criticalPath` deferred to F65/F68.
 
 ### F63: needsHumanReview flag and amber badge
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P2.11, P2.12
 - **Workstream**: B2
-- Render confidence on collapsed modules via border treatment (thick=high,
-  normal=medium, dashed=low). Modules with `needsHumanReview: true` show an
-  amber badge. No conflict with P2.2 (trust borders apply to child nodes only).
+- **Files**: `src/viewer.js` (applyCollapsedStyle badge, `.needs-review` style, buildElements confidence passthrough)
+- Collapsed modules with `needsHumanReview: true` get " ⚠" appended to label
+  and `.needs-review` class (amber dashed border with subtle overlay). Removed
+  on expand via `removeCollapsedStyle`. Confidence/review data passed through
+  `buildElements()` from module JSON.
 
 ## Structural Analysis
 
@@ -389,12 +402,52 @@ contradictions and against this catalog for duplicates.
   upstream of the final output and records `graph.criticalPath` (node ID array).
 
 ### F69: Design-from-objective skill mode (Input B)
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Properties**: P1.1–P1.4
 - **Workstream**: D1
-- Add `--objective "text"` argument. Skips project scanning; designs a workflow
-  from domain knowledge. Generates modules, interfaces, edges, confidence,
-  and critical path from the stated objective.
+- **Files**: `skills/visualize-project/SKILL.md` (Phase 1B, design-mode guidance in Phase 2-3, design-mode edge cases, worked example), `skills/visualize-project/_foundations/inference-rules.md` (Design-Mode Defaults section), `schema.json` (`_generationMode`, `_objective`, `_generatedAt` fields)
+- `--objective "text"` and `--objective-file path` arguments. Skips project scanning;
+  designs a workflow from domain knowledge via Phase 1B. Generates modules with
+  interfaces, confidence, and human-review flags. All elements default to
+  `status: "planned"`. Compatible with `--constraints`, `--domain`, `--depth`, `--title`.
+  Design-mode graphs transition to scan mode via incremental regeneration.
+
+### F76: Design-mode CLAUDE.md scaffolding suggestion
+- **Status**: `implemented`
+- **Files**: `skills/visualize-project/SKILL.md` (Step 3.5b)
+- After writing a design-mode graph, the skill prints a suggested folder structure
+  with `CLAUDE.md` stubs for each module. Derives folder names from module labels
+  and stub content from module descriptions and interfaces. Print-only — no files
+  created. Implements the Folder Premise in SPEC.md (each non-trivial folder has a CLAUDE.md).
+
+### F77: Executable scaffolding via --scaffold flag
+- **Status**: `implemented`
+- **Files**: `skills/visualize-project/SKILL.md` (--scaffold argument, Step 3.5b expanded)
+- **Properties**: P1.1–P1.4
+- `--scaffold` flag in design mode creates CLAUDE.md and SPEC.md stubs in project
+  directories instead of just printing them. Creates directories, writes CLAUDE.md
+  with module objective/inputs/outputs, and writes SPEC.md stubs for modules with
+  `needsHumanReview: true`. Skips existing files without overwriting. Without
+  `--scaffold`, behavior is unchanged (print-only). Extends F76.
+
+### F78: `refactor` action — scan + redesign toward objective
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4
+- **Files**: `skills/visualize-project/SKILL.md` (Phase 1C, --refactor flag, refactor-mode guidance)
+- New generation action that combines scanning an existing project (Phase 1) with
+  redesigning toward a stated objective (Phase 1B). Scans current folder structure,
+  redesigns toward the objective while preserving code references, and outputs a graph
+  with diff overlay showing the refactoring plan. Invoked via
+  `/visualize-project . --refactor --objective "..."`.
+
+### F79: `plan` action — detect SPEC.md changes, propose new folders
+- **Status**: `proposed`
+- **Properties**: P1.1–P1.4
+- New generation action that scans an existing project, detects SPEC.md changes (or
+  accepts explicit pointers to changed specs), and proposes new directories and files
+  to satisfy the updated requirements. Outputs the current graph with new folders at
+  `status: "planned"` and plan overlay annotations. Invoked via
+  `/visualize-project . --plan`.
 
 ## View Modes
 
@@ -415,13 +468,13 @@ contradictions and against this catalog for duplicates.
   Displayed on hover (tooltip with emoji indicators), on double-click (modal detail panel
   showing full paths), and inline in Files view mode (F40).
 
-### F42: Node detail panel (double-click)
-- **Status**: `implemented`
-- **Files**: `src/interactions.js` (dbltap handler, showNodeDetailPanel)
+### F42: Node detail panel (click / double-click)
+- **Status**: `deprecated` (superseded by F73)
+- **Files**: `src/interactions.js` (tap handler, dbltap handler, showNodeDetailPanel)
 - **Properties**: P6.2 (extends detail panel concept from edges to nodes)
-- Double-clicking a leaf node with `files` data opens a modal panel showing the node's
-  trust level badge and full read/write file paths. Same dismiss behavior as edge detail
-  panel (F38).
+- Single-clicking a leaf node with `description` or `files` opened a modal panel showing
+  the node's trust level badge, description, and full read/write file paths. Replaced by
+  the non-blocking side panel (F73).
 
 ### F43: Context-sensitive legend
 - **Status**: `implemented`
@@ -433,11 +486,12 @@ contradictions and against this catalog for duplicates.
   simultaneously.
 
 ### F64: Confidence view mode
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: B3
-- Add a Confidence view mode to the V-key cycle. Modules and edges colored by
-  confidence level (green=high, yellow=medium, red=low, gray=unknown). Legend
-  updates to show confidence color mapping.
+- **Files**: `src/viewer.js` (confidence styles, setView confidence branch, rebuildLegendForView), `src/interactions.js` (V-key cycle), `index.html` (Confidence toolbar button)
+- Confidence view mode in V-key cycle and toolbar. Modules colored by
+  `module.confidence`: green=high, yellow=medium, red=low, gray=unknown.
+  Non-module nodes dimmed. Legend updates with confidence color key.
 
 ## Plan Overlay
 
@@ -568,6 +622,38 @@ contradictions and against this catalog for duplicates.
   crossing module boundaries. Description fields are preserved during incremental
   regeneration as manual refinements.
 
+## Node Detail
+
+### F73: Node detail side panel
+- **Status**: `implemented`
+- **Files**: `schema.json` (node.io, node.docs), `src/viewer.js` (buildElements io/docs passthrough, ndp-selected style), `src/interactions.js` (showNodeSidePanel, hideNodeSidePanel, rewired tap handler), `index.html` (node-detail-panel div + CSS)
+- **Properties**: P6.2 (extends)
+- Non-blocking left-side panel that opens on click of a child node with detail data
+  (description, io, files, or docs). Shows trust badge, description, docs link, rich I/O
+  sections (inputs/outputs with name/description/format/example), file reads/writes, plan
+  annotation, and a "Trace Path" button. Shift+click bypasses the panel for path trace.
+  Nodes without detail data fall back to path trace on click. Panel closes on Escape,
+  background click, or close button. Supersedes F42 (modal node detail panel).
+- **Schema fields used**: `node.io` (rich I/O with inputs/outputs arrays — same structure
+  as `module.interface`), `node.docs` (link to documentation file or URL). Both are passed
+  through `buildElements()` in viewer.js and rendered in the side panel by interactions.js.
+
+### F74: Shape-based role distinction (process vs data)
+- **Status**: `implemented`
+- **Files**: `schema.json`, `src/viewer.js` (buildElements, buildStyles)
+- **Properties**: P2.2
+- Modules and nodes with `role: "data"` render as hexagons. Process modules (default) remain round-rectangles. Collapsed data modules are hexagons; expanded data modules have dotted borders. Decision diamonds and interface ports keep their shapes regardless of role.
+
+### F75: Implementation status visual encoding
+- **Status**: `implemented`
+- **Files**: `schema.json` (status enum on module + node), `src/viewer.js` (buildElements status passthrough, buildStyles status selectors), `skills/visualize-project/_foundations/inference-rules.md` (Status Assignment section), `skills/visualize-project/_foundations/graph-schema.md` (status fields + encoding table), `skills/visualize-project/SKILL.md` (status guidance in Phase 2)
+- **Properties**: P2.1 (opacity channel), P2.2 (border channel)
+- Five status levels: `planned` (ghost, 20% opacity, dotted border), `draft` (faded, 45% opacity),
+  `ai-tested` (default, 85% opacity), `needs-review` (full opacity, orange dashed border),
+  `verified` (full opacity, green 3px solid border). Applied to both modules and nodes.
+  Skill guidelines include heuristics for inferring status from test coverage, PR history,
+  and code existence. Default when omitted is `ai-tested` visual treatment.
+
 ---
 
 ## Changelog
@@ -607,3 +693,19 @@ contradictions and against this catalog for duplicates.
 | 2026-02-15 | F57 | Implemented: skill generates descriptions and module interfaces (SKILL.md + inference-rules.md) |
 | 2026-02-15 | F25 | Updated status: proposed → implemented (superseded by F49) |
 | 2026-02-15 | F58–F72 | Added 15 planned features aligned with ROADMAP.md design principles (workstreams A–E) |
+| 2026-02-16 | F73 | Implemented: node detail side panel (left-side non-blocking panel replacing F42 modal) |
+| 2026-02-16 | F42 | Updated status: implemented → deprecated (superseded by F73) |
+| 2026-02-16 | F74 | Implemented: shape-based role distinction (process=round-rectangle, data=hexagon) |
+| 2026-02-16 | F75 | Implemented: status visual encoding (planned/draft/ai-tested/needs-review/verified via opacity+border) |
+| 2026-02-16 | F62 | Implemented: confidence/needsHumanReview/checkpointReason schema fields on modules, confidence on edges |
+| 2026-02-16 | F69 | Implemented: design-from-objective skill mode (Input B) with Phase 1B, design-mode defaults, worked example |
+| 2026-02-16 | F76 | Implemented: design-mode CLAUDE.md scaffolding suggestion (SKILL.md Step 3.5b) |
+| 2026-02-16 | F77 | Implemented: executable scaffolding via --scaffold flag (SKILL.md Step 3.5b expanded) |
+| 2026-02-16 | F58 | Implemented: enhanced port styling (round-rectangle inputs, tag outputs, italic font) |
+| 2026-02-16 | F59 | Implemented: port positioning after collapse via positionPorts() |
+| 2026-02-16 | F60 | Implemented: zoom cap at 1.2x for collapsed view |
+| 2026-02-16 | F61 | Implemented: I/O subtitle on collapsed modules without port nodes |
+| 2026-02-16 | F63 | Implemented: amber badge + dashed border for needsHumanReview modules |
+| 2026-02-16 | F64 | Implemented: confidence view mode with color encoding and legend |
+| 2026-02-16 | F78 | Implemented: `refactor` action (Phase 1C in SKILL.md — scan + redesign + plan overlay) |
+| 2026-02-16 | F79 | Proposed: `plan` action (detect SPEC.md changes, propose new folders, plan overlay) |

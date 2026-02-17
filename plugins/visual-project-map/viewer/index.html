@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -99,7 +100,7 @@ body {
   display: none; position: fixed; z-index: 200;
   background: rgba(30,41,59,0.92); color: #f1f5f9; padding: 5px 10px;
   border-radius: 5px; font-size: 12px; pointer-events: none;
-  max-width: 280px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  max-width: 400px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 #status {
   position: fixed; bottom: 12px; left: 12px; z-index: 90;
@@ -116,7 +117,7 @@ body {
   top: 50%; left: 50%; transform: translate(-50%, -50%);
   background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.18); padding: 20px 24px;
-  max-width: 440px; min-width: 280px; font-size: 13px; color: #1e293b;
+  max-width: 640px; min-width: 280px; font-size: 13px; color: #1e293b;
 }
 #detail-panel .dp-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -221,6 +222,127 @@ body {
 .plan-badge-add { background: #dcfce7; color: #166534; }
 .plan-badge-modify { background: #fef3c7; color: #92400e; }
 .plan-badge-remove { background: #fee2e2; color: #991b1b; }
+#node-detail-panel {
+  position: fixed; top: 48px; left: 0; bottom: 0; width: 480px;
+  background: #ffffff; border-right: 1px solid #e2e8f0; z-index: 95;
+  box-shadow: 4px 0 16px rgba(0,0,0,0.08); overflow-y: auto;
+  font-size: 13px; color: #1e293b; transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  pointer-events: none; visibility: hidden;
+}
+#node-detail-panel.open { transform: translateX(0); pointer-events: auto; visibility: visible; }
+#node-detail-panel .ndp-header {
+  position: sticky; top: 0; background: #ffffff; z-index: 1;
+  padding: 16px 20px 12px; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+#node-detail-panel .ndp-title { font-weight: 600; font-size: 14px; }
+#node-detail-panel .ndp-close {
+  background: none; border: none; font-size: 18px; color: #94a3b8;
+  cursor: pointer; padding: 0 4px; line-height: 1;
+}
+#node-detail-panel .ndp-close:hover { color: #475569; }
+#node-detail-panel .ndp-body { padding: 12px 20px 20px; }
+#node-detail-panel .dp-section-label {
+  font-size: 10px; font-weight: 700; color: #3b82f6; text-transform: uppercase;
+  letter-spacing: 1px; margin: 12px 0 6px; padding-bottom: 4px;
+  border-bottom: 2px solid #dbeafe;
+}
+#node-detail-panel .dp-section-label:first-child { margin-top: 0; }
+#node-detail-panel .dp-iface-item {
+  margin-bottom: 12px; padding-left: 10px;
+  border-left: 3px solid #e2e8f0;
+}
+#node-detail-panel .dp-iface-name {
+  font-weight: 600; font-size: 13px; color: #1e293b; margin-bottom: 2px;
+}
+#node-detail-panel .dp-iface-desc {
+  font-size: 12px; color: #64748b; margin-bottom: 6px; line-height: 1.4;
+}
+#node-detail-panel .dp-example {
+  background: #f8fafc; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0;
+  font-size: 11px; white-space: pre-wrap; word-break: break-all;
+  max-height: 120px; overflow-y: auto; line-height: 1.4;
+}
+#node-detail-panel .dp-desc {
+  font-size: 12px; color: #475569; line-height: 1.5; margin-bottom: 10px;
+  padding: 6px 10px; background: #f8fafc; border-radius: 4px;
+  border-left: 3px solid #94a3b8;
+}
+#node-detail-panel .dp-row { margin-bottom: 8px; }
+#node-detail-panel .dp-label {
+  font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 2px;
+}
+#node-detail-panel .dp-value {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px;
+  color: #334155; word-break: break-all;
+}
+#node-detail-panel .dp-list { list-style: none; padding: 0; margin: 0; }
+#node-detail-panel .dp-list li { padding: 1px 0; }
+#node-detail-panel .dp-list li::before { content: ''; display: none; }
+#node-detail-panel .ndp-trace-btn {
+  display: block; width: 100%; margin-top: 12px; padding: 8px;
+  background: #3498db; color: white; border: none; border-radius: 4px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+#node-detail-panel .ndp-trace-btn:hover { background: #2980b9; }
+#node-detail-panel .ndp-docs-link {
+  display: inline-block; margin-bottom: 10px; font-size: 12px;
+  color: #3b82f6; text-decoration: none;
+}
+#node-detail-panel .ndp-docs-link:hover { text-decoration: underline; }
+#node-detail-panel .ndp-desc-capped {
+  max-height: 100px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+#node-detail-panel .ndp-show-more {
+  background: none; border: none; color: #3b82f6; font-size: 12px;
+  cursor: pointer; padding: 2px 0; margin-bottom: 8px; font-family: inherit;
+}
+#node-detail-panel .ndp-show-more:hover { text-decoration: underline; }
+#node-detail-panel .ndp-file-link {
+  color: #3b82f6; text-decoration: none; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+}
+#node-detail-panel .ndp-file-link:hover { text-decoration: underline; }
+#node-detail-panel .ndp-markdown {
+  font-size: 12px; line-height: 1.6; color: #334155;
+  border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 10px;
+}
+#node-detail-panel .ndp-markdown h1,
+#node-detail-panel .ndp-markdown h2,
+#node-detail-panel .ndp-markdown h3 {
+  font-size: 13px; font-weight: 700; color: #1e293b; margin: 10px 0 4px;
+}
+#node-detail-panel .ndp-markdown h1 { font-size: 15px; }
+#node-detail-panel .ndp-markdown h2 { font-size: 14px; }
+#node-detail-panel .ndp-markdown p { margin: 0 0 8px; }
+#node-detail-panel .ndp-markdown ul,
+#node-detail-panel .ndp-markdown ol { padding-left: 18px; margin: 0 0 8px; }
+#node-detail-panel .ndp-markdown li { margin-bottom: 2px; }
+#node-detail-panel .ndp-markdown code {
+  background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+#node-detail-panel .ndp-markdown pre {
+  background: #f8fafc; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;
+  overflow-x: auto; margin: 0 0 8px;
+}
+#node-detail-panel .ndp-markdown pre code { background: none; padding: 0; }
+#node-detail-panel .ndp-markdown blockquote {
+  border-left: 3px solid #cbd5e1; padding-left: 10px; margin: 0 0 8px;
+  color: #64748b;
+}
+#node-detail-panel .ndp-markdown table {
+  border-collapse: collapse; width: 100%; margin: 0 0 8px; font-size: 11px;
+}
+#node-detail-panel .ndp-markdown th,
+#node-detail-panel .ndp-markdown td {
+  border: 1px solid #e2e8f0; padding: 4px 6px; text-align: left;
+}
+#node-detail-panel .ndp-markdown th { background: #f8fafc; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -231,14 +353,15 @@ body {
   <button id="btn-collapse">Collapse All</button>
   <div class="sep"></div>
   <button id="btn-labels" class="toggle-off">Labels</button>
-  <button id="btn-autofocus" class="toggle-off">Autofocus</button>
+  <button id="btn-autofocus" class="toggle-on">Autofocus</button>
   <button id="btn-watch" class="toggle-off">Watch</button>
   <button id="btn-minimap" class="toggle-on">Minimap</button>
   <div class="sep"></div>
-  <button class="view-btn view-active" data-view="module">Module</button>
+  <button class="view-btn" data-view="module">Module</button>
   <button class="view-btn" data-view="provenance">Provenance</button>
-  <button class="view-btn" data-view="actor">Actor</button>
+  <button class="view-btn view-active" data-view="actor">Actor</button>
   <button class="view-btn" data-view="files">Files</button>
+  <button class="view-btn" data-view="confidence">Confidence</button>
   <button class="view-btn" data-view="plan" id="btn-plan-view" style="display:none">Plan</button>
   <button class="view-btn" data-view="diff" id="btn-diff-view" style="display:none">Diff</button>
   <button id="btn-plan-summary" style="display:none;background:#4a6377;font-size:12px;padding:5px 10px;border-radius:4px">Summary</button>
@@ -260,8 +383,9 @@ body {
 <div id="detail-backdrop"></div>
 <div id="detail-panel"></div>
 <div id="plan-summary-panel"></div>
+<div id="node-detail-panel"></div>
 <div id="status">Loading...</div>
-<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: interface/toggle &middot; Click node: trace path &middot; Dbl-click node: details &middot; /: search &middot; E: expand &middot; C: collapse &middot; L: labels &middot; A: autofocus &middot; W: watch &middot; M: minimap &middot; V: view mode &middot; Esc: clear</div>
+<div id="help-hint">Scroll: zoom &middot; Drag: pan &middot; Click module: interface/toggle &middot; Click node: details &middot; Shift+click node: trace path &middot; /: search &middot; E: expand &middot; C: collapse &middot; L: labels &middot; A: autofocus &middot; W: watch &middot; M: minimap &middot; V: view mode &middot; Esc: clear</div>
 
 <script src="src/expand-collapse.js"></script>
 <script src="src/plan-overlay.js"></script>
