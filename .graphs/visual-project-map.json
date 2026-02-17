@@ -20,6 +20,7 @@
       "parent": "phase_repo",
       "status": "verified",
       "confidence": "high",
+      "docPath": "spec/CLAUDE.md",
       "description": "Feature catalog (features.md), graph invariant properties (graph-properties.md), and proposed features. Also includes SPEC.md at the repo root defining the action model (describe, initialize, refactor, plan), folder premise, and design principles.",
       "interface": {
         "inputs": [
@@ -57,6 +58,7 @@
       "status": "verified",
       "confidence": "high",
       "role": "data",
+      "docPath": "docs/plans/CLAUDE.md",
       "description": "Design documents and implementation plans (YYYY-MM-DD-<topic>-design.md and -plan.md). Records architectural decisions, feature designs, and task breakdowns that guide development.",
       "interface": {
         "inputs": [
@@ -73,6 +75,7 @@
       "color": "#f3ede8",
       "borderColor": "#ccb8a8",
       "status": "ai-tested",
+      "docPath": "plugins/visual-project-map/CLAUDE.md",
       "description": "The plugin directory containing all runtime code: generation skill with foundation tables, browser-based viewer, utility scripts, example graphs, and the JSON schema definition."
     },
     {
@@ -84,6 +87,7 @@
       "status": "verified",
       "confidence": "high",
       "role": "data",
+      "docPath": "plugins/visual-project-map/skills/visualize-project/_foundations/CLAUDE.md",
       "description": "Reference tables at skills/visualize-project/_foundations/ consumed by the generation skill: inference rules (inference-rules.md), color palette (color-palette.md), graph schema reference (graph-schema.md). Also includes the JSON Schema definition (schema.json) at the plugin root.",
       "interface": {
         "inputs": [
@@ -104,6 +108,7 @@
       "confidence": "medium",
       "needsHumanReview": true,
       "checkpointReason": "The skill orchestrates complex AI reasoning across 3 phases — module boundary decisions, confidence assessment, and scaffolding require human review of generated output",
+      "docPath": "plugins/visual-project-map/skills/visualize-project/CLAUDE.md",
       "description": "SKILL.md instructions guiding Claude through discovery (describe action), design (initialize action), refactoring (refactor action), graph construction, validation, and output. Produces graph JSON conforming to schema.json.",
       "interface": {
         "inputs": [
@@ -143,6 +148,7 @@
       "parent": "phase_plugin",
       "status": "verified",
       "confidence": "high",
+      "docPath": "plugins/visual-project-map/viewer/CLAUDE.md",
       "description": "Browser-based interactive DAG renderer at viewer/: index.html entry point, src/viewer.js (load, build, style, layout), src/expand-collapse.js (collapse manager), src/interactions.js (events, panels, search), plus overlay modules (diff.js, plan-overlay.js, minimap.js).",
       "interface": {
         "inputs": [
@@ -161,6 +167,7 @@
       "parent": "phase_plugin",
       "status": "verified",
       "confidence": "high",
+      "docPath": "plugins/visual-project-map/scripts/CLAUDE.md",
       "description": "Utility scripts at scripts/: serve.py launches a local HTTP server, copies graph JSON to the viewer's examples/ directory, and opens the browser.",
       "interface": {
         "inputs": [
@@ -180,6 +187,7 @@
       "status": "verified",
       "confidence": "high",
       "role": "data",
+      "docPath": "plugins/visual-project-map/examples/CLAUDE.md",
       "description": "Sample graph JSON files at examples/ for testing and demonstration: minimal.json, data-pipeline.json, ci-cd-workflow.json, did-policy-employment.json, and this project's own graph.",
       "interface": {
         "inputs": [
