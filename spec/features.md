@@ -54,11 +54,13 @@ contradictions and against this catalog for duplicates.
 - **Properties**: P2.1
 - Modules define (color, borderColor). Children inherit unless overridden.
 
-### F05: Trust level border encoding
+### F05: Trust level visual encoding
 - **Status**: `implemented`
 - **Files**: `src/viewer.js` (buildStyles)
 - **Properties**: P2.2
-- Border style/width driven by `legend.trustLevels` in the input JSON.
+- Trust levels defined in `legend.trustLevels` drive the Provenance view mode
+  color scheme (F40). Legacy `borderStyle`/`borderWidth` fields retained for
+  backward compatibility but ignored — border is driven by status (P2.2).
 
 ### F06: Node shape semantics
 - **Status**: `implemented`
@@ -283,13 +285,12 @@ contradictions and against this catalog for duplicates.
 ## Extended Data Model
 
 ### F30: Optional node status attribute
-- **Status**: `proposed`
+- **Status**: `deprecated` (superseded by F75)
 - **Properties**: P2.1–P2.3 (must not conflict)
-- Extend schema to accept optional `style.status` on nodes with values:
-  `not-started`, `in-progress`, `blocked`, `done`, `needs-review`. Visual
-  encoding TBD — must not overload color (P2.1), border (P2.2), or shape
-  (P2.3). Candidates: small icon badge, text annotation, or subtle background
-  pattern.
+- Originally proposed `style.status` with values `not-started`, `in-progress`,
+  `blocked`, `done`, `needs-review`. Superseded by F75 which implemented
+  top-level `status` field with values `planned`, `draft`, `ai-tested`,
+  `needs-review`, `verified` — encoded via opacity and border treatment (P2.2).
 
 ### F31: Module summary badges
 - **Status**: `proposed`
@@ -378,28 +379,33 @@ contradictions and against this catalog for duplicates.
   Turns the graph-viewer into a general-purpose project visualization tool.
 
 ### F66: Skill always generates interface port nodes
-- **Status**: `planned`
-- **Properties**: P1.1–P1.4
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4, P2.10, P3.4
 - **Workstream**: C1-C2
-- Update SKILL.md to always generate interface port nodes from
-  `module.interface` fields, and to always generate interfaces (removing
-  the "only include interfaces you have evidence for" caveat). Every module
-  must have at least one named input and one named output.
+- SKILL.md Step 2.3b generates `_isInterfacePort` nodes from
+  `module.interface` fields. Step 2.1 now requires interfaces on all
+  non-phase, non-terminal modules (removing the "only include interfaces
+  you have evidence for" caveat). Cross-module edges route through port
+  nodes (port-to-port).
 
 ### F67: Skill generates confidence annotations
-- **Status**: `planned`
-- **Properties**: P1.1–P1.4
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4, P2.11, P2.12
 - **Workstream**: C3
 - The skill assesses and records confidence per module and edge: high (clear
-  evidence), medium (partial evidence), low (convention-based guess). For
-  design mode (Input B), defaults to medium/low.
+  evidence), medium (partial evidence), low (convention-based guess).
+  Design mode uses `inference-rules.md` § "Design-Mode Confidence Heuristics".
+  Scan mode uses `inference-rules.md` § "Scan-Mode Confidence Heuristics"
+  (based on test coverage, documentation, TODO/FIXME signals from Step 1.1b).
+  Both modes always include `confidence` and `needsHumanReview` on modules.
 
 ### F68: Skill generates critical path
-- **Status**: `planned`
-- **Properties**: P1.1–P1.4
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4, P2.13, P7.4
 - **Workstream**: C4
-- Given the user's objective, the skill traces which modules and edges are
-  upstream of the final output and records `graph.criticalPath` (node ID array).
+- SKILL.md Step 2.4c traces the longest dependency chain from entry to
+  terminal and emits `graph.criticalPath` (ordered node ID array). Works
+  in all modes (scan, design, refactor).
 
 ### F69: Design-from-objective skill mode (Input B)
 - **Status**: `implemented`
@@ -641,8 +647,10 @@ contradictions and against this catalog for duplicates.
 ### F74: Shape-based role distinction (process vs data)
 - **Status**: `implemented`
 - **Files**: `schema.json`, `src/viewer.js` (buildElements, buildStyles)
-- **Properties**: P2.2
-- Modules and nodes with `role: "data"` render as hexagons. Process modules (default) remain round-rectangles. Collapsed data modules are hexagons; expanded data modules have dotted borders. Decision diamonds and interface ports keep their shapes regardless of role.
+- **Properties**: P2.3
+- Modules and nodes with `role: "data"` render as hexagons. Process modules
+  (default) remain round-rectangles. See P2.3 for the channel rule. Decision
+  diamonds and interface ports keep their shapes regardless of role.
 
 ### F75: Implementation status visual encoding
 - **Status**: `implemented`
@@ -709,3 +717,7 @@ contradictions and against this catalog for duplicates.
 | 2026-02-16 | F64 | Implemented: confidence view mode with color encoding and legend |
 | 2026-02-16 | F78 | Implemented: `refactor` action (Phase 1C in SKILL.md — scan + redesign + plan overlay) |
 | 2026-02-16 | F79 | Proposed: `plan` action (detect SPEC.md changes, propose new folders, plan overlay) |
+| 2026-02-17 | F30 | Deprecated: superseded by F75 (top-level `status` field) |
+| 2026-02-17 | F66 | Implemented: SKILL.md Step 2.3b generates interface port nodes, Step 2.1 requires interfaces on all modules |
+| 2026-02-17 | F67 | Implemented: scan-mode confidence heuristics added to inference-rules.md + SKILL.md |
+| 2026-02-17 | F68 | Implemented: SKILL.md Step 2.4c computes critical path |

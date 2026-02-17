@@ -28,25 +28,29 @@ artifacts (meta-edges) computed during collapse.
 border) color pair. All children of that module inherit the module's colors
 unless explicitly overridden.
 
-**P2.2 Trust/provenance via border treatment.** Node border style and width
-encode the provenance of the data or action the node represents:
-- Solid thin border = normal or automated
-- Dashed border = AI/LLM-generated
-- Solid thick border = human-verified
+**P2.2 Implementation status via border treatment.** Node and module border
+style, width, and color encode implementation maturity:
+- Dotted 1px gray = `planned` (ghost/placeholder, not yet built)
+- Solid 1px = `draft` (exists but incomplete)
+- Solid 1.5px = `ai-tested` (default when status is omitted)
+- Dashed 2.5px orange = `needs-review` (needs human review)
+- Solid 3px green = `verified` (human-verified, production-ready)
 
-The specific trust levels and their visual mappings are defined in the input
-JSON's `legend.trustLevels` and can vary per graph. But the principle holds:
-border treatment is reserved for provenance encoding. Do not overload border
-style for other semantics.
+Status is the only semantic encoded via border treatment. Do not overload
+border style for other semantics (trust, confidence, etc.). Trust/provenance
+is encoded via the Provenance view mode color channel (see F40). Confidence
+is encoded via the Confidence view mode color channel (see F64).
 
 **P2.3 Semantic role via node shape.**
 - `round-rectangle` (default) = state or data point
 - `diamond` = decision gate or branch point
 - `ellipse` = process or action
-- Other shapes (`rectangle`, `hexagon`) available for extension
+- `hexagon` = data store or data-centric module
+- Other shapes (`rectangle`) available for extension
 
-Shape encodes the role of the node in the workflow, not its trust level or
-module membership. Do not overload shape for other semantics.
+Shape is the only channel for encoding semantic role. Do not overload shape
+for other semantics, and do not encode role via border (which is reserved for
+implementation status, P2.2).
 
 **P2.4 Flow type via edge style.**
 - Solid = primary/forward flow (the main path)
@@ -75,25 +79,27 @@ Edge color is reserved for actor encoding. Do not overload edge color for
 other semantics. The `actor` field is optional — edges without it render in
 the default gray.
 
-**P2.8 Plan status via overlay glow.** When the Plan view mode is active,
-node and edge plan status is encoded via overlay glow/shadow — an otherwise
-unused visual channel:
-- Green dashed glow + dashed border = new element (`add`)
-- Amber glow + thick border = modified element (`modify`)
-- Red dashed glow + reduced opacity = removed element (`remove`)
-- 30% opacity (no glow) = unchanged element
+**P2.8 Plan status via temporary visual override.** When the Plan view mode
+is active, node and edge plan status is encoded by temporarily overriding
+multiple visual channels (border, color, opacity):
+- Green dashed border + green glow = new element (`add`)
+- Amber thick border + amber glow = modified element (`modify`)
+- Red dashed border + red glow + reduced opacity = removed element (`remove`)
+- 30% opacity (no glow, no border change) = unchanged element
 
 These treatments are only active in Plan view mode. Switching to any other
-view (Module, Provenance, Actor, Files) removes all plan styling. This
-avoids conflict with P2.1 (color=module), P2.2 (border=trust), P2.3
-(shape=role), and P2.7 (edge color=actor) because plan uses the overlay
-channel, not the primary visual encoding channels.
+view (Module, Provenance, Actor, Files) removes all plan styling and fully
+restores the primary encodings (P2.1 color, P2.2 status borders, P2.7 edge
+color). Plan view intentionally commandeers primary channels to maximize
+the visual distinction between add/modify/remove — this is acceptable
+because it is a temporary diagnostic mode, not a persistent override.
 
-**P2.9 Diff status via overlay coloring.** When the Diff view mode is active,
-elements are colored by their diff status: green = added, amber = modified,
-red = removed, dimmed = unchanged. This uses the same overlay channel as plan
-view (P2.8) and is mutually exclusive with it — only one overlay view is
-active at a time.
+**P2.9 Diff status via temporary visual override.** When the Diff view mode
+is active, elements are styled by their diff status: green = added, amber =
+modified, red = removed, dimmed = unchanged. Like Plan view (P2.8), Diff
+temporarily overrides primary channels (border, color, opacity) and fully
+restores them on exit. Plan and Diff are mutually exclusive — only one
+overlay view is active at a time.
 
 **P2.10 Interface port visual encoding.** Interface port nodes
 (`_isInterfacePort: true`) are visually distinct from regular child nodes:
@@ -101,11 +107,10 @@ blue fill for inputs, green fill for outputs, sized at least 160x30 with at
 least 11px font. Ports must be readable at the default zoom level without
 expanding any module.
 
-**P2.11 Confidence via collapsed module border.** When a module has a
-`confidence` field, the collapsed module border encodes it: thick border =
-high confidence, normal border = medium, dashed border = low or unknown. This
-applies only to collapsed modules (the interface map view). When expanded,
-child nodes use trust-level borders (P2.2) instead — no conflict.
+**P2.11 Confidence via view mode.** Module confidence is encoded via the
+Confidence view mode (F64), which colors modules by confidence level:
+green = high, yellow = medium, red = low, gray = unknown. Does not use the
+border channel (P2.2). Toggled via the toolbar or `V` key cycle.
 
 **P2.12 Human review flag via amber badge.** Modules with
 `needsHumanReview: true` display a small amber badge (e.g., exclamation mark)
@@ -180,7 +185,7 @@ semantic meaning of each transition inside the module.*
 ## P5. Readability Properties
 
 **P5.1 Legend.** A legend strip below the toolbar shows:
-- Trust level definitions (with visual tags matching border treatment)
+- Trust level definitions (with visual tags matching provenance view colors)
 - Actor line color samples (if any edge has an `actor` field)
 - Module color swatches with labels
 

@@ -93,14 +93,13 @@ Graphs without these fields render exactly as before.
 - **Status**: `planned`
 - **Properties**: P2.11, P2.12
 
-Render confidence on collapsed module boxes:
-- **Border treatment**: thick = high, normal = medium, dashed = low/unknown
+Render confidence on collapsed module boxes via the Confidence view mode:
+- **Color encoding**: green = high, yellow = medium, red = low, gray = unknown
 - **Amber badge**: modules with `needsHumanReview: true` show a small amber
   indicator (e.g., an exclamation mark badge) on the collapsed module box
 
-This reuses the border-treatment concept from trust levels (P2.2) but applies
-it at the module level for the collapsed view. No conflict because trust levels
-apply to child nodes (visible only when expanded).
+Confidence uses the view-mode color channel, not borders. Border treatment
+is reserved for implementation status (P2.2).
 
 ### B3: Confidence view mode (F64)
 

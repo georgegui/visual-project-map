@@ -16,7 +16,8 @@
 | `description` | string | One-paragraph overview of the graph's purpose and scope |
 | `legend` | object | Contains `trustLevels` definitions |
 | `plan` | object | Plan overlay annotations (see visualize-plan skill) |
-| `_generationMode` | string | `"scan"` (from existing project) or `"design"` (from objective) |
+| `criticalPath` | array of strings | Pre-computed critical path as an ordered array of node IDs (entry → terminal). `P` key toggles highlighting in the viewer. |
+| `_generationMode` | string | `"scan"` (from existing project), `"design"` (from objective), or `"refactor"` (scan + redesign) |
 | `_objective` | string | Natural language objective used to generate graph (design mode only) |
 | `_generatedAt` | string | ISO 8601 timestamp of when the graph was generated |
 
@@ -35,6 +36,7 @@
 | `confidence` | no | string | `"high"`, `"medium"`, `"low"`, `"unknown"`. How confident the generation is in this module's design. See inference-rules.md § Design-Mode Confidence Heuristics |
 | `needsHumanReview` | no | boolean | `true` if this module requires domain expertise to validate |
 | `checkpointReason` | no | string | Why this module needs human review or has low confidence |
+| `docPath` | no | string | Path to the module's CLAUDE.md relative to project root (scan mode only, omit in design mode) |
 
 ## Node Object
 
@@ -47,6 +49,8 @@
 | `role` | no | string | `"process"` (default) or `"data"` (hexagon). Overrides `style.shape` to hexagon. See inference-rules.md § Role Assignment |
 | `status` | no | string | `"planned"`, `"draft"`, `"ai-tested"` (default), `"needs-review"`, `"verified"`. See inference-rules.md § Status Assignment |
 | `style` | no | object | Visual overrides (see below) |
+| `io` | no | object | Rich I/O descriptions with `inputs` and `outputs` arrays (same structure as `module.interface`). Shown in the node detail side panel. |
+| `docs` | no | string | Link to documentation (markdown file path or URL). Shown in the node detail side panel. |
 
 ### Node Style
 
@@ -104,23 +108,28 @@ to the adjacent module's port, visualizing the data contract between modules.
 
 ## Trust Levels (legend.trustLevels)
 
+Trust levels drive the **Provenance view mode** color scheme, not borders
+(P2.2).
+
 Each key maps to:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `label` | string | Human-readable name |
-| `borderStyle` | string | `"solid"` or `"dashed"` |
-| `borderWidth` | number | Border thickness (1.5 normal, 3.5 thick) |
+| `borderStyle` | string | Legacy field, retained for backward compatibility |
+| `borderWidth` | number | Legacy field, retained for backward compatibility |
 | `color` | string | Background color for provenance view |
 | `borderColor` | string | Border color for provenance view |
 | `tag` | object | Optional `{ text, bg, color }` for badge display |
 
 ## Role Visual Encoding
 
+Role is encoded via shape only (see P2.3 for the full rule).
+
 | Role | Module (collapsed) | Module (expanded) | Child Node |
 |------|-------------------|-------------------|------------|
 | `process` (default) | Round-rectangle | Normal compound | Round-rectangle |
-| `data` | Hexagon | Dotted border | Hexagon |
+| `data` | Hexagon | Normal compound | Hexagon |
 
 Diamond-shaped nodes and interface ports keep their shape regardless of role.
 
@@ -136,14 +145,18 @@ Diamond-shaped nodes and interface ports keep their shape regardless of role.
 
 When `status` is omitted, `ai-tested` is the visual default (no special styling applied).
 
-## Confidence Visual Encoding (future viewer implementation)
+## Confidence Visual Encoding
 
-| Confidence | Border Treatment (collapsed) | Badge | Meaning |
-|-----------|------------------------------|-------|---------|
-| `high` | Thick border (3px) | None | Standard pattern, high certainty |
-| `medium` | Normal border (1.5px) | None | Reasonable guess, may need refinement |
-| `low` | Dashed border (1.5px) | Amber | Needs domain input to validate |
-| `unknown` | Dotted border (1px) | Gray | Insufficient information to assess |
+Confidence is encoded via the **Confidence view mode** (toggled via toolbar
+or `V` key), which colors modules by confidence level (not borders, P2.2).
 
-Modules with `needsHumanReview: true` show an amber badge regardless of confidence level.
-`checkpointReason` text appears in the module's tooltip when present.
+| Confidence | View Mode Color | Meaning |
+|-----------|-----------------|---------|
+| `high` | Green (#d1fae5 / #16a34a) | Standard pattern, high certainty |
+| `medium` | Yellow (#fef3c7 / #f59e0b) | Reasonable guess, may need refinement |
+| `low` | Red (#fee2e2 / #ef4444) | Needs domain input to validate |
+| `unknown` | Gray (#f3f4f6 / #9ca3af) | Insufficient information to assess |
+
+Modules with `needsHumanReview: true` show an amber badge (⚠) on the
+collapsed label. `checkpointReason` text appears in the module's tooltip
+when present.

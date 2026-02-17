@@ -322,6 +322,56 @@ Always provide a `checkpointReason` string when `needsHumanReview` is true.
 
 ---
 
+## Scan-Mode Confidence Heuristics
+
+When scanning an existing project (Input A), confidence reflects how
+well-understood and well-tested each module is. Unlike design mode (where
+confidence measures the LLM's certainty about the design), scan-mode
+confidence measures the **observed quality signals** in the codebase.
+
+### Module Confidence (Scan Mode)
+
+| Signal Combination | Confidence | needsHumanReview | Rationale |
+|---|---|---|---|
+| Has test files + tests documented in CI + human-reviewed PRs | `high` | `false` | Well-tested, reviewed, integrated |
+| Has test files + documented in CLAUDE.md/README | `high` | `false` | Tested and documented |
+| Has test files but no documentation or CI evidence | `medium` | `false` | Tested but not reviewed |
+| Has CLAUDE.md but no test files | `medium` | `true` | Documented but untested; review test strategy |
+| Has scripts but no tests and no documentation | `low` | `true` | Undocumented, untested code needs attention |
+| Contains `TODO`/`FIXME`/`HACK`/`XXX` comments (Step 1.1b) | Decrease by one level | `true` | Developer flagged unfinished work |
+| Empty or stub directory (referenced in docs but no code) | `low` | `false` | Nothing to review yet |
+| Default (basic scripts, some structure, no special signals) | `medium` | `false` | Reasonable baseline for existing code |
+
+**Adjustment rules:**
+- Start from the baseline that best matches the signals above
+- If the module has `status: "verified"`, confidence is at least `high`
+- If the module has `status: "draft"`, confidence is at most `medium`
+- If the module has `status: "planned"`, confidence is `low`
+
+### Edge Confidence (Scan Mode)
+
+| Edge Type | Confidence | Rationale |
+|---|---|---|
+| Documented in CLAUDE.md or README (explicit workflow description) | `high` | Developer described this connection |
+| Inferred from concrete file I/O (Step 1.4: script reads output of another) | `high` | Observable data dependency |
+| Inferred from Makefile/CI target ordering | `medium` | Build system implies ordering |
+| Inferred from directory adjacency or naming convention only | `low` | Weak signal, needs verification |
+| Inferred from documentation narrative without explicit file paths | `medium` | Reasonable but could be stale |
+
+### Scan-Mode Defaults
+
+| Field | Default | Rationale |
+|-------|---------|-----------|
+| `module.confidence` | Per heuristic table above | Based on observed quality signals |
+| `module.needsHumanReview` | Per heuristic table above | Flag under-tested or flagged modules |
+| `module.checkpointReason` | Required when `needsHumanReview: true` | Explain what triggered the flag |
+| `module.interface` | **Always required** | Infer from I/O evidence or module position in data flow |
+| `edge.confidence` | Per edge heuristic table above | Based on evidence quality |
+| `_generationMode` | `"scan"` | Marks graph as scan-mode output |
+| `_generatedAt` | Current ISO 8601 timestamp | Records when the scan was performed |
+
+---
+
 ## Design-Mode Defaults
 
 When generating a graph from `--objective` (design mode), no code exists yet.
@@ -392,13 +442,14 @@ prefer the folder structure — it reflects actual organization.
 ### Trust Level Assignment
 
 Only include trust levels when the project has clear provenance semantics.
+Trust levels drive the Provenance view mode color scheme, not borders (P2.2).
 
-| Signal | Trust | Border |
-|--------|-------|--------|
-| Raw input, unprocessed data | `normal` | solid, thin |
-| Script output, automated result | `auto` | solid, thin + tag |
-| AI/LLM-generated content | `ai` | dashed + tag |
-| Human-reviewed, manually verified | `verified` | solid, thick + tag |
+| Signal | Trust | Provenance View Color |
+|--------|-------|-----------------------|
+| Raw input, unprocessed data | `normal` | Default (module color) |
+| Script output, automated result | `auto` | Default + tag |
+| AI/LLM-generated content | `ai` | Trust color + tag |
+| Human-reviewed, manually verified | `verified` | Trust color + tag |
 
 ### Node ID Convention
 

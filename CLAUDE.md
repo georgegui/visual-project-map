@@ -61,7 +61,7 @@ No build system, no npm, no bundler. Three global JS modules loaded as `<script>
 - **Nested folders (2-level)** — Folders can have a `parent` field pointing to a phase folder. Phases group related folders. Collapse/expand works at both levels.
 - **Folders start collapsed** — `init()` calls `collapseAll()` then runs layout.
 - **Edge labels hidden by default** — Labels appear on hover (tooltip), during path tracing, or via the Labels toggle (`L` key).
-- **Trust levels** drive node border styling (solid/dashed/thick) from the `legend.trustLevels` object in the input JSON.
+- **Implementation status** drives node border styling (dotted/solid/dashed/green-solid) from the `status` field on nodes and modules. Trust levels drive the Provenance view mode color scheme, not borders.
 - **Actor annotations** on edges — optional `actor` field (`human`/`ai`/`script`/`mixed`) colors edge lines.
 - **Edge detail panel** — edges with `details` show a modal panel on click with script path, inputs, outputs, and docs.
 - **Dagre layout fallback** — Uses `longest-path` ranker by default, falls back to `network-simplex` if dagre errors.
@@ -76,7 +76,7 @@ The tool's premise: the unit of organization is the **folder**. The graph's boxe
 
 **Viewer Behavior:**
 - **Default view is the interface map** — collapsed folders with I/O ports; the main view, not a fallback
-- **Confidence visually encoded** — AI confidence and human-review flags visible without expanding
+- **Confidence visually encoded** — Confidence view mode colors modules by confidence level; human-review badge visible without expanding
 - **Progressive disclosure** — three zoom levels: folders → internal nodes → node detail
 
 **Skill Requirements:**
