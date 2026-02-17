@@ -2,11 +2,13 @@
 name: visualize-project
 description: >
   Analyze a project directory to generate an interactive workflow graph,
-  or design a workflow from a natural language objective. Scans CLAUDE.md
-  files, script dependencies, and folder structure (Input A), or generates
-  a complete workflow design from a stated objective (Input B). Produces a
-  visual-project-map JSON with modules, nodes, edges, and actor annotations.
-argument-hint: "[directory-path] [--objective \"...\"] [--focus subdir] [--depth N] [--title \"...\"]"
+  design a workflow from a natural language objective, or propose a
+  refactored folder structure toward an objective. Scans CLAUDE.md
+  files, script dependencies, and folder structure (Input A), generates
+  a complete workflow design from a stated objective (Input B), or combines
+  scan + redesign to produce a refactoring plan (Input A + --refactor).
+  Produces a visual-project-map JSON with modules, nodes, edges, and actor annotations.
+argument-hint: "[directory-path] [--objective \"...\"] [--refactor] [--focus subdir] [--depth N] [--title \"...\"]"
 ---
 
 # visualize-project
@@ -21,6 +23,7 @@ The output is a JSON file viewable in the visual-project-map viewer.
 - User asks for an architecture diagram or pipeline overview
 - User describes a goal or objective and wants to design a workflow before coding
 - User wants to plan a research study, ETL pipeline, ML project, or any multi-step process
+- User wants to restructure a project's folder layout toward a stated objective
 - Works on any codebase (Input A) — or with no codebase at all (Input B)
 
 ## Arguments
@@ -38,6 +41,7 @@ Parse `$ARGUMENTS` as follows:
 | `--depth N` | `2` | Module nesting: `1` = flat, `2` = phases + modules |
 | `--title "..."` | Auto from directory/objective | Graph title override |
 | `--force` | `false` | Skip incremental mode; regenerate from scratch |
+| `--refactor` | `false` | Combine scan + redesign: scan current structure, redesign toward `--objective`, output diff. Requires `--objective`. |
 | `--scaffold` | `false` | Create CLAUDE.md + SPEC.md stubs in project directories (design mode only) |
 
 **Input A** (scan existing project):
@@ -51,6 +55,10 @@ Parse `$ARGUMENTS` as follows:
 - `/visualize-project --objective "Estimate causal effect of a policy intervention on employment using diff-in-diff"`
 - `/visualize-project --objective-file docs/project-spec.md --constraints "Python, Stata, no cloud services"`
 - `/visualize-project --objective "Build a recommendation engine" --domain ml --depth 1`
+
+**Refactor** (restructure existing project):
+- `/visualize-project . --refactor --objective "Separate data acquisition from processing"`
+- `/visualize-project . --refactor --objective "Group by domain, not by file type" --depth 1`
 
 ---
 
@@ -143,6 +151,12 @@ Before generating the graph, form a mental model by combining **all** signals
 Consult `_foundations/inference-rules.md` § "Module Design Principles" for the
 full set of principles governing module design.
 
+- **Directory completeness check**: Compare the candidate module list against
+  the full directory tree. Every non-trivial directory (containing scripts,
+  data, or documentation) should appear as a module or be explicitly excluded
+  with a reason (e.g., `.git/`, `node_modules/`). Missing directories cause
+  gaps in the graph that are hard to spot later.
+
 ---
 
 ## Phase 1B — Design from Objective (Input B only)
@@ -234,6 +248,79 @@ have `status: "planned"` and no file annotations.
 
 ---
 
+## Phase 1C — Refactor (scan + redesign)
+
+**Skip this phase unless `--refactor` is passed.** This phase combines Phase 1 (scan)
+and Phase 1B (design) to produce a refactoring plan. Requires `--objective`.
+
+### Step 1C.1: Scan Current Structure
+
+Run Phase 1 (Steps 1.1–1.5) as normal to get the current folder structure,
+documentation, scripts, and data flow. This produces the "current state" model.
+
+### Step 1C.2: Parse the Refactoring Objective
+
+Read the `--objective` text. Unlike Phase 1B (which designs from scratch), here
+the objective describes how to *restructure* the existing project. Extract:
+
+- **Structural goal**: What reorganization is the user asking for?
+  (e.g., "separate X from Y", "group by domain", "flatten hierarchy",
+  "extract shared utilities")
+- **Constraints**: What must be preserved? (e.g., "keep the API layer",
+  "don't move test files")
+- **Scope**: Does the objective affect the whole project or a subset?
+  Use `--focus` if provided.
+
+### Step 1C.3: Design the Target Structure
+
+Using the current structure from Step 1C.1 and the objective from Step 1C.2,
+design the proposed folder structure. Follow Phase 1B principles (Steps 1B.2–1B.5)
+but with these constraints:
+
+- **Reuse existing code references**: Every file path, script, and CLAUDE.md from
+  the scan should appear somewhere in the proposed structure. Nothing should be lost.
+- **Preserve working modules**: If a current module is well-organized (clear interface,
+  single responsibility), keep it unchanged.
+- **Propose moves, not rewrites**: The output should describe which folders to
+  rename, merge, split, or move — not suggest rewriting code.
+- **Keep interfaces stable**: If the current structure has clean data interfaces
+  between modules, preserve those boundaries even if the modules are renamed or moved.
+- **Ensure folder contracts**: Every proposed folder (new or restructured) must have:
+  1. A clear **objective** — one sentence stating what the folder does
+  2. Named **inputs and outputs** — the data crossing its boundary
+  3. A **SPEC.md stub** — placeholder for acceptance criteria, edge cases, and
+     validation checks
+  This follows the Folder Premise: the refactoring output is not just a new
+  directory tree, but a set of well-defined folder contracts ready for implementation.
+
+### Step 1C.4: Compute the Diff
+
+Compare current modules vs proposed modules:
+
+| Current | Proposed | Annotation |
+|---------|----------|------------|
+| Module exists, unchanged | Same module | (no annotation) |
+| Module exists, renamed/moved | Module with new label/parent | `modify` |
+| Module exists, split into 2+ | New modules with current's nodes distributed | `add` (new modules) + `modify` (original) |
+| Module exists, merged with another | Single module with both sets of nodes | `modify` (surviving) + `remove` (absorbed) |
+| No current equivalent | New module | `add` |
+| Module has no proposed equivalent | Module to delete | `remove` |
+
+For each node and edge, determine whether it stays in place, moves to a different
+module, or gets added/removed.
+
+### Step 1C.5: Synthesize
+
+Produce a model with:
+- **All current modules, nodes, and edges** (the base graph)
+- **All proposed modules, nodes, and edges** (additions and modifications)
+- **Plan annotations** mapping each change to `add`, `modify`, or `remove`
+- **Plan summary** with a goal (the objective) and tasks (one per structural change)
+
+This model feeds into Phase 2 with `_generationMode: "refactor"`.
+
+---
+
 ## Phase 2 — Graph Generation
 
 > **SPEC principles**: P1 (interfaces as primary content), P3 (complexity inside modules),
@@ -254,6 +341,16 @@ Consult `_foundations/graph-schema.md` for field requirements.
 > - **Always generate**: `edge.description` on all cross-module edges
 > - **Assign per module**: `confidence` and `needsHumanReview` per inference rules
 > - **Assign per edge**: `confidence` per inference rules
+
+> **Refactor-mode defaults** (when using `--refactor`):
+> Apply these throughout Phase 2.
+> - Base graph uses **current** scan results (real folders, files, statuses)
+> - Proposed changes encoded in `plan` field (not replacing the base graph)
+> - `_generationMode`: `"refactor"`
+> - `_objective`: the refactoring objective text
+> - Module `status`: preserve current values for unchanged modules; use `"planned"` for new modules
+> - **Always generate**: `plan.summary` with goal and tasks
+> - **Always generate**: `plan.annotations` for every changed module, node, and edge
 
 ### 2.0: Write Graph Description
 
@@ -304,6 +401,13 @@ interface — ideally **1 entry point** and **1 exit point** connecting to
 other modules. If a module pair would need 2+ edges between them,
 restructure: merge them, split differently, or wrap in a sub-phase
 (see `_foundations/inference-rules.md` § Principles 2, 8, 9).
+
+**Interface–exit node convention:** The module's `interface.outputs` names
+should correspond to the module's exit node(s). If a module has one output
+named `"validated_records"`, the last node in the module (from which the
+cross-module edge departs) should reflect that — e.g., a collector node
+labeled `"validated_records"` or `"validate.output"`. This makes the
+collapsed interface map consistent with the expanded internal view.
 
 **Keep it focused:** Aim for 3-10 modules. If you detect >12, merge
 related directories or suggest `--focus`. Target 3-8 nodes per module.
@@ -420,6 +524,23 @@ level, set `status` on the module and omit from individual nodes.
 When nodes within a module vary (e.g., some steps are implemented while
 others are planned), set per-node status. See
 `_foundations/inference-rules.md` § "Status Assignment".
+
+**Sequential vs parallel internal structure:** Before chaining nodes inside
+a module, determine whether steps are truly sequential (each depends on the
+previous) or parallel (independent files/resources consulted together).
+Do not force parallel data into a sequential chain — this creates false
+dependencies and misrepresents the workflow. For parallel resources, create
+independent nodes and converge them into a **collector node** that represents
+the combined output. The collector node is the module's exit point for
+cross-module edges.
+
+Example — a module with three independent reference files:
+```
+schema.json ──→ ┐
+inference.md ──→ ├── lookup_tables (collector)
+colors.md ─────→ ┘
+```
+Not: `schema.json → inference.md → colors.md → exit` (false sequential chain).
 
 **Scope guard:** Aim for 8-40 nodes. If >50, only include nodes that
 are documented or represent significant state transitions.
@@ -559,6 +680,12 @@ Before writing, verify:
 - Module/node `role` is `"process"` or `"data"` (or omitted for default process)
 - Module/node `status` is one of: `"planned"`, `"draft"`, `"ai-tested"`, `"needs-review"`, `"verified"` (or omitted)
 - Every module has a `status` assigned (either explicit or inferred as ai-tested)
+- **Dead-end node check**: For every node in a non-terminal module, verify
+  it has a path (through outgoing edges) to at least one cross-module edge
+  or terminal node. A node with no outgoing edges and no cross-module edge
+  leaving from it is a dead end — it means that node's output is lost.
+  Fix by: adding the missing edge to the module's exit/collector node,
+  or rethinking whether the node belongs in a different module.
 
 ### 3.3: Scope Check
 
@@ -609,6 +736,17 @@ Add generation metadata to the JSON root:
   "_generationMode": "design",
   "_objective": "the user's original objective text",
   "_generatedAt": "2026-02-16T14:30:00Z"
+}
+```
+
+**Refactor mode:** Use the same `{name}` as the existing graph (overwriting it).
+Save the pre-refactor version to `.graphs/{name}.prev.json` for diff overlay.
+Add generation metadata:
+```json
+{
+  "_generationMode": "refactor",
+  "_objective": "the refactoring objective text",
+  "_generatedAt": "2026-02-16T..."
 }
 ```
 
@@ -776,6 +914,16 @@ If `--constraints` conflicts with the objective (e.g., objective says "use
 deep learning" but constraints say "no GPU"), flag the contradiction in the
 relevant module's `checkpointReason` and set `confidence: "low"`. Do not
 silently ignore the conflict.
+
+### Refactor with no clear improvement
+If the current structure already matches the objective (or is already well-organized
+for the stated goal), tell the user: "The current structure already aligns with
+this objective. No refactoring needed." Generate the scan graph without plan
+annotations.
+
+### Refactor scope too large
+If the refactoring would touch >80% of modules, suggest using `--objective`
+(design mode) instead — at that scale, it's a redesign rather than a refactor.
 
 ### >100 scripts
 Only visualize scripts that are:
@@ -1104,3 +1252,94 @@ Running `/visualize-project --objective "Estimate the causal effect of a stagger
 ```
 
 3 phases, 8 modules, 20 nodes, 20 edges — all `status: "planned"`, no `files`, no `details`, no `trustLevels`. Domain-specific modules (`mod_variables`, `mod_estimate`, `mod_robustness`, `mod_writeup`) flagged with `needsHumanReview: true` and specific `checkpointReason` explaining what requires expertise.
+
+---
+
+## Refactor-Mode Worked Example
+
+**Existing project** at `/path/to/pipeline/`:
+```
+pipeline/
+  scripts/
+    download.py     # fetches from API → data/raw/
+    clean.py        # data/raw/ → data/clean/
+    export.py       # data/clean/ → output/
+  data/
+    raw/
+    clean/
+  output/
+  CLAUDE.md         # "Pipeline: download → clean → export"
+```
+
+**Command:** `/visualize-project . --refactor --objective "Group scripts by pipeline stage"`
+
+**Phase 1C analysis:**
+- Step 1C.1 (scan): flat `scripts/` directory with 3 scripts, `data/` with raw/clean, `output/`
+- Step 1C.2 (objective): structural goal is to move scripts from flat `scripts/` into stage-specific directories
+- Step 1C.3 (target): proposed structure — `scripts/ingest/download.py`, `scripts/clean/clean.py`, `scripts/export/export.py`
+- Step 1C.4 (diff): `mod_scripts` splits into `mod_ingest`, `mod_clean`, `mod_export`
+
+**Output** (abbreviated — base graph + plan overlay):
+
+```json
+{
+  "title": "Pipeline Workflow",
+  "description": "Download-clean-export pipeline, with proposed restructuring into stage-specific directories.",
+  "_generationMode": "refactor",
+  "_objective": "Group scripts by pipeline stage",
+  "_generatedAt": "2026-02-16T16:00:00Z",
+  "modules": [
+    { "id": "mod_scripts", "label": "Scripts", "color": "#dbeafe", "borderColor": "#93c5fd",
+      "status": "ai-tested",
+      "description": "Flat scripts directory (current). Refactoring proposes splitting by stage." },
+    { "id": "mod_ingest", "label": "Ingest", "color": "#e0f2fe", "borderColor": "#7dd3fc",
+      "status": "planned",
+      "description": "Proposed: stage-specific directory for data acquisition scripts." },
+    { "id": "mod_clean", "label": "Clean", "color": "#e0e7ff", "borderColor": "#a5b4fc",
+      "status": "planned",
+      "description": "Proposed: stage-specific directory for data cleaning scripts." },
+    { "id": "mod_export", "label": "Export", "color": "#fef2f2", "borderColor": "#fca5a5",
+      "status": "planned",
+      "description": "Proposed: stage-specific directory for export scripts." }
+  ],
+  "nodes": [
+    { "id": "scr_dl", "module": "mod_scripts", "label": "scripts.download" },
+    { "id": "scr_cln", "module": "mod_scripts", "label": "scripts.clean" },
+    { "id": "scr_exp", "module": "mod_scripts", "label": "scripts.export" },
+    { "id": "ing_dl", "module": "mod_ingest", "label": "ingest.download" },
+    { "id": "cln_cln", "module": "mod_clean", "label": "clean.clean" },
+    { "id": "exp_exp", "module": "mod_export", "label": "export.export" }
+  ],
+  "edges": [
+    { "source": "scr_dl", "target": "scr_cln", "label": "clean", "style": "solid", "actor": "script" },
+    { "source": "scr_cln", "target": "scr_exp", "label": "export", "style": "solid", "actor": "script" },
+    { "source": "ing_dl", "target": "cln_cln", "label": "clean", "style": "solid", "actor": "script" },
+    { "source": "cln_cln", "target": "exp_exp", "label": "export", "style": "solid", "actor": "script" }
+  ],
+  "plan": {
+    "summary": {
+      "goal": "Group scripts by pipeline stage",
+      "tasks": [
+        { "id": "t1", "label": "Create scripts/ingest/ and move download.py", "nodeIds": ["ing_dl"] },
+        { "id": "t2", "label": "Create scripts/clean/ and move clean.py", "nodeIds": ["cln_cln"] },
+        { "id": "t3", "label": "Create scripts/export/ and move export.py", "nodeIds": ["exp_exp"] },
+        { "id": "t4", "label": "Remove flat scripts/ directory", "nodeIds": ["scr_dl", "scr_cln", "scr_exp"] }
+      ]
+    },
+    "annotations": {
+      "mod_scripts": { "status": "remove", "description": "Flat scripts/ directory replaced by stage-specific directories" },
+      "mod_ingest": { "status": "add", "description": "New directory: scripts/ingest/" },
+      "mod_clean": { "status": "add", "description": "New directory: scripts/clean/" },
+      "mod_export": { "status": "add", "description": "New directory: scripts/export/" },
+      "scr_dl": { "status": "remove", "description": "Moves to scripts/ingest/download.py" },
+      "scr_cln": { "status": "remove", "description": "Moves to scripts/clean/clean.py" },
+      "scr_exp": { "status": "remove", "description": "Moves to scripts/export/export.py" },
+      "ing_dl": { "status": "add", "description": "download.py in new ingest directory" },
+      "cln_cln": { "status": "add", "description": "clean.py in new clean directory" },
+      "exp_exp": { "status": "add", "description": "export.py in new export directory" }
+    }
+  }
+}
+```
+
+4 modules (1 current + 3 proposed), 6 nodes (3 current + 3 proposed), 4 edges. The plan overlay shows `mod_scripts` in red (remove) and the three new modules in green (add). The viewer renders the refactoring plan as a visual diff.

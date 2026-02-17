@@ -1,97 +1,114 @@
 {
-  "title": "Visual Project Map — Component Architecture",
-  "description": "Component architecture of the Visual Project Map tool. Three phases: specification (design principles and schema defining what the tool should do), generation (AI skill that produces graph JSON from projects or objectives), and rendering (browser-based interactive DAG viewer). Data flows from declarative specs through AI-driven generation to interactive browser rendering.",
+  "title": "Visual Project Map — Folder Structure",
+  "description": "Folder-centric view of the Visual Project Map tool. The collapsed view shows actual directories: spec/ holds requirements, docs/plans/ records design decisions, skills/visualize-project/ generates graph JSON via AI, skills/visualize-plan/ overlays plans onto graphs, and viewer/ renders them as interactive DAGs. Data flows from specifications through design documents and generation to browser rendering.",
   "_generationMode": "scan",
-  "_objective": "Build a browser-based interactive DAG viewer for directed acyclic graphs with collapsible module groups, distributed as a Claude Code plugin. The tool must map existing projects (Input A) and design workflows from objectives (Input B), producing graph JSON rendered by a Cytoscape.js viewer with progressive disclosure, confidence encoding, and human-review checkpoint flags.",
-  "_generatedAt": "2026-02-16T23:30:00Z",
+  "_generatedAt": "2026-02-16T20:00:00Z",
   "modules": [
     {
-      "id": "phase_spec",
-      "label": "Specification",
+      "id": "phase_repo",
+      "label": "Repository Root",
       "color": "#e8edf3",
       "borderColor": "#a8b8cc",
       "status": "verified",
-      "description": "Declarative layer defining what the tool should do: design principles, feature requirements, graph constraints, and the JSON schema that all graphs must conform to."
+      "description": "Top-level repository containing project specifications, documentation (SPEC.md, CLAUDE.md, README.md), and the plugin directory."
     },
     {
-      "id": "mod_principles",
-      "label": "Design Principles & Features",
+      "id": "mod_spec",
+      "label": "spec/",
       "color": "#dbeafe",
       "borderColor": "#93c5fd",
-      "parent": "phase_spec",
+      "parent": "phase_repo",
       "status": "verified",
       "confidence": "high",
-      "description": "The 11 design principles (SPEC.md), feature catalog with status tracking (spec/features.md), and invariant graph properties (spec/graph-properties.md).",
+      "description": "Feature catalog (features.md), graph invariant properties (graph-properties.md), and proposed features. Also includes SPEC.md at the repo root defining the action model (describe, initialize, refactor, plan), folder premise, and design principles.",
       "interface": {
         "inputs": [
-          { "name": "product_vision", "description": "High-level objectives and user needs for the tool", "format": "Markdown (SPEC.md)" }
+          { "name": "product_vision", "description": "High-level objectives, action model, and design principles", "format": "Markdown (SPEC.md)" }
         ],
         "outputs": [
-          { "name": "requirements", "description": "Design principles, feature specs, and structural constraints", "format": "Markdown (spec/*.md)" }
+          { "name": "requirements", "description": "Feature specs (F01–F79), graph invariants, and structural constraints", "format": "Markdown (spec/*.md)" }
         ]
       }
     },
     {
-      "id": "mod_schema",
-      "label": "Graph Schema",
-      "color": "#e0e7ff",
-      "borderColor": "#a5b4fc",
-      "parent": "phase_spec",
+      "id": "mod_config",
+      "label": "Project Config",
+      "color": "#f1f5f9",
+      "borderColor": "#94a3b8",
+      "parent": "phase_repo",
+      "status": "verified",
+      "confidence": "high",
+      "description": "Plugin marketplace manifest (.claude-plugin/marketplace.json), plugin manifest (plugins/.../.claude-plugin/plugin.json), and GitHub CI configuration (.github/). Version must match in both manifests.",
+      "interface": {
+        "inputs": [
+          { "name": "version_bump", "description": "Version string update from release process", "format": "semver string" }
+        ],
+        "outputs": [
+          { "name": "installable_plugin", "description": "Marketplace entry and plugin metadata for Claude Code installation", "format": "JSON manifests" }
+        ]
+      }
+    },
+    {
+      "id": "mod_plans",
+      "label": "docs/plans/",
+      "color": "#fef9c3",
+      "borderColor": "#fde047",
+      "parent": "phase_repo",
       "status": "verified",
       "confidence": "high",
       "role": "data",
-      "description": "JSON Schema (schema.json) defining the valid structure of graph data: modules, nodes, edges, legend, and all optional fields (confidence, status, role, interface, description).",
+      "description": "Design documents and implementation plans (YYYY-MM-DD-<topic>-design.md and -plan.md). Records architectural decisions, feature designs, and task breakdowns that guide development.",
       "interface": {
         "inputs": [
-          { "name": "requirements", "description": "Design principles and feature specs defining what fields the schema must support", "format": "Markdown" }
+          { "name": "requirements", "description": "Feature specs and design principles from spec/ and SPEC.md", "format": "Markdown" }
         ],
         "outputs": [
-          { "name": "schema_json", "description": "JSON Schema for graph validation", "format": "JSON Schema (schema.json)" }
+          { "name": "design_docs", "description": "Design documents and implementation plans for features", "format": "Markdown (docs/plans/*.md)" }
         ]
       }
     },
     {
-      "id": "phase_generate",
-      "label": "Generation",
+      "id": "phase_plugin",
+      "label": "plugins/visual-project-map/",
       "color": "#f3ede8",
       "borderColor": "#ccb8a8",
       "status": "ai-tested",
-      "description": "AI-driven graph creation: foundation reference tables inform the generation skill, which scans projects or designs workflows to produce valid graph JSON."
+      "description": "The plugin directory containing all runtime code: generation skill with foundation tables, browser-based viewer, utility scripts, example graphs, and the JSON schema definition."
     },
     {
       "id": "mod_foundations",
-      "label": "Foundation Tables",
+      "label": "_foundations/",
       "color": "#fef2f2",
       "borderColor": "#fca5a5",
-      "parent": "phase_generate",
+      "parent": "phase_plugin",
       "status": "verified",
       "confidence": "high",
       "role": "data",
-      "description": "Reference tables consumed by the generation skill: inference rules (module/node/edge detection heuristics), color palette (12 module + 4 phase colors), and graph schema quick reference.",
+      "description": "Reference tables at skills/visualize-project/_foundations/ consumed by the generation skill: inference rules (inference-rules.md), color palette (color-palette.md), graph schema reference (graph-schema.md). Also includes the JSON Schema definition (schema.json) at the plugin root.",
       "interface": {
         "inputs": [
-          { "name": "schema_json", "description": "Schema definitions to document for skill consumption", "format": "JSON Schema" }
+          { "name": "requirements", "description": "Feature specs and graph constraints from spec/", "format": "Markdown" }
         ],
         "outputs": [
-          { "name": "lookup_tables", "description": "Inference rules, color assignments, and schema field reference", "format": "Markdown (_foundations/*.md)" }
+          { "name": "lookup_tables", "description": "Inference rules, color assignments, schema reference, and JSON Schema", "format": "Markdown + JSON" }
         ]
       }
     },
     {
       "id": "mod_skill",
-      "label": "Generation Skill",
+      "label": "skills/visualize-project/",
       "color": "#fff7ed",
       "borderColor": "#fdba74",
-      "parent": "phase_generate",
+      "parent": "phase_plugin",
       "status": "ai-tested",
       "confidence": "medium",
       "needsHumanReview": true,
-      "checkpointReason": "The skill orchestrates complex AI reasoning across 3 phases — design decisions about module boundaries, confidence assessment, and CLAUDE.md scaffolding require human review of the generated output",
-      "description": "SKILL.md instructions that guide Claude through discovery (Input A) or design (Input B), graph construction, validation, and output. Produces graph JSON conforming to schema.json.",
+      "checkpointReason": "The skill orchestrates complex AI reasoning across 3 phases — module boundary decisions, confidence assessment, and scaffolding require human review of generated output",
+      "description": "SKILL.md instructions guiding Claude through discovery (describe action), design (initialize action), refactoring (refactor action), graph construction, validation, and output. Produces graph JSON conforming to schema.json.",
       "interface": {
         "inputs": [
-          { "name": "user_input", "description": "Directory path (Input A), objective text (Input B), or existing JSON (Input C) with optional flags", "format": "CLI arguments" },
-          { "name": "lookup_tables", "description": "Foundation reference tables for inference", "format": "Markdown" }
+          { "name": "user_input", "description": "Directory path (describe), objective text (initialize), or flags (--refactor, --plan)", "format": "CLI arguments" },
+          { "name": "lookup_tables", "description": "Foundation reference tables for inference", "format": "Markdown + JSON" }
         ],
         "outputs": [
           { "name": "graph_json", "description": "Valid graph JSON with modules, nodes, edges, and metadata", "format": "JSON (.graphs/*.json)" }
@@ -99,214 +116,206 @@
       }
     },
     {
-      "id": "phase_render",
-      "label": "Rendering",
-      "color": "#e8f3ed",
-      "borderColor": "#a8ccb8",
-      "status": "verified",
-      "description": "Browser-based interactive visualization: loads graph JSON, renders via Cytoscape.js with dagre layout, manages collapse state, handles user interaction, and provides extended view modes."
+      "id": "mod_plan_skill",
+      "label": "skills/visualize-plan/",
+      "color": "#fff1f2",
+      "borderColor": "#fda4af",
+      "parent": "phase_plugin",
+      "status": "ai-tested",
+      "confidence": "high",
+      "description": "SKILL.md instructions for overlaying implementation plans onto existing graphs. Reads a plan document and graph JSON, matches tasks to nodes/edges, emits plan annotations (add/modify/remove).",
+      "docPath": "plugins/visual-project-map/skills/visualize-plan/CLAUDE.md",
+      "interface": {
+        "inputs": [
+          { "name": "plan_document", "description": "Markdown file describing tasks and affected components", "format": "Markdown" },
+          { "name": "graph_json", "description": "Existing graph JSON to annotate", "format": "JSON (.graphs/*.json)" }
+        ],
+        "outputs": [
+          { "name": "annotated_graph_json", "description": "Graph with plan field added (summary + annotations)", "format": "JSON (.graphs/*.json)" }
+        ]
+      }
     },
     {
       "id": "mod_viewer",
-      "label": "Viewer Core",
+      "label": "viewer/",
       "color": "#fefce8",
       "borderColor": "#fde047",
-      "parent": "phase_render",
+      "parent": "phase_plugin",
       "status": "verified",
       "confidence": "high",
-      "description": "Core rendering engine (viewer.js + index.html): fetches graph JSON, validates structure, converts to Cytoscape elements, applies visual styles from graph data, and runs dagre hierarchical layout.",
+      "description": "Browser-based interactive DAG renderer at viewer/: index.html entry point, src/viewer.js (load, build, style, layout), src/expand-collapse.js (collapse manager), src/interactions.js (events, panels, search), plus overlay modules (diff.js, plan-overlay.js, minimap.js).",
       "interface": {
         "inputs": [
           { "name": "graph_json", "description": "Graph JSON loaded via ?graph= URL parameter", "format": "JSON" }
         ],
         "outputs": [
-          { "name": "cy_instance", "description": "Initialized Cytoscape instance with elements, styles, and layout", "format": "Cytoscape.js object" }
+          { "name": "interactive_view", "description": "Rendered DAG with collapse, search, view modes, and detail panels", "format": "Browser DOM (Cytoscape.js)" }
         ]
       }
     },
     {
-      "id": "mod_collapse",
-      "label": "Collapse Manager",
+      "id": "mod_scripts",
+      "label": "scripts/",
       "color": "#f0fdf4",
       "borderColor": "#86efac",
-      "parent": "phase_render",
+      "parent": "phase_plugin",
       "status": "verified",
       "confidence": "high",
-      "description": "Custom expand/collapse engine (expand-collapse.js): removes children via cy.remove() to collapse, restores via cy.add() to expand, rebuilds deduplicated meta-edges for cross-module connections.",
+      "description": "Utility scripts at scripts/: serve.py launches a local HTTP server, copies graph JSON to the viewer's examples/ directory, and opens the browser.",
       "interface": {
         "inputs": [
-          { "name": "cy_instance", "description": "Cytoscape instance with all elements loaded", "format": "Cytoscape.js object" }
+          { "name": "graph_json_path", "description": "Path to generated graph JSON file", "format": "filesystem path" }
         ],
         "outputs": [
-          { "name": "collapse_api", "description": "CollapseManager with toggle/collapseAll/expandAll methods and collapsed state", "format": "JS class instance" }
+          { "name": "served_viewer", "description": "Local HTTP server hosting the viewer with the graph loaded", "format": "HTTP (localhost:8080)" }
         ]
       }
     },
     {
-      "id": "mod_interactions",
-      "label": "User Interactions",
-      "color": "#eff6ff",
-      "borderColor": "#93c5fd",
-      "parent": "phase_render",
-      "status": "ai-tested",
-      "confidence": "medium",
-      "description": "Event handling layer (interactions.js): click-to-toggle modules, hover tooltips and highlighting, keyboard shortcuts, search, toolbar buttons, node detail side panel, edge detail modal.",
-      "interface": {
-        "inputs": [
-          { "name": "collapse_api", "description": "CollapseManager instance for toggling modules on click", "format": "JS class instance" }
-        ],
-        "outputs": [
-          { "name": "ui_state", "description": "Active view mode, search state, panel visibility, path trace selection", "format": "JS module state" }
-        ]
-      }
-    },
-    {
-      "id": "mod_overlays",
-      "label": "Extended Views",
+      "id": "mod_examples",
+      "label": "examples/",
       "color": "#f5f3ff",
       "borderColor": "#c4b5fd",
-      "parent": "phase_render",
-      "status": "ai-tested",
-      "confidence": "medium",
-      "needsHumanReview": true,
-      "checkpointReason": "View modes (plan, diff, confidence) encode complex semantics — the visual encoding choices and V-key cycling order require UX review",
-      "description": "Augmented view modes: plan overlay (plan-overlay.js) with add/modify/remove glow, diff view (diff.js) comparing graph versions, minimap (minimap.js) for navigation, and watch mode for auto-refresh.",
+      "parent": "phase_plugin",
+      "status": "verified",
+      "confidence": "high",
+      "role": "data",
+      "description": "Sample graph JSON files at examples/ for testing and demonstration: minimal.json, data-pipeline.json, ci-cd-workflow.json, did-policy-employment.json, and this project's own graph.",
       "interface": {
         "inputs": [
-          { "name": "ui_state", "description": "Active view mode selection from interactions module", "format": "JS module state" }
+          { "name": "graph_json", "description": "Generated or hand-authored graph JSON files", "format": "JSON" }
         ],
         "outputs": [
-          { "name": "augmented_view", "description": "Modified Cytoscape styles and canvas overlays for the active view mode", "format": "Cytoscape style overrides + HTML canvas" }
+          { "name": "sample_graphs", "description": "Collection of example graphs loadable by the viewer", "format": "JSON files" }
         ]
       }
     }
   ],
   "nodes": [
-    { "id": "prn_principles", "module": "mod_principles", "label": "principles.design_principles",
-      "description": "Eleven principles governing tool design: interfaces as primary content, progressive disclosure, confidence encoding, CLAUDE.md per module, graphs embed folder hierarchy and reveal logical flow, 1-edge-per-module-pair at every hierarchy level, and design-mode applicability table." },
-    { "id": "prn_features", "module": "mod_principles", "label": "principles.feature_catalog",
-      "description": "Feature catalog (F01–F76) tracking every viewer and skill feature with implementation status, file locations, and property cross-references." },
-    { "id": "prn_properties", "module": "mod_principles", "label": "principles.graph_properties",
-      "description": "Invariant properties every rendered graph must satisfy: structural validity, visual encoding rules, layout constraints, interaction behaviors." },
+    { "id": "spec_roadmap", "module": "mod_spec", "label": "SPEC.md",
+      "description": "Main specification: actions (describe, initialize, refactor, plan), folder premise, design principles, ideal workflow, and implementation procedure." },
+    { "id": "spec_features", "module": "mod_spec", "label": "features.md",
+      "description": "Feature catalog (F01–F79) tracking every viewer and skill feature with status, file locations, and property cross-references." },
+    { "id": "spec_properties", "module": "mod_spec", "label": "graph-properties.md",
+      "description": "Invariant properties every rendered graph must satisfy: structural validity (P1), visual encoding (P2), layout (P3), collapse (P4), chrome (P5), interaction (P6), filtering (P7)." },
 
-    { "id": "sch_types", "module": "mod_schema", "label": "schema.type_definitions",
-      "role": "data",
-      "description": "Required top-level fields (title, modules, nodes, edges) and their object structures with required vs optional fields." },
-    { "id": "sch_fields", "module": "mod_schema", "label": "schema.optional_fields",
-      "role": "data",
-      "description": "Extended schema fields: confidence, status, role, interface, description, criticalPath (node ID array), module.docPath, generation metadata (_generationMode, _objective, _generatedAt)." },
-    { "id": "sch_encoding", "module": "mod_schema", "label": "schema.visual_encoding",
-      "role": "data",
-      "description": "How schema fields map to visual properties: role→shape, status→opacity+border, confidence→border treatment, trust→border style." },
+    { "id": "cfg_marketplace", "module": "mod_config", "label": "marketplace.json",
+      "description": "Plugin marketplace manifest at .claude-plugin/marketplace.json — defines plugin name, description, and version for Claude Code plugin discovery." },
+    { "id": "cfg_plugin", "module": "mod_config", "label": "plugin.json",
+      "description": "Plugin manifest at plugins/visual-project-map/.claude-plugin/plugin.json — defines skills, version, and entry points. Version must match marketplace.json." },
 
-    { "id": "fnd_inference", "module": "mod_foundations", "label": "foundations.inference_rules",
+    { "id": "pln_designs", "module": "mod_plans", "label": "design docs",
       "role": "data",
-      "description": "Module detection heuristics, node shape assignment, edge style rules, actor inference, status/role/confidence lookup tables, and 9 module design principles." },
-    { "id": "fnd_colors", "module": "mod_foundations", "label": "foundations.color_palette",
+      "description": "Feature design documents (e.g., open-source-plugin-design.md, shape-based-role-distinction-design.md) recording architectural decisions and approach rationale." },
+    { "id": "pln_impl", "module": "mod_plans", "label": "implementation plans",
+      "role": "data",
+      "description": "Step-by-step implementation plans (e.g., open-source-plugin-plan.md, spec-gap-closing-implementation.md) with file lists, code changes, and task breakdowns." },
+
+    { "id": "fnd_inference", "module": "mod_foundations", "label": "inference-rules.md",
+      "role": "data",
+      "description": "Module detection heuristics, node shape/role assignment, edge style rules, actor inference, status/confidence lookup tables, and 11 module design principles." },
+    { "id": "fnd_colors", "module": "mod_foundations", "label": "color-palette.md",
       "role": "data",
       "description": "12 module background/border color pairs, 4 phase colors, terminal color overrides, and assignment rules (directory order, slate for terminals)." },
-    { "id": "fnd_schema_ref", "module": "mod_foundations", "label": "foundations.schema_reference",
+    { "id": "fnd_schema_ref", "module": "mod_foundations", "label": "graph-schema.md",
       "role": "data",
       "description": "Quick reference documenting all graph schema fields, role/status/confidence visual encoding tables — the skill's cheat sheet during generation." },
+    { "id": "fnd_schema_json", "module": "mod_foundations", "label": "schema.json",
+      "role": "data",
+      "description": "JSON Schema definition (at plugin root) validating graph structure: modules, nodes, edges, legend, and all optional fields (confidence, status, role, interface, description)." },
+    { "id": "fnd_ready", "module": "mod_foundations", "label": "lookup_tables",
+      "role": "data",
+      "description": "Collector: all four reference files (schema, schema docs, inference rules, color palette) bundled as the module's single output to the generation skill." },
 
-    { "id": "skl_parse", "module": "mod_skill", "label": "skill.parse_arguments",
-      "description": "Parse input type from CLI arguments: directory path triggers Input A (scan), --objective triggers Input B (design), JSON path triggers Input C (direct load)." },
-    { "id": "skl_discover", "module": "mod_skill", "label": "skill.discover_or_design",
-      "description": "Phase 1: scan codebase for CLAUDE.md, scripts, I/O patterns, folder structure. Phase 1B: decompose objective into stages, define data flow, assess confidence." },
-    { "id": "skl_construct", "module": "mod_skill", "label": "skill.construct_graph",
-      "description": "Phase 2: define modules (top-down from structure), nodes (from steps), edges (from flow). Enforce 1-edge rule. Apply colors, shapes, status, confidence." },
-    { "id": "skl_output", "module": "mod_skill", "label": "skill.write_and_serve",
-      "description": "Phase 3: validate graph, write .graphs/*.json, launch serve.py, suggest CLAUDE.md scaffolding (design mode). Support incremental regeneration." },
+    { "id": "skl_phase1", "module": "mod_skill", "label": "Phase 1: Discovery / Design",
+      "description": "Scan codebase (describe action): read CLAUDE.md, scripts, I/O patterns, folder structure. Design workflow (initialize action): decompose objective into stages, define data flow, assess confidence." },
+    { "id": "skl_phase2", "module": "mod_skill", "label": "Phase 2: Graph Construction",
+      "description": "Define modules (top-down from folder structure), nodes (from processing steps), edges (from data flow). Enforce 1-edge-per-folder rule. Apply colors, shapes, status, confidence." },
+    { "id": "skl_phase3", "module": "mod_skill", "label": "Phase 3: Output & Serve",
+      "description": "Validate graph against schema, write .graphs/*.json, save .prev.json for diffs, launch serve.py, suggest CLAUDE.md scaffolding (initialize mode). Support incremental regeneration." },
 
-    { "id": "vwr_load", "module": "mod_viewer", "label": "viewer.load_graph",
-      "description": "Fetch graph JSON via ?graph= URL parameter, run runtime validation (required fields, duplicate IDs, dangling references, circular parents), show error panel on failure." },
-    { "id": "vwr_build", "module": "mod_viewer", "label": "viewer.build_elements",
-      "description": "Convert modules → compound nodes, nodes → child nodes, edges → edge elements. Pass through all data attributes (description, files, interface, status, role, confidence)." },
-    { "id": "vwr_style", "module": "mod_viewer", "label": "viewer.build_styles",
-      "description": "Generate Cytoscape stylesheet from graph data: module colors, node shapes (role→hexagon, decision→diamond), borders (trust, status), edge colors (actor), opacity (status)." },
-    { "id": "vwr_layout", "module": "mod_viewer", "label": "viewer.run_layout",
-      "description": "Dagre hierarchical layout with longest-path ranker, configurable spacing. Falls back to network-simplex on error. Fits viewport after layout." },
+    { "id": "pln_overlay", "module": "mod_plan_skill", "label": "plan.overlay",
+      "description": "Read existing graph JSON + plan document, match plan tasks to graph elements, emit plan field with summary (goal + tasks) and per-element annotations (add/modify/remove)." },
 
-    { "id": "col_init", "module": "mod_collapse", "label": "collapse.initialize",
-      "description": "CollapseManager constructor: store all original edges, initialize collapsed state tracking, call collapseAll() for default collapsed view." },
-    { "id": "col_toggle", "module": "mod_collapse", "label": "collapse.toggle_module",
-      "description": "Collapse: cy.remove() children and internal edges. Expand: cy.add() stored children and edges. Depth-aware for nested phases (deepest first collapse, shallowest first expand)." },
-    { "id": "col_meta", "module": "mod_collapse", "label": "collapse.rebuild_meta_edges",
-      "description": "When modules are collapsed, rebuild cross-module edges as deduplicated meta-edges with combined labels and propagated actor colors." },
+    { "id": "vwr_index", "module": "mod_viewer", "label": "index.html",
+      "description": "Entry point: loads Cytoscape.js + dagre from CDN, loads 6 JS modules in order (expand-collapse → viewer → interactions → plan-overlay → diff → minimap), provides toolbar, legend, panels, and CSS." },
+    { "id": "vwr_viewer", "module": "mod_viewer", "label": "viewer.js",
+      "description": "Core rendering engine: loadGraph, validateGraph, buildElements, buildStyles, runLayout, view mode switching (Module/Provenance/Actor/Files/Confidence/Plan/Diff), legend management." },
+    { "id": "vwr_collapse", "module": "mod_viewer", "label": "expand-collapse.js",
+      "description": "CollapseManager class: cy.remove()/cy.add() for collapse/expand, depth-aware nesting for phases, deduplicated meta-edges with combined labels and actor propagation." },
+    { "id": "vwr_interactions", "module": "mod_viewer", "label": "interactions.js",
+      "description": "Event handling: click-to-toggle modules, hover tooltips/highlighting, keyboard shortcuts (F/E/C/L/V/W/M/P), search, node side panel, edge detail modal, breadcrumbs, port positioning." },
+    { "id": "vwr_overlays", "module": "mod_viewer", "label": "Overlay modules",
+      "description": "diff.js (version comparison via ?compare=), plan-overlay.js (add/modify/remove glow + badges), minimap.js (canvas navigation overview with click-to-navigate)." },
 
-    { "id": "int_click", "module": "mod_interactions", "label": "interactions.click_handlers",
-      "description": "Click module → toggle expand/collapse. Click node → open side panel (description, I/O, files) or path trace. Click edge → open detail modal (script, inputs, outputs). Shift+click → always path trace." },
-    { "id": "int_hover", "module": "mod_interactions", "label": "interactions.hover_effects",
-      "description": "Hover node → tooltip with label, description preview, file indicators; dim non-neighbors. Hover edge → show label, script name, description. Clear on mouseout." },
-    { "id": "int_keyboard", "module": "mod_interactions", "label": "interactions.keyboard_shortcuts",
-      "description": "F=fit, E=expand all, C=collapse all, L=toggle labels, V=cycle views, W=watch mode, M=minimap, P=critical path, /=search focus, Escape=clear." },
-    { "id": "int_panels", "module": "mod_interactions", "label": "interactions.detail_panels",
-      "description": "Node detail side panel (left, non-blocking), edge detail modal (centered), plan summary panel (right slide-in), breadcrumb bar (top, shows drill-down path)." },
+    { "id": "scr_serve", "module": "mod_scripts", "label": "serve.py",
+      "description": "Python HTTP server: copies graph JSON to viewer/examples/, opens browser at localhost:8080, serves plugin directory. Supports --port flag." },
 
-    { "id": "ovr_views", "module": "mod_overlays", "label": "overlays.view_switcher",
-      "description": "V key cycles through view modes: Module (default colors), Provenance (trust states), Actor (edge performer), Files (I/O paths), Confidence (module confidence coloring), Plan (annotations), Diff (version comparison). Context-sensitive legend updates per view." },
-    { "id": "ovr_plan", "module": "mod_overlays", "label": "overlays.plan_overlay",
-      "description": "Plan view: green/amber/red glow on annotated elements (add/modify/remove). Collapsed modules show +N ~M -R badges. Plan summary panel shows goal and tasks." },
-    { "id": "ovr_diff", "module": "mod_overlays", "label": "overlays.diff_view",
-      "description": "Diff view via ?compare= URL: compute structural diff (added/removed/modified) for modules, nodes, edges. Green/amber/red/dimmed overlay with summary counts." },
-    { "id": "ovr_minimap", "module": "mod_overlays", "label": "overlays.minimap",
-      "description": "Canvas-based overview inset in bottom-right corner. Shows all nodes/edges at thumbnail scale with viewport rectangle. Click to navigate. Toggle via M key." }
+    { "id": "ex_minimal", "module": "mod_examples", "label": "minimal.json",
+      "role": "data",
+      "description": "Minimal example graph with 2 modules, demonstrating basic structure and required fields." },
+    { "id": "ex_pipeline", "module": "mod_examples", "label": "data-pipeline.json",
+      "role": "data",
+      "description": "ETL data pipeline example with acquisition, transformation, and loading stages." },
+    { "id": "ex_self", "module": "mod_examples", "label": "visual-project-map.json",
+      "role": "data",
+      "description": "This project's own graph — dogfooding the describe action on itself." }
   ],
   "edges": [
-    { "source": "prn_principles", "target": "prn_features", "label": "catalog", "style": "solid" },
-    { "source": "prn_features", "target": "prn_properties", "label": "constrain", "style": "solid" },
+    { "source": "spec_roadmap", "target": "spec_features", "label": "catalog features", "style": "solid" },
+    { "source": "spec_features", "target": "spec_properties", "label": "constrain", "style": "solid" },
 
-    { "source": "sch_types", "target": "sch_fields", "label": "extend", "style": "solid" },
-    { "source": "sch_fields", "target": "sch_encoding", "label": "encode visually", "style": "solid" },
+    { "source": "cfg_marketplace", "target": "cfg_plugin", "label": "version sync", "style": "solid" },
 
+    { "source": "pln_designs", "target": "pln_impl", "label": "detail tasks", "style": "solid" },
+
+    { "source": "spec_properties", "target": "pln_designs", "label": "inform design", "style": "solid",
+      "description": "Feature specs, graph properties, and SPEC.md principles guide the creation of design documents in docs/plans/.",
+      "confidence": "high" },
+
+    { "source": "fnd_schema_json", "target": "fnd_schema_ref", "label": "document", "style": "solid" },
+    { "source": "fnd_schema_ref", "target": "fnd_inference", "label": "populate fields", "style": "solid",
+      "description": "Schema defines what fields exist; inference rules define how the skill fills them (shapes, roles, status, confidence)." },
     { "source": "fnd_inference", "target": "fnd_colors", "label": "assign colors", "style": "solid" },
-    { "source": "fnd_colors", "target": "fnd_schema_ref", "label": "document fields", "style": "solid" },
+    { "source": "fnd_colors", "target": "fnd_ready", "label": "bundle", "style": "solid" },
 
-    { "source": "skl_parse", "target": "skl_discover", "label": "analyze", "style": "solid", "actor": "ai" },
-    { "source": "skl_discover", "target": "skl_construct", "label": "build graph", "style": "solid", "actor": "ai" },
-    { "source": "skl_construct", "target": "skl_output", "label": "write output", "style": "solid", "actor": "script" },
+    { "source": "skl_phase1", "target": "skl_phase2", "label": "build graph", "style": "solid", "actor": "ai" },
+    { "source": "skl_phase2", "target": "skl_phase3", "label": "write output", "style": "solid", "actor": "ai" },
 
-    { "source": "vwr_load", "target": "vwr_build", "label": "build elements", "style": "solid", "actor": "script" },
-    { "source": "vwr_build", "target": "vwr_style", "label": "apply styles", "style": "solid", "actor": "script" },
-    { "source": "vwr_style", "target": "vwr_layout", "label": "run dagre", "style": "solid", "actor": "script" },
+    { "source": "vwr_viewer", "target": "vwr_collapse", "label": "initialize collapse", "style": "solid", "actor": "script" },
+    { "source": "vwr_collapse", "target": "vwr_interactions", "label": "handle events", "style": "solid", "actor": "script" },
+    { "source": "vwr_interactions", "target": "vwr_overlays", "label": "switch views", "style": "solid", "actor": "script" },
 
-    { "source": "col_init", "target": "col_toggle", "label": "toggle", "style": "solid", "actor": "script" },
-    { "source": "col_toggle", "target": "col_meta", "label": "rebuild edges", "style": "solid", "actor": "script" },
-
-    { "source": "int_click", "target": "int_hover", "label": "attach hover", "style": "solid", "actor": "script" },
-    { "source": "int_hover", "target": "int_keyboard", "label": "bind keys", "style": "solid", "actor": "script" },
-    { "source": "int_keyboard", "target": "int_panels", "label": "open panels", "style": "solid", "actor": "script" },
-
-    { "source": "ovr_views", "target": "ovr_plan", "label": "plan mode", "style": "solid", "actor": "script" },
-    { "source": "ovr_views", "target": "ovr_diff", "label": "diff mode", "style": "solid", "actor": "script" },
-    { "source": "ovr_views", "target": "ovr_minimap", "label": "minimap", "style": "solid", "actor": "script" },
-
-    { "source": "prn_properties", "target": "sch_types", "label": "define schema", "style": "solid",
-      "description": "Graph properties and design principles define the structural and visual constraints that the JSON schema must encode.",
+    { "source": "pln_impl", "target": "spec_features", "label": "update features", "style": "dashed", "actor": "mixed",
+      "description": "Implementation plans drive feature development. Completed plans result in feature status updates (proposed → implemented) in the feature catalog.",
       "confidence": "high" },
 
-    { "source": "sch_encoding", "target": "fnd_schema_ref", "label": "document format", "style": "solid",
-      "description": "Schema field definitions and visual encoding rules are documented in foundation reference tables for easy skill consumption during graph generation.",
+    { "source": "spec_properties", "target": "fnd_schema_json", "label": "define schema", "style": "solid",
+      "description": "Graph properties and feature specs define the structural and visual constraints that the JSON schema must encode.",
       "confidence": "high" },
 
-    { "source": "fnd_schema_ref", "target": "skl_parse", "label": "inform generation", "style": "solid", "actor": "ai",
-      "description": "Foundation tables (inference rules, colors, schema docs) are consulted throughout all phases of graph generation as the AI's reference material.",
+    { "source": "fnd_ready", "target": "skl_phase1", "label": "inform generation", "style": "solid", "actor": "ai",
+      "description": "All foundation tables (inference rules, colors, schema docs, JSON Schema) are consulted throughout graph generation as the AI's reference material.",
       "confidence": "high" },
 
-    { "source": "skl_output", "target": "vwr_load", "label": "render graph", "style": "solid", "actor": "script",
-      "description": "Skill writes validated graph JSON to .graphs/; serve.py copies it to the viewer's examples directory and opens the browser to render it.",
+    { "source": "skl_phase3", "target": "pln_overlay", "label": "annotate plan", "style": "dashed", "actor": "ai",
+      "description": "Graph JSON from the generation skill can optionally be annotated by the plan skill to overlay add/modify/remove annotations.",
       "confidence": "high" },
 
-    { "source": "vwr_layout", "target": "col_init", "label": "initialize collapse", "style": "solid", "actor": "script",
-      "description": "After dagre layout completes, CollapseManager initializes: stores original edges, collapses all modules, re-runs layout for the default collapsed view.",
+    { "source": "skl_phase3", "target": "scr_serve", "label": "launch viewer", "style": "solid", "actor": "script",
+      "description": "After writing graph JSON to .graphs/, the skill calls serve.py to copy the file to examples/ and open the browser.",
       "confidence": "high" },
 
-    { "source": "col_meta", "target": "int_click", "label": "handle events", "style": "solid", "actor": "script",
-      "description": "Collapse state determines which elements are visible; the interactions module attaches event handlers to the current Cytoscape elements.",
+    { "source": "pln_overlay", "target": "scr_serve", "label": "serve annotated", "style": "dashed", "actor": "script",
+      "description": "Annotated graph with plan overlay is served the same way — via serve.py and the viewer.",
       "confidence": "high" },
 
-    { "source": "int_panels", "target": "ovr_views", "label": "switch views", "style": "solid", "actor": "script",
-      "description": "View mode switcher (V key, toolbar buttons) in interactions triggers extended view modes in the overlays module: plan, diff, minimap.",
+    { "source": "scr_serve", "target": "vwr_index", "label": "serve files", "style": "solid", "actor": "script",
+      "description": "serve.py hosts the viewer directory via local HTTP server and loads the graph via ?graph= URL parameter.",
+      "confidence": "high" },
+
+    { "source": "ex_self", "target": "vwr_viewer", "label": "sample data", "style": "dashed",
+      "description": "Example graphs are loaded by the viewer via ?graph= URL parameter for demonstration and testing.",
       "confidence": "high" }
   ]
 }

@@ -430,6 +430,25 @@ contradictions and against this catalog for duplicates.
   `needsHumanReview: true`. Skips existing files without overwriting. Without
   `--scaffold`, behavior is unchanged (print-only). Extends F76.
 
+### F78: `refactor` action — scan + redesign toward objective
+- **Status**: `implemented`
+- **Properties**: P1.1–P1.4
+- **Files**: `skills/visualize-project/SKILL.md` (Phase 1C, --refactor flag, refactor-mode guidance)
+- New generation action that combines scanning an existing project (Phase 1) with
+  redesigning toward a stated objective (Phase 1B). Scans current folder structure,
+  redesigns toward the objective while preserving code references, and outputs a graph
+  with diff overlay showing the refactoring plan. Invoked via
+  `/visualize-project . --refactor --objective "..."`.
+
+### F79: `plan` action — detect SPEC.md changes, propose new folders
+- **Status**: `proposed`
+- **Properties**: P1.1–P1.4
+- New generation action that scans an existing project, detects SPEC.md changes (or
+  accepts explicit pointers to changed specs), and proposes new directories and files
+  to satisfy the updated requirements. Outputs the current graph with new folders at
+  `status: "planned"` and plan overlay annotations. Invoked via
+  `/visualize-project . --plan`.
+
 ## View Modes
 
 ### F40: View mode switcher (Module/Provenance/Actor/Files)
@@ -688,3 +707,5 @@ contradictions and against this catalog for duplicates.
 | 2026-02-16 | F61 | Implemented: I/O subtitle on collapsed modules without port nodes |
 | 2026-02-16 | F63 | Implemented: amber badge + dashed border for needsHumanReview modules |
 | 2026-02-16 | F64 | Implemented: confidence view mode with color encoding and legend |
+| 2026-02-16 | F78 | Implemented: `refactor` action (Phase 1C in SKILL.md — scan + redesign + plan overlay) |
+| 2026-02-16 | F79 | Proposed: `plan` action (detect SPEC.md changes, propose new folders, plan overlay) |

@@ -13,43 +13,69 @@ In both cases, the visualization answers two questions in a single view:
 - **"Where is this code?"** — from the folder hierarchy (same as `tree`)
 - **"What depends on what?"** — from the edges (what `tree` can't show)
 
-## Inputs
+## Actions
 
-The tool accepts three types of input, corresponding to different use cases:
+The tool supports four actions — verbs describing what the user wants to accomplish.
 
-### Input A: Existing project directory
+| Action | Purpose | SKILL.md label | Status |
+|--------|---------|---------------|--------|
+| `describe` | Map an existing project's folder structure | Input A | Implemented |
+| `initialize` | Design a new folder structure from an objective | Input B | Implemented |
+| `refactor` | Restructure existing folders toward an objective | Input A + --refactor | Implemented |
+| `plan` | Propose new files/folders from a SPEC update | — | Planned |
 
-The user points the tool at a codebase. The AI scans its structure, documentation, and scripts to infer the workflow.
+> **Viewer loading (formerly Input C):** Rendering an existing `.json` graph is a viewer operation, not a generation action. Point the viewer at any graph file via `?graph=path/to/file.json`.
 
-- **Concrete form**: Filesystem path + optional flags
+### describe
+
+Map an existing project's folder structure and overlay logical data flow.
+
+- **When to use**: The project already exists and you want to document its workflow
+- **What you provide**: Filesystem path + optional `--focus`, `--depth`, `--title`
+- **What it produces**: Graph JSON reflecting current folder structure and data flow
+- **How it works**: SKILL.md Phase 1 (Discovery) — scans CLAUDE.md, README.md, scripts, folder structure, I/O patterns, Makefiles, CI configs
+- **Status**: Implemented
 - **Examples**:
-  - `/Users/me/research-project` — scan entire project
-  - `. --focus scripts/analysis` — scan only a subdirectory
-  - `. --depth 1` — flat modules, no phase grouping
-- **What the AI reads**: CLAUDE.md, README.md, folder structure, script I/O patterns, Makefiles, CI configs
-- **When to use**: The project already exists and you want to understand or document its workflow
+  - `/visualize-project` — scan current directory
+  - `/visualize-project . --focus scripts/` — scan only a subdirectory
 
-### Input B: Natural language objective
+### initialize
 
-The user describes what they want to achieve. The AI designs a workflow from scratch — modules, interfaces, and recommended human checkpoints — before any code is written.
+Design a new folder structure from a natural language objective.
 
-- **Concrete form**: A text description of the goal
+- **When to use**: The project does not yet exist, or you want to design the workflow from a clean slate
+- **What you provide**: `--objective "..."` + optional `--constraints`, `--domain`, `--scaffold`
+- **What it produces**: Graph JSON with all folders at `status: "planned"`, optional scaffolding
+- **How it works**: SKILL.md Phase 1B (Design from Objective) — decomposes the objective into stages, defines data flow, assesses confidence, recommends human checkpoints
+- **Status**: Implemented
 - **Examples**:
-  - "Estimate the causal effect of a policy intervention on employment using diff-in-diff with administrative claims data"
-  - "Build a CLI tool that scans a codebase and generates an interactive workflow diagram"
-  - "Set up a data pipeline that ingests from 3 APIs, deduplicates, enriches with LLM, and loads to Postgres"
-- **What the AI uses**: Domain knowledge, common project patterns, the user's stated constraints
-- **When to use**: The project does not yet exist, or you want to redesign the workflow from a clean slate
+  - `/visualize-project --objective "Build ETL pipeline for CSV to PostgreSQL"`
+  - `/visualize-project --objective "Estimate causal effect via diff-in-diff" --scaffold`
 
-### Input C: Existing graph JSON
+### refactor
 
-The user provides a previously generated (or hand-authored) graph JSON file. The viewer renders it directly.
+Restructure existing folders toward a stated objective, ensuring each folder has a clear purpose and contract.
 
-- **Concrete form**: Path to a `.json` file conforming to `schema.json`
+- **When to use**: The project exists but its folder structure doesn't match the logical data flow, or folders lack clear objectives, inputs/outputs, or specs
+- **What you provide**: Filesystem path + objective describing desired structure
+- **What it produces**: Graph JSON with proposed restructured layout + diff overlay against current. Each proposed folder includes a clear objective, named I/O interfaces, and a SPEC.md stub with acceptance criteria.
+- **How it works**: Combines scan (Phase 1) with design (Phase 1B) — scans current state, redesigns toward objective, ensures every proposed folder follows the Folder Premise (CLAUDE.md with objective and I/O, SPEC.md with acceptance criteria). The diff is the refactoring plan.
+- **Status**: Implemented
 - **Examples**:
-  - `.graphs/my-research-project.json` — previously generated
-  - `examples/data-pipeline.json` — example graph
-- **When to use**: Reviewing, editing, or presenting a graph that was already generated
+  - `/visualize-project . --refactor --objective "Separate acquisition from processing"`
+
+### plan
+
+Propose new files and folders from updated SPEC.md requirements.
+
+- **When to use**: You updated a folder's SPEC.md with new requirements and want to know what to build
+- **What you provide**: Filesystem path + pointer to changed specs (or auto-detected via incremental mode)
+- **What it produces**: Updated graph with new folders at `status: "planned"` + plan overlay annotations
+- **How it works**: Scans existing project, detects SPEC.md changes, proposes new folders/files to satisfy the updated specs
+- **Status**: Planned — not yet implemented in SKILL.md
+- **Examples**:
+  - `/visualize-project . --plan`
+  - `/visualize-project . --plan --focus scripts/estimation/`
 
 ## Outputs
 
@@ -99,7 +125,7 @@ The visualization is not just documentation. It is a **quality assurance interfa
 
 ## Ideal Workflow
 
-The following describes the end-state workflow this tool is designed to support.
+The following describes the end-state workflow this tool is designed to support. Steps 1–3 correspond to the `initialize` action. Step D uses `describe`. The `refactor` and `plan` actions serve as iterative refinement loops between implementation steps.
 
 ### 1. Declare the Objective
 
@@ -204,7 +230,7 @@ Work through folders in **topological order** (upstream folders first, following
 
 ### Step D: Update the Graph
 
-After implementing one or more folders, re-scan the project with Input A:
+After implementing one or more folders, re-scan the project using the `describe` action (Input A):
 
 ```
 /visualize-project .
@@ -232,7 +258,7 @@ After review, the human marks the folder as `verified` (or requests changes), an
 Each folder's `CLAUDE.md` serves a dual purpose:
 
 1. **Implementation contract** — the AI reads it before coding to understand what the folder should do
-2. **Scanning target** — the generation skill reads it during Input A to infer folder boundaries and interfaces (Step 1.2)
+2. **Scanning target** — the generation skill reads it during `describe` (Input A) to infer folder boundaries and interfaces (Step 1.2)
 
 Projects that follow this convention produce better graphs on re-scan, which produces better `CLAUDE.md` suggestions on the next design iteration — a virtuous cycle. This is the Folder Premise in action.
 
@@ -245,9 +271,13 @@ Projects that follow this convention produce better graphs on re-scan, which pro
 
 The unit of organization is the **folder**. The graph's boxes are directories. Edges show the logical data flow between directories that the filesystem cannot express.
 
-**For Input A (scan):** Read the directory tree. Each directory with meaningful content becomes a box. Parent directories become containing boxes. Overlay edges showing data flow between them.
+**For `describe` (scan, Input A):** Read the directory tree. Each directory with meaningful content becomes a box. Parent directories become containing boxes. Overlay edges showing data flow between them.
 
-**For Input B (design):** Given an objective, design the folder structure — what directories should exist, what each contains, and how data flows between them. The output is a blueprint you can `mkdir`.
+**For `initialize` (design, Input B):** Given an objective, design the folder structure — what directories should exist, what each contains, and how data flows between them. The output is a blueprint you can `mkdir`.
+
+**For `refactor`:** Scan the existing directory tree, then redesign it toward a stated objective — ensuring every proposed folder has a clear objective, named inputs and outputs, and a SPEC.md stub defining acceptance criteria. The output is a diff between current and proposed structures plus scaffolding guidance for each new or restructured folder.
+
+**For `plan`:** Scan the existing project and its SPEC.md files, detect what changed, and propose new directories and files to satisfy the updated specs. The output is the current graph plus planned additions.
 
 What follows from this premise:
 
@@ -292,21 +322,23 @@ See "From Design to Implementation" above. Key rule:
 
 - **AI validates against SPEC.md and iterates before escalating** — for each folder it implements, the AI runs all checks from the folder's SPEC.md, iterates up to 3 times on failure, and escalates to human review if still failing. (Full detail in Steps C–D above.)
 
-### Design-mode applicability
+### Action applicability
 
-Not all rules apply equally to both generation modes:
+Not all rules apply equally to all actions:
 
-| Rule | Input A (scan) | Input B (design) | Notes |
-|------|:-:|:-:|-------|
-| Folder premise | Yes | Yes (proposed folders) | Design mode outputs the folder structure to create |
-| CLAUDE.md per folder | Yes | Scaffolding | Design proposes CLAUDE.md content |
-| Constraint 1: Named interfaces | Yes | Yes | Design mode always generates interfaces |
-| Constraint 2: 1-edge-per-folder | Yes | Yes | Structural rule, mode-agnostic |
-| Viewer: default collapsed | Yes | Yes | |
-| Viewer: confidence encoding | Yes | Yes | Design mode self-assesses confidence |
-| Viewer: progressive disclosure | Yes | Yes | |
-| Skill: generate interfaces | Yes | Yes | |
-| Skill: critical path | Partial | Yes | Scan mode needs heuristics |
-| Workflow: validate + iterate | Yes | N/A | No SPEC.md exists yet in design mode |
+| Rule | describe | initialize | refactor | plan | Notes |
+|------|:--------:|:----------:|:--------:|:----:|-------|
+| Folder premise | Yes | Yes (proposed) | Yes | Yes | |
+| CLAUDE.md per folder | Yes | Scaffolding | Scaffolding | Scaffolding | |
+| Constraint 1: Named interfaces | Yes | Yes | Yes | Yes | |
+| Constraint 2: 1-edge-per-folder | Yes | Yes | Yes | Yes | |
+| Viewer: default collapsed | Yes | Yes | Yes | Yes | |
+| Viewer: confidence encoding | Yes | Yes | Yes | Yes | |
+| Viewer: progressive disclosure | Yes | Yes | Yes | Yes | |
+| Skill: generate interfaces | Yes | Yes | Yes | Partial | plan updates affected folders only |
+| Skill: critical path | Partial | Yes | Yes | Partial | |
+| Workflow: validate + iterate | Yes | N/A | Partial | N/A | |
 
-**Design mode gets a pass on the workflow process** because the folder's SPEC.md doesn't exist yet when designing from an objective. As the user implements folders and re-scans with Input A, the validation loop activates naturally.
+`plan` is a planned action — its skill phase does not exist yet.
+
+**`initialize` gets a pass on the workflow process** because the folder's SPEC.md doesn't exist yet when designing from an objective. As the user implements folders and re-scans with `describe`, the validation loop activates naturally.
