@@ -236,8 +236,8 @@
     },
     "_generationMode": {
       "type": "string",
-      "enum": ["scan", "design"],
-      "description": "How this graph was generated: scan (from existing project) or design (from objective)"
+      "enum": ["scan", "design", "refactor"],
+      "description": "How this graph was generated: scan (from existing project), design (from objective), or refactor (scan + redesign)"
     },
     "_objective": {
       "type": "string",
@@ -299,7 +299,7 @@
               "additionalProperties": {
                 "type": "object",
                 "properties": {
-                  "status": { "enum": ["add", "modify"] },
+                  "status": { "enum": ["add", "modify", "remove"] },
                   "description": { "type": "string" }
                 },
                 "required": ["status"]

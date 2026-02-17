@@ -16,7 +16,7 @@
 | `description` | string | One-paragraph overview of the graph's purpose and scope |
 | `legend` | object | Contains `trustLevels` definitions |
 | `plan` | object | Plan overlay annotations (see visualize-plan skill) |
-| `_generationMode` | string | `"scan"` (from existing project) or `"design"` (from objective) |
+| `_generationMode` | string | `"scan"` (from existing project), `"design"` (from objective), or `"refactor"` (scan + redesign) |
 | `_objective` | string | Natural language objective used to generate graph (design mode only) |
 | `_generatedAt` | string | ISO 8601 timestamp of when the graph was generated |
 
@@ -35,6 +35,7 @@
 | `confidence` | no | string | `"high"`, `"medium"`, `"low"`, `"unknown"`. How confident the generation is in this module's design. See inference-rules.md § Design-Mode Confidence Heuristics |
 | `needsHumanReview` | no | boolean | `true` if this module requires domain expertise to validate |
 | `checkpointReason` | no | string | Why this module needs human review or has low confidence |
+| `docPath` | no | string | Path to the module's CLAUDE.md relative to project root (scan mode only, omit in design mode) |
 
 ## Node Object
 
@@ -47,6 +48,8 @@
 | `role` | no | string | `"process"` (default) or `"data"` (hexagon). Overrides `style.shape` to hexagon. See inference-rules.md § Role Assignment |
 | `status` | no | string | `"planned"`, `"draft"`, `"ai-tested"` (default), `"needs-review"`, `"verified"`. See inference-rules.md § Status Assignment |
 | `style` | no | object | Visual overrides (see below) |
+| `io` | no | object | Rich I/O descriptions with `inputs` and `outputs` arrays (same structure as `module.interface`). Shown in the node detail side panel. |
+| `docs` | no | string | Link to documentation (markdown file path or URL). Shown in the node detail side panel. |
 
 ### Node Style
 

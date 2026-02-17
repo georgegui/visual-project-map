@@ -285,13 +285,12 @@ contradictions and against this catalog for duplicates.
 ## Extended Data Model
 
 ### F30: Optional node status attribute
-- **Status**: `proposed`
+- **Status**: `deprecated` (superseded by F75)
 - **Properties**: P2.1–P2.3 (must not conflict)
-- Extend schema to accept optional `style.status` on nodes with values:
-  `not-started`, `in-progress`, `blocked`, `done`, `needs-review`. Visual
-  encoding TBD — must not overload color (P2.1), border (P2.2), or shape
-  (P2.3). Candidates: small icon badge, text annotation, or subtle background
-  pattern.
+- Originally proposed `style.status` with values `not-started`, `in-progress`,
+  `blocked`, `done`, `needs-review`. Superseded by F75 which implemented
+  top-level `status` field with values `planned`, `draft`, `ai-tested`,
+  `needs-review`, `verified` — encoded via opacity and border treatment (P2.2).
 
 ### F31: Module summary badges
 - **Status**: `proposed`
@@ -389,12 +388,16 @@ contradictions and against this catalog for duplicates.
   must have at least one named input and one named output.
 
 ### F67: Skill generates confidence annotations
-- **Status**: `planned`
+- **Status**: `planned` (partially implemented — design mode generates confidence; scan mode does not)
 - **Properties**: P1.1–P1.4
 - **Workstream**: C3
 - The skill assesses and records confidence per module and edge: high (clear
   evidence), medium (partial evidence), low (convention-based guess). For
   design mode (Input B), defaults to medium/low.
+- **Gap**: Design-mode confidence generation is implemented in SKILL.md (Step 2.1
+  design-mode defaults) and inference-rules.md (Design-Mode Confidence Heuristics).
+  Scan-mode confidence generation has no heuristics yet — the skill has no
+  mechanism to assign confidence when scanning an existing project.
 
 ### F68: Skill generates critical path
 - **Status**: `planned`
@@ -713,3 +716,5 @@ contradictions and against this catalog for duplicates.
 | 2026-02-16 | F64 | Implemented: confidence view mode with color encoding and legend |
 | 2026-02-16 | F78 | Implemented: `refactor` action (Phase 1C in SKILL.md — scan + redesign + plan overlay) |
 | 2026-02-16 | F79 | Proposed: `plan` action (detect SPEC.md changes, propose new folders, plan overlay) |
+| 2026-02-17 | F30 | Deprecated: superseded by F75 (top-level `status` field) |
+| 2026-02-17 | F67 | Updated: noted design-mode confidence is implemented, scan-mode still planned |

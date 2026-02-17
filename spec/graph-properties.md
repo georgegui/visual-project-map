@@ -185,7 +185,7 @@ semantic meaning of each transition inside the module.*
 ## P5. Readability Properties
 
 **P5.1 Legend.** A legend strip below the toolbar shows:
-- Trust level definitions (with visual tags matching border treatment)
+- Trust level definitions (with visual tags matching provenance view colors)
 - Actor line color samples (if any edge has an `actor` field)
 - Module color swatches with labels
 

@@ -753,7 +753,17 @@ first 4-6 meaningful words (lowercase, hyphens). Examples:
 - `"Estimate causal effect of policy on employment"` → `causal-effect-policy-employment`
 - `"Build ETL pipeline for CSV to PostgreSQL"` → `etl-csv-to-postgresql`
 
-Add generation metadata to the JSON root:
+Add generation metadata to the JSON root.
+
+**Scan mode** (Input A):
+```json
+{
+  "_generationMode": "scan",
+  "_generatedAt": "2026-02-16T14:30:00Z"
+}
+```
+
+**Design mode** (Input B):
 ```json
 {
   "_generationMode": "design",
@@ -1343,26 +1353,100 @@ pipeline/
     "summary": {
       "goal": "Group scripts by pipeline stage",
       "tasks": [
-        { "id": "t1", "label": "Create scripts/ingest/ and move download.py", "nodeIds": ["ing_dl"] },
-        { "id": "t2", "label": "Create scripts/clean/ and move clean.py", "nodeIds": ["cln_cln"] },
-        { "id": "t3", "label": "Create scripts/export/ and move export.py", "nodeIds": ["exp_exp"] },
-        { "id": "t4", "label": "Remove flat scripts/ directory", "nodeIds": ["scr_dl", "scr_cln", "scr_exp"] }
+        { "id": "t1", "title": "Create scripts/ingest/ and move download.py", "nodeIds": ["ing_dl"] },
+        { "id": "t2", "title": "Create scripts/clean/ and move clean.py", "nodeIds": ["cln_cln"] },
+        { "id": "t3", "title": "Create scripts/export/ and move export.py", "nodeIds": ["exp_exp"] },
+        { "id": "t4", "title": "Remove flat scripts/ directory", "nodeIds": ["scr_dl", "scr_cln", "scr_exp"] }
       ]
     },
     "annotations": {
-      "mod_scripts": { "status": "remove", "description": "Flat scripts/ directory replaced by stage-specific directories" },
-      "mod_ingest": { "status": "add", "description": "New directory: scripts/ingest/" },
-      "mod_clean": { "status": "add", "description": "New directory: scripts/clean/" },
-      "mod_export": { "status": "add", "description": "New directory: scripts/export/" },
-      "scr_dl": { "status": "remove", "description": "Moves to scripts/ingest/download.py" },
-      "scr_cln": { "status": "remove", "description": "Moves to scripts/clean/clean.py" },
-      "scr_exp": { "status": "remove", "description": "Moves to scripts/export/export.py" },
-      "ing_dl": { "status": "add", "description": "download.py in new ingest directory" },
-      "cln_cln": { "status": "add", "description": "clean.py in new clean directory" },
-      "exp_exp": { "status": "add", "description": "export.py in new export directory" }
+      "modules": {
+        "mod_scripts": { "status": "remove", "description": "Flat scripts/ directory replaced by stage-specific directories" },
+        "mod_ingest": { "status": "add", "description": "New directory: scripts/ingest/" },
+        "mod_clean": { "status": "add", "description": "New directory: scripts/clean/" },
+        "mod_export": { "status": "add", "description": "New directory: scripts/export/" }
+      },
+      "nodes": {
+        "scr_dl": { "status": "remove", "description": "Moves to scripts/ingest/download.py" },
+        "scr_cln": { "status": "remove", "description": "Moves to scripts/clean/clean.py" },
+        "scr_exp": { "status": "remove", "description": "Moves to scripts/export/export.py" },
+        "ing_dl": { "status": "add", "description": "download.py in new ingest directory" },
+        "cln_cln": { "status": "add", "description": "clean.py in new clean directory" },
+        "exp_exp": { "status": "add", "description": "export.py in new export directory" }
+      },
+      "edges": {}
     }
   }
 }
 ```
 
 4 modules (1 current + 3 proposed), 6 nodes (3 current + 3 proposed), 4 edges. The plan overlay shows `mod_scripts` in red (remove) and the three new modules in green (add). The viewer renders the refactoring plan as a visual diff.
+
+---
+
+## Known Generation Gaps
+
+Features the SPEC requires but this skill does not yet generate. Each gap
+references the planned feature in `spec/features.md`. The SPEC text is the
+target — these items need skill procedure updates, not SPEC softening.
+
+### GAP-1: Interface port nodes (F66)
+
+The SPEC says "every folder has named interfaces" and the viewer renders
+`_isInterfacePort` nodes with directional styling (F58, F59). This skill
+generates `module.interface` objects but never creates the corresponding
+**port nodes** (`_isInterfacePort: true`, `_portDirection`, `interfaceContract`).
+Until F66 is implemented, the collapsed view shows I/O subtitles (F61) as a
+fallback but not the full interface map the SPEC envisions.
+
+### GAP-2: Critical path (F68)
+
+The SPEC says "critical path identification is automatic." The schema supports
+`graph.criticalPath` (node ID array) and the viewer highlights it (F65, `P`
+key). This skill has no step to compute or emit `criticalPath`. The
+generation procedure needs a step after edge definition that traces from
+final output nodes backward through cross-module edges to identify the
+critical chain.
+
+### GAP-3: Scan-mode confidence and needsHumanReview (F67)
+
+Design mode generates `confidence` and `needsHumanReview` per the heuristics
+in `inference-rules.md`. Scan mode has **no confidence heuristics** — the
+inference-rules.md confidence section is scoped to design mode only. The SPEC
+says confidence should be visible for all actions including `describe` (scan).
+Scan-mode confidence heuristics are needed — e.g., modules with extensive
+tests → high, modules with no tests → low, modules with TODO/FIXME → medium
+with `needsHumanReview: true`.
+
+### GAP-4: Scan-mode `_generationMode` metadata
+
+Step 3.5 sets `_generationMode: "design"` for design mode and
+`_generationMode: "refactor"` for refactor mode. For scan mode (Input A),
+the skill never instructs setting `_generationMode` at all. Fresh scan-mode
+graphs should include `"_generationMode": "scan"`.
+
+### GAP-5: `node.io` and `node.docs` fields
+
+The schema supports `node.io` (rich I/O with inputs/outputs arrays) and
+`node.docs` (documentation link) for the node detail side panel (F73). This
+skill generates `node.files` and `node.description` but never `node.io` or
+`node.docs`. For nodes representing complex processing steps with clear
+inputs/outputs, `node.io` would provide richer detail than `files` alone.
+
+### GAP-6: Status inference data collection (Phase 1)
+
+The status heuristics in inference-rules.md check for test files, passing
+tests, reviewed PRs, and CI status. Phase 1 discovery (Steps 1.1–1.4) does
+not collect these signals — it looks for documentation and scripts but never
+globs for `test_*.py` / `*.test.ts`, runs tests, or checks git history. As a
+result, most scan-mode modules default to `ai-tested`. Phase 1 needs a step
+to detect test coverage and review evidence.
+
+### GAP-7: Scan-mode interface completeness
+
+The SPEC says "every folder gets named inputs, named outputs." Step 2.1 says
+"only include interfaces you have evidence for — don't invent formats." These
+directly contradict. For scan mode, many modules will lack `interface` fields
+because the evidence bar is high. F66 (when implemented) should resolve this
+by requiring interfaces on every module regardless of mode, using best-effort
+inference when direct evidence is limited.
