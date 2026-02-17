@@ -98,8 +98,8 @@ Render confidence on collapsed module boxes via the Confidence view mode:
 - **Amber badge**: modules with `needsHumanReview: true` show a small amber
   indicator (e.g., an exclamation mark badge) on the collapsed module box
 
-Confidence uses the view-mode color channel, not borders. Border treatment
-is reserved for implementation status (P2.2).
+Confidence uses the view-mode color channel, not opacity. Opacity is
+reserved for implementation status maturity (P2.2).
 
 ### B3: Confidence view mode (F64)
 

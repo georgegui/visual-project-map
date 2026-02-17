@@ -1,23 +1,23 @@
 {
   "title": "Visual Project Map — Folder Structure",
-  "description": "Folder-centric view of the Visual Project Map tool. The collapsed view shows actual directories: spec/ holds requirements, docs/plans/ records design decisions, skills/visualize-project/ generates graph JSON via AI, skills/visualize-plan/ overlays plans onto graphs, and viewer/ renders them as interactive DAGs. Data flows from specifications through design documents and generation to browser rendering.",
+  "description": "Folder-centric view of the Visual Project Map tool. Requirements & Design defines what to build (spec/, docs/plans/). Graph Generation produces graph JSON via AI skill with foundation tables. Viewing & Serving renders interactive DAGs in the browser via serve.py and Cytoscape.js.",
   "_generationMode": "scan",
-  "_generatedAt": "2026-02-16T20:00:00Z",
+  "_generatedAt": "2026-02-17T12:00:00Z",
   "modules": [
     {
-      "id": "phase_repo",
-      "label": "Repository Root",
+      "id": "phase_requirements",
+      "label": "Requirements & Design",
       "color": "#e8edf3",
       "borderColor": "#a8b8cc",
       "status": "verified",
-      "description": "Top-level repository containing project specifications, documentation (SPEC.md, CLAUDE.md, README.md), and the plugin directory."
+      "description": "Specification and planning phase: spec/ defines feature requirements and graph invariants, docs/plans/ records design decisions and implementation plans. Sibling modules share a feedback loop — plans implement features, completed work updates the feature catalog."
     },
     {
       "id": "mod_spec",
       "label": "spec/",
       "color": "#dbeafe",
       "borderColor": "#93c5fd",
-      "parent": "phase_repo",
+      "parent": "phase_requirements",
       "status": "verified",
       "confidence": "high",
       "docPath": "spec/CLAUDE.md",
@@ -32,29 +32,11 @@
       }
     },
     {
-      "id": "mod_config",
-      "label": "Project Config",
-      "color": "#f1f5f9",
-      "borderColor": "#94a3b8",
-      "parent": "phase_repo",
-      "status": "verified",
-      "confidence": "high",
-      "description": "Plugin marketplace manifest (.claude-plugin/marketplace.json), plugin manifest (plugins/.../.claude-plugin/plugin.json), and GitHub CI configuration (.github/). Version must match in both manifests.",
-      "interface": {
-        "inputs": [
-          { "name": "version_bump", "description": "Version string update from release process", "format": "semver string" }
-        ],
-        "outputs": [
-          { "name": "installable_plugin", "description": "Marketplace entry and plugin metadata for Claude Code installation", "format": "JSON manifests" }
-        ]
-      }
-    },
-    {
       "id": "mod_plans",
       "label": "docs/plans/",
-      "color": "#fef9c3",
+      "color": "#fefce8",
       "borderColor": "#fde047",
-      "parent": "phase_repo",
+      "parent": "phase_requirements",
       "status": "verified",
       "confidence": "high",
       "role": "data",
@@ -70,20 +52,20 @@
       }
     },
     {
-      "id": "phase_plugin",
-      "label": "plugins/visual-project-map/",
+      "id": "phase_generation",
+      "label": "Graph Generation",
       "color": "#f3ede8",
       "borderColor": "#ccb8a8",
       "status": "ai-tested",
       "docPath": "plugins/visual-project-map/CLAUDE.md",
-      "description": "The plugin directory containing all runtime code: generation skill with foundation tables, browser-based viewer, utility scripts, example graphs, and the JSON schema definition."
+      "description": "Graph production phase: foundation tables provide inference rules and color assignments, the main skill scans projects and generates graph JSON, and the plan skill overlays implementation plans onto existing graphs."
     },
     {
       "id": "mod_foundations",
       "label": "_foundations/",
       "color": "#fef2f2",
       "borderColor": "#fca5a5",
-      "parent": "phase_plugin",
+      "parent": "phase_generation",
       "status": "verified",
       "confidence": "high",
       "role": "data",
@@ -103,7 +85,7 @@
       "label": "skills/visualize-project/",
       "color": "#fff7ed",
       "borderColor": "#fdba74",
-      "parent": "phase_plugin",
+      "parent": "phase_generation",
       "status": "ai-tested",
       "confidence": "medium",
       "needsHumanReview": true,
@@ -125,7 +107,7 @@
       "label": "skills/visualize-plan/",
       "color": "#fff1f2",
       "borderColor": "#fda4af",
-      "parent": "phase_plugin",
+      "parent": "phase_generation",
       "status": "ai-tested",
       "confidence": "high",
       "description": "SKILL.md instructions for overlaying implementation plans onto existing graphs. Reads a plan document and graph JSON, matches tasks to nodes/edges, emits plan annotations (add/modify/remove).",
@@ -141,11 +123,19 @@
       }
     },
     {
+      "id": "phase_rendering",
+      "label": "Viewing & Serving",
+      "color": "#e8f3ed",
+      "borderColor": "#a8ccb8",
+      "status": "verified",
+      "description": "Visualization phase: serve.py hosts the viewer directory via local HTTP, the browser-based viewer renders interactive DAGs with Cytoscape.js, and example graphs provide sample data for testing and demonstration."
+    },
+    {
       "id": "mod_viewer",
       "label": "viewer/",
-      "color": "#fefce8",
-      "borderColor": "#fde047",
-      "parent": "phase_plugin",
+      "color": "#e0e7ff",
+      "borderColor": "#a5b4fc",
+      "parent": "phase_rendering",
       "status": "verified",
       "confidence": "high",
       "docPath": "plugins/visual-project-map/viewer/CLAUDE.md",
@@ -164,7 +154,7 @@
       "label": "scripts/",
       "color": "#f0fdf4",
       "borderColor": "#86efac",
-      "parent": "phase_plugin",
+      "parent": "phase_rendering",
       "status": "verified",
       "confidence": "high",
       "docPath": "plugins/visual-project-map/scripts/CLAUDE.md",
@@ -183,12 +173,12 @@
       "label": "examples/",
       "color": "#f5f3ff",
       "borderColor": "#c4b5fd",
-      "parent": "phase_plugin",
+      "parent": "phase_rendering",
       "status": "verified",
       "confidence": "high",
       "role": "data",
       "docPath": "plugins/visual-project-map/examples/CLAUDE.md",
-      "description": "Sample graph JSON files at examples/ for testing and demonstration: minimal.json, data-pipeline.json, ci-cd-workflow.json, did-policy-employment.json, and this project's own graph.",
+      "description": "Sample graph JSON files at examples/ for testing and demonstration: minimal.json, minimal-with-plan.json, data-pipeline.json, ci-cd-workflow.json, did-policy-employment.json, visual-project-map-workflow.json, and visual-project-map.json (dogfood copy).",
       "interface": {
         "inputs": [
           { "name": "graph_json", "description": "Generated or hand-authored graph JSON files", "format": "JSON" }
@@ -200,86 +190,252 @@
     }
   ],
   "nodes": [
+    { "id": "spec_port_in", "module": "mod_spec", "label": "product_vision",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "product_vision",
+        "description": "High-level objectives, action model, and design principles",
+        "format": "Markdown (SPEC.md)"
+      }
+    },
     { "id": "spec_roadmap", "module": "mod_spec", "label": "SPEC.md",
-      "description": "Main specification: actions (describe, initialize, refactor, plan), folder premise, design principles, ideal workflow, and implementation procedure." },
+      "description": "Main specification: actions (describe, initialize, refactor, plan), folder premise, design principles, ideal workflow, and implementation procedure.",
+      "files": { "reads": ["SPEC.md"] } },
     { "id": "spec_features", "module": "mod_spec", "label": "features.md",
-      "description": "Feature catalog (F01–F79) tracking every viewer and skill feature with status, file locations, and property cross-references." },
+      "description": "Feature catalog (F01–F79) tracking every viewer and skill feature with status, file locations, and property cross-references.",
+      "files": { "reads": ["spec/features.md"] } },
     { "id": "spec_properties", "module": "mod_spec", "label": "graph-properties.md",
-      "description": "Invariant properties every rendered graph must satisfy: structural validity (P1), visual encoding (P2), layout (P3), collapse (P4), chrome (P5), interaction (P6), filtering (P7)." },
+      "description": "Invariant properties every rendered graph must satisfy: structural validity (P1), visual encoding (P2), layout (P3), collapse (P4), chrome (P5), interaction (P6), filtering (P7).",
+      "files": { "reads": ["spec/graph-properties.md"] } },
+    { "id": "spec_references", "module": "mod_spec", "label": "references/",
+      "role": "data",
+      "description": "Archived external suggestions (gpt-pro-suggestions.md) and rejected proposals (rejected-suggestions.md). Read-only reference material for future consideration.",
+      "files": { "reads": ["spec/references/gpt-pro-suggestions.md", "spec/references/rejected-suggestions.md"] } },
+    { "id": "spec_port_out", "module": "mod_spec", "label": "requirements",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "requirements",
+        "description": "Feature specs (F01–F79), graph invariants, and structural constraints",
+        "format": "Markdown (spec/*.md)"
+      }
+    },
 
-    { "id": "cfg_marketplace", "module": "mod_config", "label": "marketplace.json",
-      "description": "Plugin marketplace manifest at .claude-plugin/marketplace.json — defines plugin name, description, and version for Claude Code plugin discovery." },
-    { "id": "cfg_plugin", "module": "mod_config", "label": "plugin.json",
-      "description": "Plugin manifest at plugins/visual-project-map/.claude-plugin/plugin.json — defines skills, version, and entry points. Version must match marketplace.json." },
-
+    { "id": "pln_port_in", "module": "mod_plans", "label": "requirements",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "requirements",
+        "description": "Feature specs and design principles from spec/ and SPEC.md",
+        "format": "Markdown"
+      }
+    },
     { "id": "pln_designs", "module": "mod_plans", "label": "design docs",
       "role": "data",
-      "description": "Feature design documents (e.g., open-source-plugin-design.md, shape-based-role-distinction-design.md) recording architectural decisions and approach rationale." },
+      "description": "Feature design documents (e.g., open-source-plugin-design.md, shape-based-role-distinction-design.md) recording architectural decisions and approach rationale.",
+      "files": { "reads": ["docs/plans/"] } },
     { "id": "pln_impl", "module": "mod_plans", "label": "implementation plans",
       "role": "data",
-      "description": "Step-by-step implementation plans (e.g., open-source-plugin-plan.md, spec-gap-closing-implementation.md) with file lists, code changes, and task breakdowns." },
+      "description": "Step-by-step implementation plans (e.g., open-source-plugin-plan.md, spec-gap-closing-implementation.md) with file lists, code changes, and task breakdowns.",
+      "files": { "reads": ["docs/plans/"] } },
+    { "id": "pln_port_out", "module": "mod_plans", "label": "design_docs",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "design_docs",
+        "description": "Design documents and implementation plans for features",
+        "format": "Markdown (docs/plans/*.md)"
+      }
+    },
 
+    { "id": "fnd_port_in", "module": "mod_foundations", "label": "requirements",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "requirements",
+        "description": "Feature specs and graph constraints from spec/",
+        "format": "Markdown"
+      }
+    },
     { "id": "fnd_inference", "module": "mod_foundations", "label": "inference-rules.md",
       "role": "data",
-      "description": "Module detection heuristics, node shape/role assignment, edge style rules, actor inference, status/confidence lookup tables, and 11 module design principles." },
+      "description": "Module detection heuristics, node shape/role assignment, edge style rules, actor inference, status/confidence lookup tables, and 11 module design principles.",
+      "files": { "reads": ["plugins/visual-project-map/skills/visualize-project/_foundations/inference-rules.md"] } },
     { "id": "fnd_colors", "module": "mod_foundations", "label": "color-palette.md",
       "role": "data",
-      "description": "12 module background/border color pairs, 4 phase colors, terminal color overrides, and assignment rules (directory order, slate for terminals)." },
+      "description": "12 module background/border color pairs, 4 phase colors, terminal color overrides, and assignment rules (directory order, slate for terminals).",
+      "files": { "reads": ["plugins/visual-project-map/skills/visualize-project/_foundations/color-palette.md"] } },
     { "id": "fnd_schema_ref", "module": "mod_foundations", "label": "graph-schema.md",
       "role": "data",
-      "description": "Quick reference documenting all graph schema fields, role/status/confidence visual encoding tables — the skill's cheat sheet during generation." },
+      "description": "Quick reference documenting all graph schema fields, role/status/confidence visual encoding tables — the skill's cheat sheet during generation.",
+      "files": { "reads": ["plugins/visual-project-map/skills/visualize-project/_foundations/graph-schema.md"] } },
     { "id": "fnd_schema_json", "module": "mod_foundations", "label": "schema.json",
       "role": "data",
-      "description": "JSON Schema definition (at plugin root) validating graph structure: modules, nodes, edges, legend, and all optional fields (confidence, status, role, interface, description)." },
+      "description": "JSON Schema definition (at plugin root) validating graph structure: modules, nodes, edges, legend, and all optional fields (confidence, status, role, interface, description).",
+      "files": { "reads": ["plugins/visual-project-map/schema.json"] } },
     { "id": "fnd_ready", "module": "mod_foundations", "label": "lookup_tables",
       "role": "data",
       "description": "Collector: all four reference files (schema, schema docs, inference rules, color palette) bundled as the module's single output to the generation skill." },
+    { "id": "fnd_port_out", "module": "mod_foundations", "label": "lookup_tables",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "lookup_tables",
+        "description": "Inference rules, color assignments, schema reference, and JSON Schema",
+        "format": "Markdown + JSON"
+      }
+    },
 
+    { "id": "skl_port_in_user", "module": "mod_skill", "label": "user_input",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "user_input",
+        "description": "Directory path (describe), objective text (initialize), or flags (--refactor, --plan)",
+        "format": "CLI arguments"
+      }
+    },
+    { "id": "skl_port_in_tables", "module": "mod_skill", "label": "lookup_tables",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "lookup_tables",
+        "description": "Foundation reference tables for inference",
+        "format": "Markdown + JSON"
+      }
+    },
     { "id": "skl_phase1", "module": "mod_skill", "label": "Phase 1: Discovery / Design",
-      "description": "Scan codebase (describe action): read CLAUDE.md, scripts, I/O patterns, folder structure. Design workflow (initialize action): decompose objective into stages, define data flow, assess confidence." },
+      "description": "Scan codebase (describe action): read CLAUDE.md, scripts, I/O patterns, folder structure. Design workflow (initialize action): decompose objective into stages, define data flow, assess confidence.",
+      "files": { "reads": ["plugins/visual-project-map/skills/visualize-project/SKILL.md"] } },
     { "id": "skl_phase2", "module": "mod_skill", "label": "Phase 2: Graph Construction",
       "description": "Define modules (top-down from folder structure), nodes (from processing steps), edges (from data flow). Enforce 1-edge-per-folder rule. Apply colors, shapes, status, confidence." },
     { "id": "skl_phase3", "module": "mod_skill", "label": "Phase 3: Output & Serve",
       "description": "Validate graph against schema, write .graphs/*.json, save .prev.json for diffs, launch serve.py, suggest CLAUDE.md scaffolding (initialize mode). Support incremental regeneration." },
+    { "id": "skl_port_out", "module": "mod_skill", "label": "graph_json",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "graph_json",
+        "description": "Valid graph JSON with modules, nodes, edges, and metadata",
+        "format": "JSON (.graphs/*.json)"
+      }
+    },
 
+    { "id": "pls_port_in_plan", "module": "mod_plan_skill", "label": "plan_document",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "plan_document",
+        "description": "Markdown file describing tasks and affected components",
+        "format": "Markdown"
+      }
+    },
+    { "id": "pls_port_in_graph", "module": "mod_plan_skill", "label": "graph_json",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "graph_json",
+        "description": "Existing graph JSON to annotate",
+        "format": "JSON (.graphs/*.json)"
+      }
+    },
     { "id": "pln_overlay", "module": "mod_plan_skill", "label": "plan.overlay",
-      "description": "Read existing graph JSON + plan document, match plan tasks to graph elements, emit plan field with summary (goal + tasks) and per-element annotations (add/modify/remove)." },
+      "description": "Read existing graph JSON + plan document, match plan tasks to graph elements, emit plan field with summary (goal + tasks) and per-element annotations (add/modify/remove).",
+      "files": { "reads": ["plugins/visual-project-map/skills/visualize-plan/SKILL.md"] } },
+    { "id": "pls_port_out", "module": "mod_plan_skill", "label": "annotated_graph",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "annotated_graph_json",
+        "description": "Graph with plan field added (summary + annotations)",
+        "format": "JSON (.graphs/*.json)"
+      }
+    },
 
+    { "id": "vwr_port_in", "module": "mod_viewer", "label": "graph_json",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "graph_json",
+        "description": "Graph JSON loaded via ?graph= URL parameter",
+        "format": "JSON"
+      }
+    },
     { "id": "vwr_index", "module": "mod_viewer", "label": "index.html",
-      "description": "Entry point: loads Cytoscape.js + dagre from CDN, loads 6 JS modules in order (expand-collapse → viewer → interactions → plan-overlay → diff → minimap), provides toolbar, legend, panels, and CSS." },
+      "description": "Entry point: loads Cytoscape.js + dagre from CDN, loads 6 JS modules in order (expand-collapse → viewer → interactions → plan-overlay → diff → minimap), provides toolbar, legend, panels, and CSS.",
+      "files": { "reads": ["plugins/visual-project-map/viewer/index.html"] } },
     { "id": "vwr_viewer", "module": "mod_viewer", "label": "viewer.js",
-      "description": "Core rendering engine: loadGraph, validateGraph, buildElements, buildStyles, runLayout, view mode switching (Module/Provenance/Actor/Files/Confidence/Plan/Diff), legend management." },
+      "description": "Core rendering engine: loadGraph, validateGraph, buildElements, buildStyles, runLayout, view mode switching (Module/Provenance/Actor/Files/Confidence/Plan/Diff), legend management.",
+      "files": { "reads": ["plugins/visual-project-map/viewer/src/viewer.js"] } },
     { "id": "vwr_collapse", "module": "mod_viewer", "label": "expand-collapse.js",
-      "description": "CollapseManager class: cy.remove()/cy.add() for collapse/expand, depth-aware nesting for phases, deduplicated meta-edges with combined labels and actor propagation." },
+      "description": "CollapseManager class: cy.remove()/cy.add() for collapse/expand, depth-aware nesting for phases, deduplicated meta-edges with combined labels and actor propagation.",
+      "files": { "reads": ["plugins/visual-project-map/viewer/src/expand-collapse.js"] } },
     { "id": "vwr_interactions", "module": "mod_viewer", "label": "interactions.js",
-      "description": "Event handling: click-to-toggle modules, hover tooltips/highlighting, keyboard shortcuts (F/E/C/L/V/W/M/P), search, node side panel, edge detail modal, breadcrumbs, port positioning." },
+      "description": "Event handling: click-to-toggle modules, hover tooltips/highlighting, keyboard shortcuts (F/E/C/L/V/W/M/P), search, node side panel, edge detail modal, breadcrumbs, port positioning.",
+      "files": { "reads": ["plugins/visual-project-map/viewer/src/interactions.js"] } },
     { "id": "vwr_overlays", "module": "mod_viewer", "label": "Overlay modules",
-      "description": "diff.js (version comparison via ?compare=), plan-overlay.js (add/modify/remove glow + badges), minimap.js (canvas navigation overview with click-to-navigate)." },
+      "description": "diff.js (version comparison via ?compare=), plan-overlay.js (add/modify/remove glow + badges), minimap.js (canvas navigation overview with click-to-navigate).",
+      "files": { "reads": ["plugins/visual-project-map/viewer/src/diff.js", "plugins/visual-project-map/viewer/src/plan-overlay.js", "plugins/visual-project-map/viewer/src/minimap.js"] } },
+    { "id": "vwr_port_out", "module": "mod_viewer", "label": "interactive_view",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "interactive_view",
+        "description": "Rendered DAG with collapse, search, view modes, and detail panels",
+        "format": "Browser DOM (Cytoscape.js)"
+      }
+    },
 
+    { "id": "scr_port_in", "module": "mod_scripts", "label": "graph_json_path",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "graph_json_path",
+        "description": "Path to generated graph JSON file",
+        "format": "filesystem path"
+      }
+    },
     { "id": "scr_serve", "module": "mod_scripts", "label": "serve.py",
-      "description": "Python HTTP server: copies graph JSON to viewer/examples/, opens browser at localhost:8080, serves plugin directory. Supports --port flag." },
+      "description": "Python HTTP server: copies graph JSON to viewer/examples/, opens browser at localhost:8080, serves plugin directory. Supports --port flag.",
+      "files": { "reads": ["plugins/visual-project-map/scripts/serve.py"] } },
+    { "id": "scr_port_out", "module": "mod_scripts", "label": "served_viewer",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "served_viewer",
+        "description": "Local HTTP server hosting the viewer with the graph loaded",
+        "format": "HTTP (localhost:8080)"
+      }
+    },
 
+    { "id": "ex_port_in", "module": "mod_examples", "label": "graph_json",
+      "_isInterfacePort": true, "_portDirection": "input",
+      "interfaceContract": {
+        "name": "graph_json",
+        "description": "Generated or hand-authored graph JSON files",
+        "format": "JSON"
+      }
+    },
     { "id": "ex_minimal", "module": "mod_examples", "label": "minimal.json",
       "role": "data",
-      "description": "Minimal example graph with 2 modules, demonstrating basic structure and required fields." },
+      "description": "Minimal example graph with 2 modules, demonstrating basic structure and required fields.",
+      "files": { "reads": ["plugins/visual-project-map/examples/minimal.json"] } },
     { "id": "ex_pipeline", "module": "mod_examples", "label": "data-pipeline.json",
       "role": "data",
-      "description": "ETL data pipeline example with acquisition, transformation, and loading stages." },
+      "description": "ETL data pipeline example with acquisition, transformation, and loading stages.",
+      "files": { "reads": ["plugins/visual-project-map/examples/data-pipeline.json"] } },
     { "id": "ex_self", "module": "mod_examples", "label": "visual-project-map.json",
       "role": "data",
-      "description": "This project's own graph — dogfooding the describe action on itself." }
+      "description": "This project's own graph — dogfooding the describe action on itself.",
+      "files": { "reads": [".graphs/visual-project-map.json"] } },
+    { "id": "ex_workflow", "module": "mod_examples", "label": "visual-project-map-workflow.json",
+      "role": "data",
+      "description": "Workflow-oriented view of the tool's generation pipeline with full interface port nodes — demonstrates the skill's own 4-phase process.",
+      "files": { "reads": ["plugins/visual-project-map/examples/visual-project-map-workflow.json"] } },
+    { "id": "ex_did", "module": "mod_examples", "label": "did-policy-employment.json",
+      "role": "data",
+      "description": "Design-mode example: staggered difference-in-differences causal inference workflow with phases, confidence levels, and human review flags.",
+      "files": { "reads": ["plugins/visual-project-map/examples/did-policy-employment.json"] } },
+    { "id": "ex_port_out", "module": "mod_examples", "label": "sample_graphs",
+      "_isInterfacePort": true, "_portDirection": "output",
+      "interfaceContract": {
+        "name": "sample_graphs",
+        "description": "Collection of example graphs loadable by the viewer",
+        "format": "JSON files"
+      }
+    }
   ],
   "edges": [
     { "source": "spec_roadmap", "target": "spec_features", "label": "catalog features", "style": "solid" },
     { "source": "spec_features", "target": "spec_properties", "label": "constrain", "style": "solid" },
-
-    { "source": "cfg_marketplace", "target": "cfg_plugin", "label": "version sync", "style": "solid" },
+    { "source": "spec_properties", "target": "spec_references", "label": "archive feedback", "style": "dashed" },
 
     { "source": "pln_designs", "target": "pln_impl", "label": "detail tasks", "style": "solid" },
-
-    { "source": "spec_properties", "target": "pln_designs", "label": "inform design", "style": "solid",
-      "description": "Feature specs, graph properties, and SPEC.md principles guide the creation of design documents in docs/plans/.",
-      "confidence": "high" },
 
     { "source": "fnd_schema_json", "target": "fnd_schema_ref", "label": "document", "style": "solid" },
     { "source": "fnd_schema_ref", "target": "fnd_inference", "label": "populate fields", "style": "solid",
@@ -290,40 +446,52 @@
     { "source": "skl_phase1", "target": "skl_phase2", "label": "build graph", "style": "solid", "actor": "ai" },
     { "source": "skl_phase2", "target": "skl_phase3", "label": "write output", "style": "solid", "actor": "ai" },
 
+    { "source": "vwr_index", "target": "vwr_viewer", "label": "load modules", "style": "solid", "actor": "script" },
     { "source": "vwr_viewer", "target": "vwr_collapse", "label": "initialize collapse", "style": "solid", "actor": "script" },
     { "source": "vwr_collapse", "target": "vwr_interactions", "label": "handle events", "style": "solid", "actor": "script" },
     { "source": "vwr_interactions", "target": "vwr_overlays", "label": "switch views", "style": "solid", "actor": "script" },
 
-    { "source": "pln_impl", "target": "spec_features", "label": "update features", "style": "dashed", "actor": "mixed",
+    { "source": "spec_port_out", "target": "pln_port_in", "label": "inform design", "style": "solid",
+      "description": "Feature specs, graph properties, and SPEC.md principles guide the creation of design documents in docs/plans/.",
+      "confidence": "high" },
+
+    { "source": "pln_port_out", "target": "spec_port_in", "label": "update features", "style": "dashed", "actor": "mixed",
       "description": "Implementation plans drive feature development. Completed plans result in feature status updates (proposed → implemented) in the feature catalog.",
       "confidence": "high" },
 
-    { "source": "spec_properties", "target": "fnd_schema_json", "label": "define schema", "style": "solid",
+    { "source": "spec_port_out", "target": "fnd_port_in", "label": "define schema", "style": "solid",
       "description": "Graph properties and feature specs define the structural and visual constraints that the JSON schema must encode.",
       "confidence": "high" },
 
-    { "source": "fnd_ready", "target": "skl_phase1", "label": "inform generation", "style": "solid", "actor": "ai",
+    { "source": "fnd_port_out", "target": "skl_port_in_tables", "label": "inform generation", "style": "solid", "actor": "ai",
       "description": "All foundation tables (inference rules, colors, schema docs, JSON Schema) are consulted throughout graph generation as the AI's reference material.",
       "confidence": "high" },
 
-    { "source": "skl_phase3", "target": "pln_overlay", "label": "annotate plan", "style": "dashed", "actor": "ai",
+    { "source": "skl_port_out", "target": "pls_port_in_graph", "label": "annotate plan", "style": "dashed", "actor": "ai",
       "description": "Graph JSON from the generation skill can optionally be annotated by the plan skill to overlay add/modify/remove annotations.",
       "confidence": "high" },
 
-    { "source": "skl_phase3", "target": "scr_serve", "label": "launch viewer", "style": "solid", "actor": "script",
+    { "source": "skl_port_out", "target": "scr_port_in", "label": "launch viewer", "style": "solid", "actor": "script",
       "description": "After writing graph JSON to .graphs/, the skill calls serve.py to copy the file to examples/ and open the browser.",
       "confidence": "high" },
 
-    { "source": "pln_overlay", "target": "scr_serve", "label": "serve annotated", "style": "dashed", "actor": "script",
+    { "source": "pls_port_out", "target": "scr_port_in", "label": "serve annotated", "style": "dashed", "actor": "script",
       "description": "Annotated graph with plan overlay is served the same way — via serve.py and the viewer.",
       "confidence": "high" },
 
-    { "source": "scr_serve", "target": "vwr_index", "label": "serve files", "style": "solid", "actor": "script",
+    { "source": "scr_port_out", "target": "vwr_port_in", "label": "serve files", "style": "solid", "actor": "script",
       "description": "serve.py hosts the viewer directory via local HTTP server and loads the graph via ?graph= URL parameter.",
       "confidence": "high" },
 
-    { "source": "ex_self", "target": "vwr_viewer", "label": "sample data", "style": "dashed",
+    { "source": "ex_port_out", "target": "vwr_port_in", "label": "sample data", "style": "dashed",
       "description": "Example graphs are loaded by the viewer via ?graph= URL parameter for demonstration and testing.",
       "confidence": "high" }
+  ],
+  "criticalPath": [
+    "spec_port_in", "spec_roadmap", "spec_features", "spec_properties", "spec_port_out",
+    "fnd_port_in", "fnd_schema_json", "fnd_schema_ref", "fnd_inference", "fnd_colors", "fnd_ready", "fnd_port_out",
+    "skl_port_in_tables", "skl_phase1", "skl_phase2", "skl_phase3", "skl_port_out",
+    "scr_port_in", "scr_serve", "scr_port_out",
+    "vwr_port_in", "vwr_index", "vwr_viewer", "vwr_collapse", "vwr_interactions", "vwr_overlays", "vwr_port_out"
   ]
 }

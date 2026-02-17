@@ -60,7 +60,7 @@ contradictions and against this catalog for duplicates.
 - **Properties**: P2.2
 - Trust levels defined in `legend.trustLevels` drive the Provenance view mode
   color scheme (F40). Legacy `borderStyle`/`borderWidth` fields retained for
-  backward compatibility but ignored — border is driven by status (P2.2).
+  backward compatibility but ignored — status uses opacity + badges (P2.2).
 
 ### F06: Node shape semantics
 - **Status**: `implemented`
@@ -320,8 +320,9 @@ contradictions and against this catalog for duplicates.
 - **Properties**: P2.11, P2.12
 - **Workstream**: B2
 - **Files**: `src/viewer.js` (applyCollapsedStyle badge, `.needs-review` style, buildElements confidence passthrough)
-- Collapsed modules with `needsHumanReview: true` get " ⚠" appended to label
-  and `.needs-review` class (amber dashed border with subtle overlay). Removed
+- Collapsed modules with `needsHumanReview: true` or `status: "needs-review"`
+  get " ⚠" appended to label and `.needs-review` class (subtle amber overlay).
+  No border override — status uses the P2.2 opacity+badge system. Removed
   on expand via `removeCollapsedStyle`. Confidence/review data passed through
   `buildElements()` from module JSON.
 
@@ -655,12 +656,27 @@ contradictions and against this catalog for duplicates.
 ### F75: Implementation status visual encoding
 - **Status**: `implemented`
 - **Files**: `schema.json` (status enum on module + node), `src/viewer.js` (buildElements status passthrough, buildStyles status selectors), `skills/visualize-project/_foundations/inference-rules.md` (Status Assignment section), `skills/visualize-project/_foundations/graph-schema.md` (status fields + encoding table), `skills/visualize-project/SKILL.md` (status guidance in Phase 2)
-- **Properties**: P2.1 (opacity channel), P2.2 (border channel)
-- Five status levels: `planned` (ghost, 20% opacity, dotted border), `draft` (faded, 45% opacity),
-  `ai-tested` (default, 85% opacity), `needs-review` (full opacity, orange dashed border),
-  `verified` (full opacity, green 3px solid border). Applied to both modules and nodes.
+- **Properties**: P2.2 (opacity + badge channels)
+- Five status levels encoded via opacity (maturity) and badges (action items):
+  `planned` (ghost, 20% opacity), `draft` (faded, 45% opacity),
+  `ai-tested` (default, 85% opacity), `needs-review` (full opacity + amber badge),
+  `verified` (full opacity + green checkmark badge). No border overrides — borders
+  are freed for selection/highlighting. Applied to both modules and nodes.
   Skill guidelines include heuristics for inferring status from test coverage, PR history,
   and code existence. Default when omitted is `ai-tested` visual treatment.
+
+## Embedded Terminal
+
+### F80: Embedded terminal panel (ttyd)
+- **Status**: `implemented`
+- **Files**: `scripts/serve.py` (ttyd lifecycle, /api/start-terminal, /api/terminal-status), `index.html` (terminal-panel div + CSS), `src/interactions.js` (panel toggle/resize/iframe loading)
+- **Properties**: P6.1 (extends navigation)
+- Right-side slide-in panel with embedded terminal via ttyd iframe.
+  Toggle via T key or Terminal button. serve.py spawns ttyd on a free
+  port running `claude` in the project root. Resizable via left-edge
+  drag handle. Handles: ttyd not installed (shows brew install hint),
+  serve.py not running (shows fallback). Mutual exclusion with
+  plan-summary-panel. Minimap displaced when panel is open.
 
 ---
 
@@ -721,3 +737,6 @@ contradictions and against this catalog for duplicates.
 | 2026-02-17 | F66 | Implemented: SKILL.md Step 2.3b generates interface port nodes, Step 2.1 requires interfaces on all modules |
 | 2026-02-17 | F67 | Implemented: scan-mode confidence heuristics added to inference-rules.md + SKILL.md |
 | 2026-02-17 | F68 | Implemented: SKILL.md Step 2.4c computes critical path |
+| 2026-02-17 | F75 | Revised: status encoding uses opacity + badges only (no border overrides). Freed border channel. |
+| 2026-02-17 | F63 | Revised: amber badge from label text only (removed dashed border). Unified with P2.2 badge system. |
+| 2026-02-17 | F80 | Implemented: embedded terminal panel via ttyd iframe (serve.py lifecycle, right-side panel, resize, mutual exclusion) |

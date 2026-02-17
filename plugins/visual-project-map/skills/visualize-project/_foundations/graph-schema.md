@@ -108,8 +108,8 @@ to the adjacent module's port, visualizing the data contract between modules.
 
 ## Trust Levels (legend.trustLevels)
 
-Trust levels drive the **Provenance view mode** color scheme, not borders
-(P2.2).
+Trust levels drive the **Provenance view mode** color scheme, not opacity
+(P2.2 reserves opacity for implementation status).
 
 Each key maps to:
 
@@ -135,20 +135,24 @@ Diamond-shaped nodes and interface ports keep their shape regardless of role.
 
 ## Status Visual Encoding
 
-| Status | Opacity | Border | Meaning |
-|--------|---------|--------|---------|
-| `verified` | 100% | Solid, 3px, green (#16a34a) | Human reviewed and approved |
-| `ai-tested` (default) | 85% | Normal (no change) | AI iterated and tests pass |
-| `needs-review` | 100% | Dashed, 2.5px, orange (#f59e0b) | AI flags for human attention |
-| `draft` | 45% | Solid, 1px | AI wrote first pass, untested |
-| `planned` | 20% | Dotted, 1px, gray label (#94a3b8) | Described but no code yet |
+| Status | Opacity | Badge | Meaning |
+|--------|---------|-------|---------|
+| `verified` | 100% | Green checkmark (✓) | Human reviewed and approved |
+| `ai-tested` (default) | 85% | None | AI iterated and tests pass |
+| `needs-review` | 100% | Amber warning (⚠) | AI flags for human attention |
+| `draft` | 45% | None | AI wrote first pass, untested |
+| `planned` | 20% (gray label) | None | Described but no code yet |
 
-When `status` is omitted, `ai-tested` is the visual default (no special styling applied).
+Opacity encodes maturity (faded = early stage, solid = established). Badges
+encode action items (amber = needs review, green = approved). No border
+overrides — borders are available for selection and highlighting.
+
+When `status` is omitted, `ai-tested` is the visual default (85% opacity, no badge).
 
 ## Confidence Visual Encoding
 
 Confidence is encoded via the **Confidence view mode** (toggled via toolbar
-or `V` key), which colors modules by confidence level (not borders, P2.2).
+or `V` key), which colors modules by confidence level (not opacity, P2.2).
 
 | Confidence | View Mode Color | Meaning |
 |-----------|-----------------|---------|

@@ -39,7 +39,7 @@ here so future discussions don't re-litigate the same questions.
 
 ## Rejected: Section 5 (Checkpoints) — Entirely
 
-Trust levels (P2.2) already encode provenance visually. The viewer shows
+Trust levels and status opacity (P2.2) already encode provenance visually. The viewer shows
 which nodes are AI-generated vs human-verified. Policy enforcement ("any AI
 edge must pass 2 checks") belongs in the pipeline that generates the JSON,
 not in the viewer.

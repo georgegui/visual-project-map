@@ -14,6 +14,12 @@ var Interactions = (function() {
   var criticalPathActive = false;
   var _cy, _manager, _moduleIds, _graphUrl;
 
+  // Terminal panel state
+  var terminalPanel;
+  var terminalOpen = false;
+  var terminalPort = null;
+  var terminalLoaded = false;
+
   function init(cy, manager, moduleIds, graphUrl) {
     _cy = cy;
     _manager = manager;
@@ -24,7 +30,75 @@ var Interactions = (function() {
     detailPanel = document.getElementById('detail-panel');
     detailBackdrop = document.getElementById('detail-backdrop');
     nodeDetailPanel = document.getElementById('node-detail-panel');
+    terminalPanel = document.getElementById('terminal-panel');
     var searchInput = document.getElementById('search-input');
+
+    // Resizable side panel: drag right edge to resize (uses delegation since innerHTML rebuilds)
+    (function initPanelResize() {
+      var dragging = false;
+      nodeDetailPanel.addEventListener('mousedown', function(e) {
+        if (!e.target.classList.contains('ndp-resize-handle')) return;
+        e.preventDefault();
+        dragging = true;
+        e.target.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      });
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var newWidth = Math.max(280, Math.min(e.clientX, window.innerWidth * 0.6));
+        nodeDetailPanel.style.width = newWidth + 'px';
+      });
+      document.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        var h = nodeDetailPanel.querySelector('.ndp-resize-handle');
+        if (h) h.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      });
+    })();
+
+    // Terminal panel resize: drag left edge
+    (function initTerminalResize() {
+      var dragging = false;
+      if (!terminalPanel) return;
+      terminalPanel.addEventListener('mousedown', function(e) {
+        if (!e.target.classList.contains('tp-resize-handle')) return;
+        e.preventDefault();
+        dragging = true;
+        e.target.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        // Prevent iframe from eating mouse events during resize
+        var iframe = document.getElementById('tp-iframe');
+        if (iframe) iframe.style.pointerEvents = 'none';
+      });
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var newWidth = Math.max(320, Math.min(window.innerWidth - e.clientX, window.innerWidth * 0.7));
+        terminalPanel.style.width = newWidth + 'px';
+        // Update minimap position
+        var minimap = document.getElementById('minimap');
+        if (minimap && terminalOpen) minimap.style.right = (newWidth + 12) + 'px';
+        // Update graph viewport during resize
+        var cyEl = document.getElementById('cy');
+        if (cyEl && terminalOpen) cyEl.style.right = newWidth + 'px';
+        if (_cy && terminalOpen) _cy.resize();
+      });
+      document.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        var h = terminalPanel.querySelector('.tp-resize-handle');
+        if (h) h.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        var iframe = document.getElementById('tp-iframe');
+        if (iframe) iframe.style.pointerEvents = '';
+        // Re-fit graph after resize ends
+        if (_cy && terminalOpen) _cy.fit(null, 40);
+      });
+    })();
 
     document.addEventListener('mousemove', function(e) {
       mouseX = e.pageX;
@@ -404,6 +478,10 @@ var Interactions = (function() {
 
     document.addEventListener('keydown', function(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Don't intercept keys when terminal iframe has focus (except Escape/T to toggle)
+      if (terminalOpen && document.activeElement && document.activeElement.id === 'tp-iframe') {
+        if (e.key !== 'Escape') return;
+      }
       if (e.key === 'e' || e.key === 'E') { e.preventDefault(); expandAll(cy, manager, moduleIds); }
       if (e.key === 'c' || e.key === 'C') { e.preventDefault(); collapseAll(cy, manager, moduleIds); }
       if (e.key === 'l' || e.key === 'L') { e.preventDefault(); toggleLabels(cy); }
@@ -423,7 +501,8 @@ var Interactions = (function() {
       if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMinimap(); }
       if (e.key === 'w' || e.key === 'W') { e.preventDefault(); toggleWatch(graphUrl); }
       if (e.key === 'p' || e.key === 'P') { e.preventDefault(); toggleCriticalPath(cy, manager, moduleIds); }
-      if (e.key === 'Escape') { hideDetailPanel(); hideNodeSidePanel(); clearPathTrace(cy); clearCriticalPath(cy); updateStatus(manager, moduleIds); }
+      if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleTerminalPanel(); }
+      if (e.key === 'Escape') { hideDetailPanel(); hideNodeSidePanel(); hideTerminalPanel(); clearPathTrace(cy); clearCriticalPath(cy); updateStatus(manager, moduleIds); }
       if (e.key === '/' && searchInput) { e.preventDefault(); searchInput.focus(); }
     });
 
@@ -440,6 +519,32 @@ var Interactions = (function() {
     var minimapBtn = document.getElementById('btn-minimap');
     if (minimapBtn) {
       minimapBtn.addEventListener('click', function() { toggleMinimap(); });
+    }
+
+    // Terminal panel button
+    var termBtn = document.getElementById('btn-terminal');
+    if (termBtn) {
+      termBtn.addEventListener('click', function() {
+        toggleTerminalPanel();
+      });
+    }
+
+    // Terminal panel close button
+    var tpCloseBtn = document.getElementById('tp-close-btn');
+    if (tpCloseBtn) {
+      tpCloseBtn.addEventListener('click', function() {
+        hideTerminalPanel();
+      });
+    }
+
+    // Clicking terminal panel body re-focuses xterm inside the iframe
+    if (terminalPanel) {
+      terminalPanel.querySelector('.tp-body').addEventListener('click', function() {
+        var iframe = document.getElementById('tp-iframe');
+        if (iframe && iframe.style.display !== 'none') {
+          focusTerminalIframe(iframe);
+        }
+      });
     }
 
     // PF-4: Breadcrumb click handler
@@ -853,7 +958,7 @@ var Interactions = (function() {
     html += '<button class="ndp-trace-btn" id="ndp-trace-btn">Trace Path</button>';
     html += '</div>';
 
-    nodeDetailPanel.innerHTML = html;
+    nodeDetailPanel.innerHTML = html + '<div class="ndp-resize-handle"></div>';
     nodeDetailPanel.classList.add('open');
 
     document.getElementById('ndp-close-btn').addEventListener('click', hideNodeSidePanel);
@@ -1023,6 +1128,8 @@ var Interactions = (function() {
           panel.classList.remove('open');
           PlanOverlay.clearTaskHighlight(cy);
         } else {
+          // Mutual exclusion: close terminal panel (both anchor right)
+          hideTerminalPanel();
           panel.classList.add('open');
         }
       });
@@ -1114,6 +1221,134 @@ var Interactions = (function() {
     var vis = Minimap.toggle();
     var btn = document.getElementById('btn-minimap');
     if (btn) btn.className = vis ? 'toggle-on' : 'toggle-off';
+  }
+
+  // --- Terminal panel ---
+  function focusTerminalIframe(iframe) {
+    // Focus the iframe, then reach inside to focus xterm's hidden textarea
+    iframe.focus();
+    setTimeout(function() {
+      try {
+        var doc = iframe.contentDocument || iframe.contentWindow.document;
+        var textarea = doc.querySelector('.xterm-helper-textarea');
+        if (textarea) {
+          textarea.focus();
+        }
+      } catch(e) {
+        // Cross-origin fallback — just focus the iframe element
+        iframe.focus();
+      }
+    }, 300);
+  }
+
+  function toggleTerminalPanel() {
+    if (terminalOpen) {
+      hideTerminalPanel();
+    } else {
+      showTerminalPanel();
+    }
+  }
+
+  function showTerminalPanel() {
+    if (!terminalPanel) return;
+
+    // Mutual exclusion: close plan-summary-panel (both anchor right)
+    var planPanel = document.getElementById('plan-summary-panel');
+    if (planPanel) planPanel.classList.remove('open');
+
+    terminalPanel.classList.add('open');
+    terminalOpen = true;
+
+    var panelWidth = parseInt(terminalPanel.style.width, 10) || 560;
+
+    // Displace minimap
+    var minimap = document.getElementById('minimap');
+    if (minimap) {
+      minimap.style.right = (panelWidth + 12) + 'px';
+    }
+
+    // Shrink graph viewport so nodes aren't hidden behind the panel
+    var cyEl = document.getElementById('cy');
+    if (cyEl) cyEl.style.right = panelWidth + 'px';
+    if (_cy) {
+      _cy.resize();
+      _cy.fit(null, 40);
+    }
+
+    // Load terminal on first open
+    if (!terminalLoaded) {
+      loadTerminal();
+    } else {
+      // Re-focus terminal if already loaded
+      var iframe = document.getElementById('tp-iframe');
+      if (iframe) focusTerminalIframe(iframe);
+    }
+  }
+
+  function hideTerminalPanel() {
+    if (!terminalPanel || !terminalOpen) return;
+    terminalPanel.classList.remove('open');
+    terminalOpen = false;
+
+    // Restore minimap position
+    var minimap = document.getElementById('minimap');
+    if (minimap) minimap.style.right = '12px';
+
+    // Restore graph viewport
+    var cyEl = document.getElementById('cy');
+    if (cyEl) cyEl.style.right = '0';
+    if (_cy) {
+      _cy.resize();
+      _cy.fit(null, 40);
+    }
+  }
+
+  function loadTerminal() {
+    var placeholder = document.getElementById('tp-placeholder');
+    var iframe = document.getElementById('tp-iframe');
+
+    if (placeholder) {
+      placeholder.innerHTML = '<p>Starting terminal...</p>';
+    }
+
+    fetch('/api/start-terminal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.status === 'error') {
+        if (data.error === 'ttyd_not_installed') {
+          if (placeholder) {
+            placeholder.innerHTML =
+              '<div>' +
+              '<p>ttyd is not installed</p>' +
+              '<p class="tp-install-hint">Install with: <code>brew install ttyd</code></p>' +
+              '</div>';
+          }
+        }
+        return;
+      }
+      // Success — load via same-origin proxy (avoids cross-origin keyboard issues)
+      terminalPort = data.port;
+      terminalLoaded = true;
+      if (iframe) {
+        iframe.src = '/ttyd/';
+        iframe.style.display = 'block';
+        iframe.addEventListener('load', function() {
+          focusTerminalIframe(iframe);
+        });
+      }
+      if (placeholder) placeholder.style.display = 'none';
+    }).catch(function() {
+      // serve.py not running (plain http server)
+      if (placeholder) {
+        placeholder.innerHTML =
+          '<div>' +
+          '<p>Embedded terminal requires serve.py</p>' +
+          '<p class="tp-install-hint">Run: <code>python3 scripts/serve.py</code></p>' +
+          '</div>';
+      }
+    });
   }
 
   return { init: init, updateStatus: updateStatus };
