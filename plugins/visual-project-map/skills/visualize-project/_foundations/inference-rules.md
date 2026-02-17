@@ -397,8 +397,8 @@ Apply these defaults throughout graph generation:
 ### Visual appearance of design-mode graphs
 
 Because all elements have `status: "planned"`, the graph renders at 20% opacity
-with dotted borders and gray labels. This immediately communicates "nothing is built
-yet." As the user implements components and re-scans with Input A (`/visualize-project .`),
+with gray labels — ghost elements that communicate "nothing is built yet." As the
+user implements components and re-scans with Input A (`/visualize-project .`),
 elements gradually gain opacity — a natural progress indicator.
 
 ---

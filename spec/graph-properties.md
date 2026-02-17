@@ -28,18 +28,28 @@ artifacts (meta-edges) computed during collapse.
 border) color pair. All children of that module inherit the module's colors
 unless explicitly overridden.
 
-**P2.2 Implementation status via border treatment.** Node and module border
-style, width, and color encode implementation maturity:
-- Dotted 1px gray = `planned` (ghost/placeholder, not yet built)
-- Solid 1px = `draft` (exists but incomplete)
-- Solid 1.5px = `ai-tested` (default when status is omitted)
-- Dashed 2.5px orange = `needs-review` (needs human review)
-- Solid 3px green = `verified` (human-verified, production-ready)
+**P2.2 Implementation status via opacity and badges.** Node and module
+implementation maturity is encoded via two channels:
 
-Status is the only semantic encoded via border treatment. Do not overload
-border style for other semantics (trust, confidence, etc.). Trust/provenance
-is encoded via the Provenance view mode color channel (see F40). Confidence
-is encoded via the Confidence view mode color channel (see F64).
+**Opacity encodes maturity** (how "real" the element is):
+- 20% opacity + muted label = `planned` (ghost — doesn't exist yet)
+- 45% opacity = `draft` (exists but incomplete)
+- 85% opacity = `ai-tested` (default when status is omitted)
+- 100% opacity = `needs-review` or `verified` (fully present)
+
+**Badges encode action items** (what human attention is needed):
+- Amber badge (exclamation mark) = `needs-review` (needs human review)
+- Green badge (checkmark) = `verified` (human-verified, production-ready)
+
+Opacity is intuitive without a legend: faded elements are early-stage,
+solid elements are established. Badges follow notification conventions:
+amber = "look at this," green = "approved."
+
+Do not encode status via border style — borders are available for
+selection, highlighting, or future use. Do not overload opacity for
+other persistent semantics. Trust/provenance is encoded via the
+Provenance view mode color channel (see F40). Confidence is encoded
+via the Confidence view mode color channel (see F64).
 
 **P2.3 Semantic role via node shape.**
 - `round-rectangle` (default) = state or data point
@@ -49,8 +59,7 @@ is encoded via the Confidence view mode color channel (see F64).
 - Other shapes (`rectangle`) available for extension
 
 Shape is the only channel for encoding semantic role. Do not overload shape
-for other semantics, and do not encode role via border (which is reserved for
-implementation status, P2.2).
+for other semantics.
 
 **P2.4 Flow type via edge style.**
 - Solid = primary/forward flow (the main path)
@@ -89,7 +98,7 @@ multiple visual channels (border, color, opacity):
 
 These treatments are only active in Plan view mode. Switching to any other
 view (Module, Provenance, Actor, Files) removes all plan styling and fully
-restores the primary encodings (P2.1 color, P2.2 status borders, P2.7 edge
+restores the primary encodings (P2.1 color, P2.2 status opacity, P2.7 edge
 color). Plan view intentionally commandeers primary channels to maximize
 the visual distinction between add/modify/remove — this is acceptable
 because it is a temporary diagnostic mode, not a persistent override.
@@ -110,16 +119,18 @@ expanding any module.
 **P2.11 Confidence via view mode.** Module confidence is encoded via the
 Confidence view mode (F64), which colors modules by confidence level:
 green = high, yellow = medium, red = low, gray = unknown. Does not use the
-border channel (P2.2). Toggled via the toolbar or `V` key cycle.
+opacity channel (P2.2). Toggled via the toolbar or `V` key cycle.
 
 **P2.12 Human review flag via amber badge.** Modules with
-`needsHumanReview: true` display a small amber badge (e.g., exclamation mark)
-on the collapsed module box. The badge is visible in the default collapsed
-view without expanding the module.
+`needsHumanReview: true` display the amber badge from P2.2 on the collapsed
+module box, visible in the default collapsed view without expanding the
+module. This is the same badge as `status: "needs-review"` — both signal
+"a human should look at this." A module may have the badge from either
+source.
 
 **P2.13 Critical path highlight.** When the critical path toggle is active,
 nodes and edges on the `graph.criticalPath` array are visually highlighted
-(e.g., thicker borders, saturated colors). Non-critical elements are dimmed.
+(e.g., saturated colors, glow effect). Non-critical elements are dimmed.
 This treatment is non-destructive and toggleable (like path tracing, P7.2).
 It does not modify the underlying graph data.
 

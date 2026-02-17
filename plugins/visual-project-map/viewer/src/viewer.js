@@ -293,23 +293,23 @@ var GraphViewer = (function() {
       }
     ];
 
-    // Status visual encoding: border treatment is the sole border semantic (P2.2)
+    // Status visual encoding: opacity + badges (P2.2)
+    // Opacity encodes maturity; badges encode action items. No border overrides.
     styles.push(
       { selector: 'node[status="verified"]',
-        style: { 'background-opacity': 1, 'border-width': 3, 'border-color': '#16a34a', 'border-style': 'solid' }
+        style: { 'background-opacity': 1 }
       },
       { selector: 'node[status="needs-review"]',
-        style: { 'background-opacity': 1, 'border-width': 2.5, 'border-color': '#f59e0b', 'border-style': 'dashed' }
+        style: { 'background-opacity': 1 }
       },
       { selector: 'node[status="draft"]',
-        style: { 'background-opacity': 0.45, 'border-width': 1, 'border-style': 'solid' }
+        style: { 'background-opacity': 0.45 }
       },
       { selector: 'node[status="planned"]',
-        style: { 'background-opacity': 0.2, 'border-width': 1, 'border-style': 'dotted', 'color': '#94a3b8' }
+        style: { 'background-opacity': 0.2, 'color': '#94a3b8' }
       },
       { selector: '.needs-review',
         style: {
-          'border-color': '#f59e0b', 'border-width': 3.5, 'border-style': 'dashed',
           'overlay-color': '#f59e0b', 'overlay-opacity': 0.08, 'overlay-padding': 4
         }
       }
@@ -588,10 +588,13 @@ var GraphViewer = (function() {
     }
     var label = node.data('_origLabel');
 
-    // F63: Human review badge
-    if (node.data('needsHumanReview')) {
+    // P2.2 status badges: amber = needs-review, green = verified
+    var status = node.data('status');
+    if (status === 'needs-review' || node.data('needsHumanReview')) {
       label += ' \u26a0';
       node.addClass('needs-review');
+    } else if (status === 'verified') {
+      label += ' \u2713';
     }
 
     // F61: I/O subtitle when no port nodes exist for this module
