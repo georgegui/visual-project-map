@@ -412,6 +412,26 @@ collapsed interface map consistent with the expanded internal view.
 **Keep it focused:** Aim for 3-10 modules. If you detect >12, merge
 related directories or suggest `--focus`. Target 3-8 nodes per module.
 
+**Phase justification test:** Before creating a `--depth 2` phase, verify it
+passes all four criteria:
+1. **Workflow role**: Can you name it with a verb or domain role? ("Generation",
+   "Rendering", "Data Construction" — not "Repository Root" or "Top Level")
+2. **Edge reduction**: When collapsed, does the phase reduce visible cross-phase
+   edges compared to showing child modules individually?
+3. **Sibling coherence**: Do child modules share a common input, output, or
+   purpose? (spec + plans = requirements; viewer + scripts = rendering)
+4. **Not a filesystem echo**: The phase name should describe *what work happens*,
+   not *where files live*. "plugins/" is a location; "Graph Generation" is a role.
+
+If a proposed phase fails any criterion, flatten its children to top-level modules.
+
+**Module coherence check:** Every module must have a single coherent purpose.
+If a module description requires "and" between unrelated concerns (e.g.,
+"marketplace manifests and CI configuration"), split it or omit the unrelated
+parts. A module that bundles unrelated files produces a confusing graph because
+the viewer shows it as one box with one interface — implying a shared contract
+that doesn't exist.
+
 **Module docPath:** For each module, if a CLAUDE.md was found in the
 corresponding directory during Step 1.1, set `docPath` to its relative
 path (e.g., `"plugins/visual-project-map/viewer/src/CLAUDE.md"`). This
