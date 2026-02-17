@@ -299,18 +299,7 @@ var GraphViewer = (function() {
       }
     ];
 
-    if (trust.ai) {
-      styles.push({ selector: 'node[trust="ai"]',
-        style: { 'border-style': trust.ai.borderStyle || 'dashed', 'border-width': trust.ai.borderWidth || 1.5 }
-      });
-    }
-    if (trust.verified) {
-      styles.push({ selector: 'node[trust="verified"]',
-        style: { 'border-width': trust.verified.borderWidth || 3.5 }
-      });
-    }
-
-    // Status visual encoding: opacity + border treatment
+    // Status visual encoding: border treatment is the sole border semantic (P2.2)
     styles.push(
       { selector: 'node[status="verified"]',
         style: { 'background-opacity': 1, 'border-width': 3, 'border-color': '#16a34a', 'border-style': 'solid' }
