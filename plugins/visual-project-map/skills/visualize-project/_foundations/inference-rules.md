@@ -392,8 +392,7 @@ prefer the folder structure — it reflects actual organization.
 ### Trust Level Assignment
 
 Only include trust levels when the project has clear provenance semantics.
-Trust levels drive the Provenance view mode color scheme, not borders.
-Border treatment is reserved for implementation status (see Status Assignment).
+Trust levels drive the Provenance view mode color scheme, not borders (P2.2).
 
 | Signal | Trust | Provenance View Color |
 |--------|-------|-----------------------|

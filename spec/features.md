@@ -59,10 +59,8 @@ contradictions and against this catalog for duplicates.
 - **Files**: `src/viewer.js` (buildStyles)
 - **Properties**: P2.2
 - Trust levels defined in `legend.trustLevels` drive the Provenance view mode
-  color scheme (F40). Legacy `borderStyle`/`borderWidth` fields in trust level
-  definitions are retained for backward compatibility but are overridden by
-  implementation status border encoding (F75, P2.2). Border is reserved for
-  status; trust is encoded via view-mode color.
+  color scheme (F40). Legacy `borderStyle`/`borderWidth` fields retained for
+  backward compatibility but ignored — border is driven by status (P2.2).
 
 ### F06: Node shape semantics
 - **Status**: `implemented`

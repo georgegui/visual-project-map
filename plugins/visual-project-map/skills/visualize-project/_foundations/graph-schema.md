@@ -104,9 +104,8 @@ to the adjacent module's port, visualizing the data contract between modules.
 
 ## Trust Levels (legend.trustLevels)
 
-Trust levels drive the **Provenance view mode** color scheme (not borders).
-Border treatment is reserved for implementation status (see Status Visual
-Encoding below).
+Trust levels drive the **Provenance view mode** color scheme, not borders
+(P2.2).
 
 Each key maps to:
 
@@ -145,8 +144,7 @@ When `status` is omitted, `ai-tested` is the visual default (no special styling 
 ## Confidence Visual Encoding
 
 Confidence is encoded via the **Confidence view mode** (toggled via toolbar
-or `V` key), which colors modules by confidence level. Confidence does NOT
-use the border channel — border is reserved for implementation status.
+or `V` key), which colors modules by confidence level (not borders, P2.2).
 
 | Confidence | View Mode Color | Meaning |
 |-----------|-----------------|---------|

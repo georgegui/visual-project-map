@@ -109,9 +109,8 @@ expanding any module.
 
 **P2.11 Confidence via view mode.** Module confidence is encoded via the
 Confidence view mode (F64), which colors modules by confidence level:
-green = high, yellow = medium, red = low, gray = unknown. Confidence does
-NOT use the border channel — border is reserved for implementation status
-(P2.2). The confidence view mode is toggled via the toolbar or `V` key cycle.
+green = high, yellow = medium, red = low, gray = unknown. Does not use the
+border channel (P2.2). Toggled via the toolbar or `V` key cycle.
 
 **P2.12 Human review flag via amber badge.** Modules with
 `needsHumanReview: true` display a small amber badge (e.g., exclamation mark)

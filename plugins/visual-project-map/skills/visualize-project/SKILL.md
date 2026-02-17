@@ -514,8 +514,7 @@ Use ALL CAPS for terminals (`INCLUDED`, `COMPLETE`, `FAILED`).
 **Trust levels:** Only add `style.trust` if the project has clear
 provenance semantics (raw → automated → AI → verified). For most
 projects, omit trust and the `legend.trustLevels` section entirely.
-Trust drives the Provenance view mode color scheme, not borders.
-Border treatment is reserved for implementation status (see below).
+Trust drives the Provenance view mode color scheme, not borders (P2.2).
 
 **File annotations:** When a node represents a step with known file I/O
 (detected in Step 1.4), add the `files` field:
