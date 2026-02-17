@@ -137,6 +137,8 @@ full set of principles governing module design.
   with a reason (e.g., `.git/`, `node_modules/`). Missing directories cause
   gaps in the graph that are hard to spot later.
 
+> For a complete worked example, see `examples/scan-example.md`.
+
 ---
 
 ## Scan-Mode Defaults

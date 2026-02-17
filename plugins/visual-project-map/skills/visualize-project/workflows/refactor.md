@@ -80,6 +80,8 @@ Produce a model with:
 
 This model feeds into Phase 2 with `_generationMode: "refactor"`.
 
+> For a complete worked example, see `examples/refactor-example.md`.
+
 ---
 
 ## Refactor-Mode Defaults

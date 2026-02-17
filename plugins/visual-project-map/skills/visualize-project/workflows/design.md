@@ -96,6 +96,8 @@ Combine the outputs of Steps 1B.1–1B.4 into a structured model:
 This model feeds directly into Phase 2 for graph generation. All elements will
 have `status: "planned"` and no file annotations.
 
+> For a complete worked example, see `examples/design-example.md`.
+
 ---
 
 ## Design-Mode Defaults
