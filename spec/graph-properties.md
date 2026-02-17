@@ -45,10 +45,12 @@ is encoded via the Confidence view mode color channel (see F64).
 - `round-rectangle` (default) = state or data point
 - `diamond` = decision gate or branch point
 - `ellipse` = process or action
-- Other shapes (`rectangle`, `hexagon`) available for extension
+- `hexagon` = data store or data-centric module
+- Other shapes (`rectangle`) available for extension
 
-Shape encodes the role of the node in the workflow, not its trust level or
-module membership. Do not overload shape for other semantics.
+Shape is the only channel for encoding semantic role. Do not overload shape
+for other semantics, and do not encode role via border (which is reserved for
+implementation status, P2.2).
 
 **P2.4 Flow type via edge style.**
 - Solid = primary/forward flow (the main path)

@@ -210,11 +210,6 @@ var GraphViewer = (function() {
           'padding': 25, 'text-margin-y': -4
         }
       },
-      { selector: ':parent[role="data"]',
-        style: {
-          'border-style': 'dotted'
-        }
-      },
       { selector: 'node[_isModule]',
         style: {
           'background-color': 'data(bg)', 'border-color': 'data(bc)'

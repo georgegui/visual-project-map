@@ -121,10 +121,13 @@ Each key maps to:
 
 ## Role Visual Encoding
 
+Role is encoded exclusively via **shape** (P2.3). Border is reserved for
+implementation status (P2.2) — role must never use border style.
+
 | Role | Module (collapsed) | Module (expanded) | Child Node |
 |------|-------------------|-------------------|------------|
 | `process` (default) | Round-rectangle | Normal compound | Round-rectangle |
-| `data` | Hexagon | Dotted border | Hexagon |
+| `data` | Hexagon | Normal compound | Hexagon |
 
 Diamond-shaped nodes and interface ports keep their shape regardless of role.
 
