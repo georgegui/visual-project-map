@@ -77,25 +77,27 @@ Edge color is reserved for actor encoding. Do not overload edge color for
 other semantics. The `actor` field is optional — edges without it render in
 the default gray.
 
-**P2.8 Plan status via overlay glow.** When the Plan view mode is active,
-node and edge plan status is encoded via overlay glow/shadow — an otherwise
-unused visual channel:
-- Green dashed glow + dashed border = new element (`add`)
-- Amber glow + thick border = modified element (`modify`)
-- Red dashed glow + reduced opacity = removed element (`remove`)
-- 30% opacity (no glow) = unchanged element
+**P2.8 Plan status via temporary visual override.** When the Plan view mode
+is active, node and edge plan status is encoded by temporarily overriding
+multiple visual channels (border, color, opacity):
+- Green dashed border + green glow = new element (`add`)
+- Amber thick border + amber glow = modified element (`modify`)
+- Red dashed border + red glow + reduced opacity = removed element (`remove`)
+- 30% opacity (no glow, no border change) = unchanged element
 
 These treatments are only active in Plan view mode. Switching to any other
-view (Module, Provenance, Actor, Files) removes all plan styling. This
-avoids conflict with P2.1 (color=module), P2.2 (border=status), P2.3
-(shape=role), and P2.7 (edge color=actor) because plan uses the overlay
-channel, not the primary visual encoding channels.
+view (Module, Provenance, Actor, Files) removes all plan styling and fully
+restores the primary encodings (P2.1 color, P2.2 status borders, P2.7 edge
+color). Plan view intentionally commandeers primary channels to maximize
+the visual distinction between add/modify/remove — this is acceptable
+because it is a temporary diagnostic mode, not a persistent override.
 
-**P2.9 Diff status via overlay coloring.** When the Diff view mode is active,
-elements are colored by their diff status: green = added, amber = modified,
-red = removed, dimmed = unchanged. This uses the same overlay channel as plan
-view (P2.8) and is mutually exclusive with it — only one overlay view is
-active at a time.
+**P2.9 Diff status via temporary visual override.** When the Diff view mode
+is active, elements are styled by their diff status: green = added, amber =
+modified, red = removed, dimmed = unchanged. Like Plan view (P2.8), Diff
+temporarily overrides primary channels (border, color, opacity) and fully
+restores them on exit. Plan and Diff are mutually exclusive — only one
+overlay view is active at a time.
 
 **P2.10 Interface port visual encoding.** Interface port nodes
 (`_isInterfacePort: true`) are visually distinct from regular child nodes:
