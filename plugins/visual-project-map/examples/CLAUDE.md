@@ -2,6 +2,12 @@
 
 Sample graph JSON files for testing and demonstrating the viewer.
 
+## Executor
+Mixed — some examples are AI-generated, others hand-authored.
+
+## Status
+tested.ai
+
 ## Inputs
 - **graph JSON**: Manually authored or skill-generated graph files conforming to `schema.json` (JSON)
 

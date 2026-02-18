@@ -2,6 +2,12 @@
 
 Feature catalog and graph output constraints for the visual-project-map viewer.
 
+## Executor
+Mixed — features proposed by AI and humans; properties verified by human review.
+
+## Status
+tested.ai
+
 ## Inputs
 - **feature proposals**: New feature descriptions with rationale (free text)
 - **property violations**: Reports of features conflicting with graph properties (free text)

@@ -192,11 +192,13 @@ contradictions and against this catalog for duplicates.
   so small graphs don't over-zoom. Large graphs naturally fit below 1.2x.
 
 ### F71: Animated flow simulation
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: E2
-- A "play" button that walks a token through the DAG from entry to exit in
-  topological order. Play/pause/step controls. Makes sequencing viscerally
-  obvious instead of requiring mental arrow-tracing.
+- **Files**: `src/flow-animation.js` (FlowAnimation IIFE), `src/viewer.js` (flow CSS classes), `src/interactions.js` (toggleFlowAnimation, stepFlowAnimation, resetFlowAnimation, G/Shift+G keys), `index.html` (Flow button, script tag)
+- `G` key or Flow button starts animated walkthrough of the DAG in
+  topological order (Kahn's algorithm). Current node highlighted blue,
+  visited nodes green, unvisited dimmed. `G` pauses/resumes, `Shift+G`
+  single-steps, Escape resets. Clears on expand/collapse.
 
 ## UI Chrome
 
@@ -222,11 +224,12 @@ contradictions and against this catalog for duplicates.
 - Expand All, Collapse All, Fit buttons.
 
 ### F70: Export as PNG/SVG
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: E1
-- Toolbar button to export the current view as PNG or SVG using Cytoscape.js
-  built-in `cy.png()`. Biggest reach multiplier — users can paste graphs into
-  PRs, wikis, Slack, and design docs.
+- **Files**: `src/interactions.js` (exportGraph, X/Shift+X keys, btn-export handler), `index.html` (Export button)
+- Toolbar Export button or `X` key exports current view as PNG (full graph,
+  2x scale, light background). `Shift+X` exports as SVG if `cy.svg()` is
+  available. Creates temporary download link.
 
 ## Schema & Validation
 
@@ -263,16 +266,19 @@ contradictions and against this catalog for duplicates.
   shortcut `/` to focus search. Only searches leaf nodes (not modules).
 
 ### F28: Filter by trust level
-- **Status**: `proposed`
+- **Status**: `implemented`
 - **Properties**: P7.1
-- Toggle buttons or checkboxes to show/hide nodes by trust level (as defined
-  in `legend.trustLevels`). Filtered nodes are dimmed, not removed.
+- **Files**: `src/viewer.js` (buildLegend legend-filter attributes, buildStyles filtered-out), `src/interactions.js` (applyFilters, clearAllFilters, legend click delegation), `index.html` (legend-filter CSS)
+- Click trust tags in the legend to toggle filtering. Filtered nodes and their
+  edges dim to 15%/8% opacity via `.filtered-out` class. Click again to restore.
+  Filters persist across view mode changes and expand/collapse. Escape clears all.
 
 ### F29: Filter by module
-- **Status**: `proposed`
+- **Status**: `implemented`
 - **Properties**: P7.1
-- Toggle individual modules visible/hidden. Useful for focusing on a subset
-  of the workflow.
+- **Files**: `src/viewer.js` (buildLegend legend-filter attributes on module swatches), `src/interactions.js` (applyFilters, clearAllFilters, legend click delegation), `index.html` (legend-filter CSS)
+- Click module color swatches in the legend to toggle filtering. Shares
+  filter infrastructure with F28. Module and its child nodes dim together.
 
 ### F65: Critical path schema field and highlighting
 - **Status**: `implemented`
@@ -293,17 +299,20 @@ contradictions and against this catalog for duplicates.
   `needs-review`, `verified` — encoded via opacity and border treatment (P2.2).
 
 ### F31: Module summary badges
-- **Status**: `proposed`
+- **Status**: `implemented`
 - **Properties**: P4.1, P5.2
-- When a module is collapsed, show a small annotation on the collapsed module
-  node (e.g., "5/8 done", "12 nodes"). Requires F30 (status attribute) for
-  progress summaries; falls back to child count without it.
+- **Files**: `src/viewer.js` (applyCollapsedStyle child count badge)
+- When a module is collapsed, its label includes a child count badge `(N)`.
+  For phases, counts child modules; for regular modules, counts child nodes.
+  Badge is part of the base label, before I/O subtitle and plan badges.
 
 ### F32: Optional node evidence/links attribute
-- **Status**: `proposed`
-- Extend schema to accept optional `evidence` array on nodes. Each entry is
-  an object with `type` (url, commit, file, figure) and `value` (the link).
-  Displayed in tooltip or detail panel on click. No property conflict.
+- **Status**: `implemented`
+- **Files**: `schema.json` (evidence array on nodes), `src/viewer.js` (buildElements evidence passthrough), `src/interactions.js` (tooltip evidence count, showNodeSidePanel evidence section)
+- Nodes can have an optional `evidence` array. Each entry has `type`
+  (url/commit/file/figure), `value`, and optional `label`. Evidence count
+  shown in tooltip; full list rendered in side panel with typed icons.
+  Nodes with evidence trigger detail panel on click.
 
 ### F62: Module/edge confidence schema fields
 - **Status**: `implemented`
@@ -329,23 +338,35 @@ contradictions and against this catalog for duplicates.
 ## Structural Analysis
 
 ### F33: Orphan detection warning
-- **Status**: `proposed`
-- On load, identify nodes with no incoming AND no outgoing edges (excluding
-  designated entry/exit points if flagged). Show warning in status bar (P5.2).
-  Complements F25 (runtime validation).
+- **Status**: `implemented`
+- **Files**: `src/viewer.js` (validateGraph orphan warnings, warningCount, getWarningCount), `src/interactions.js` (updateStatus warning count display)
+- Orphan nodes (no edges) detected during validation and logged as warnings.
+  Warning count persists in `warningCount` and appends to the status bar text
+  (e.g., "5 modules collapsed \u00b7 2 warnings"). Complements F49.
 
 ### F34: Bottleneck highlighting
-- **Status**: `proposed`
-- Optional overlay showing nodes with highest in-degree or out-degree. Toggle
-  via toolbar button. Visual treatment: thicker glow or badge with degree
-  count. No property conflict.
+- **Status**: `implemented`
+- **Files**: `src/interactions.js` (highlightBottlenecks, clearBottlenecks, toggleBottlenecks, B key)
+- `B` key toggles highlighting of top 3 highest-degree visible nodes.
+  Uses existing `.dimmed`/`.highlighted` classes. Mutually exclusive with
+  path trace and critical path. Clears on Escape.
+
+### F81: SKILL.md progressive disclosure refactor
+- **Status**: `implemented`
+- **Files**: `skills/visualize-project/SKILL.md` (router), `skills/visualize-project/workflows/` (4 workflow files), `skills/visualize-project/generation/generation.md` (shared pipeline), `skills/visualize-project/examples/` (3 worked examples)
+- Split SKILL.md from 1,804-line monolith into a 265-line router that dispatches to
+  workflow-specific files (scan, design, refactor, plan), a shared generation pipeline,
+  and separate worked examples. Follows Anthropic's progressive disclosure recommendation
+  (<500 lines per file, one-level-deep references). Reduces per-invocation context by
+  ~50% since only the relevant workflow file is loaded.
 
 ### F72: Circular parent guard in collapse logic
-- **Status**: `planned`
+- **Status**: `implemented`
 - **Workstream**: E3
-- Add max-depth guard in `expand-collapse.js`'s `_depth()` function. Runtime
-  validation (F49) already checks for circular parents in JSON, but the
-  collapse logic itself should be defensive against unvalidated input.
+- **Files**: `src/expand-collapse.js` (_resolveNode visited Set, _depth visited Set)
+- Added `visited` Set to both `_depth()` and `_resolveNode()` to break
+  infinite loops on circular parent chains. Defensive guard complementing
+  F49's validation-time check.
 
 ## Actor & Detail Encoding
 
@@ -448,13 +469,13 @@ contradictions and against this catalog for duplicates.
   `/visualize-project . --refactor --objective "..."`.
 
 ### F79: `plan` action — detect SPEC.md changes, propose new folders
-- **Status**: `proposed`
+- **Status**: `implemented`
 - **Properties**: P1.1–P1.4
-- New generation action that scans an existing project, detects SPEC.md changes (or
-  accepts explicit pointers to changed specs), and proposes new directories and files
-  to satisfy the updated requirements. Outputs the current graph with new folders at
-  `status: "planned"` and plan overlay annotations. Invoked via
-  `/visualize-project . --plan`.
+- **Files**: `skills/visualize-project/SKILL.md` (Phase 1D, --plan flag, plan-mode guidance)
+- Invoked via `/visualize-project . --plan`. Scans all SPEC.md files for
+  unchecked acceptance criteria, maps them to missing directories/scripts,
+  and proposes new folders/files as plan overlay annotations. Supports
+  `--focus` to limit scope. Falls back to describe if no SPEC.md files found.
 
 ## View Modes
 
@@ -740,3 +761,14 @@ contradictions and against this catalog for duplicates.
 | 2026-02-17 | F75 | Revised: status encoding uses opacity + badges only (no border overrides). Freed border channel. |
 | 2026-02-17 | F63 | Revised: amber badge from label text only (removed dashed border). Unified with P2.2 badge system. |
 | 2026-02-17 | F80 | Implemented: embedded terminal panel via ttyd iframe (serve.py lifecycle, right-side panel, resize, mutual exclusion) |
+| 2026-02-17 | F79 | Implemented: `plan` action (Phase 1D in SKILL.md — scan SPEC.md files, detect unmet requirements, propose new folders/files as plan overlay) |
+| 2026-02-17 | F72 | Implemented: circular parent guard in expand-collapse.js (_depth and _resolveNode cycle detection) |
+| 2026-02-17 | F33 | Implemented: orphan detection warning count in status bar |
+| 2026-02-17 | F70 | Implemented: export as PNG/SVG (X/Shift+X keys, Export button) |
+| 2026-02-17 | F31 | Implemented: module summary badges (child count on collapsed modules) |
+| 2026-02-17 | F34 | Implemented: bottleneck highlighting (B key, top 3 highest-degree nodes) |
+| 2026-02-17 | F28 | Implemented: filter by trust level (legend click toggle) |
+| 2026-02-17 | F29 | Implemented: filter by module (legend swatch click toggle) |
+| 2026-02-17 | F32 | Implemented: evidence/links on nodes (schema + viewer + side panel) |
+| 2026-02-17 | F71 | Implemented: animated flow simulation (G key, topological walk, play/pause/step) |
+| 2026-02-17 | F81 | Implemented: SKILL.md progressive disclosure refactor (router + workflow files + shared generation) |

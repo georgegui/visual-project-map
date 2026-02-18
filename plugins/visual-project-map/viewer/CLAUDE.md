@@ -2,6 +2,12 @@
 
 Browser-based DAG renderer built on Cytoscape.js + dagre layout with no build step.
 
+## Executor
+AI — all viewer JS is AI-written.
+
+## Status
+tested.ai
+
 ## Inputs
 - **graph JSON**: A JSON file conforming to `schema.json` with `title`, `modules`, `nodes`, `edges`, and optional `legend` (JSON)
 

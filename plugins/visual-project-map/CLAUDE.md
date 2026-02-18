@@ -2,6 +2,12 @@
 
 Claude Code plugin that generates and renders interactive folder-structure DAGs. Contains the generation skill (AI-driven), the browser-based viewer, utility scripts, example graphs, and the JSON schema definition.
 
+## Executor
+Mixed — AI generates graphs and viewer code; humans review output and maintain specs.
+
+## Status
+tested.ai
+
 ## Inputs
 - **user invocation**: `/visualize-project` or `/visualize-plan` commands via Claude Code CLI (CLI)
 - **project filesystem**: Directory tree, CLAUDE.md files, scripts, and documentation to scan (filesystem)
