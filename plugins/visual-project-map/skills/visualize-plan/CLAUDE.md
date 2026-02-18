@@ -2,6 +2,12 @@
 
 Claude Code skill that overlays an implementation plan onto an existing workflow graph, annotating nodes and edges as add/modify/remove.
 
+## Executor
+AI — the skill is executed by Claude Code as an LLM prompt.
+
+## Status
+tested.ai
+
 ## Inputs
 - **plan document**: Markdown file describing tasks, changes, and affected components (Markdown, positional arg)
 - **existing graph JSON**: The graph to annotate, loaded from `.graphs/` or via `--graph` flag (JSON conforming to `schema.json`)

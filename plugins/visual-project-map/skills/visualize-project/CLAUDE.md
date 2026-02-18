@@ -2,6 +2,12 @@
 
 Claude Code skill that analyzes a project directory (Input A) or designs a workflow from an objective (Input B) to generate an interactive DAG as visual-project-map JSON.
 
+## Executor
+AI — the skill is executed by Claude Code as an LLM prompt chain.
+
+## Status
+tested.ai
+
 ## Inputs
 - **project directory**: Path to scan for CLAUDE.md files, scripts, and folder structure (Input A) (filesystem path)
 - **objective text**: Natural language description of a workflow to design (Input B) (string via `--objective` or `--objective-file`)

@@ -2,6 +2,12 @@
 
 Archived external suggestions and rejected proposals. Read-only reference material — not active specs.
 
+## Executor
+AI — suggestions are collected and categorized by AI; rejection rationale drafted by AI.
+
+## Status
+implemented.ai
+
 ## Inputs
 - **external feedback**: Suggestions from GPT, code review, or other sources (Markdown)
 

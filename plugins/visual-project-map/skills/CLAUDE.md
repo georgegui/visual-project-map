@@ -2,6 +2,12 @@
 
 Claude Code skill definitions for the visual-project-map plugin. Each subdirectory is an independent skill with its own SKILL.md entry point.
 
+## Executor
+AI — skills are executed by Claude Code as LLM prompts.
+
+## Status
+tested.ai
+
 ## Inputs
 - **user invocation**: `/visualize-project` or `/visualize-plan` commands with arguments (CLI)
 - **project context**: Current working directory, existing graph files, CLAUDE.md documentation (filesystem)

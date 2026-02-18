@@ -2,6 +2,12 @@
 
 Design documents and implementation plans for features. Each file follows the naming convention `YYYY-MM-DD-<topic>-design.md` (architectural decisions) or `YYYY-MM-DD-<topic>.md` (implementation task list).
 
+## Executor
+Mixed — plans are drafted by AI and reviewed/approved by humans.
+
+## Status
+implemented.ai
+
 ## Inputs
 - **requirements**: Feature specs and design principles from `spec/` and `SPEC.md` (Markdown)
 - **feature proposals**: Ideas or problems to solve (free text)

@@ -2,6 +2,12 @@
 
 Reference lookup tables and schema documentation used by the visualize-project skill during graph generation.
 
+## Executor
+AI — reference tables are AI-authored and maintained.
+
+## Status
+tested.ai
+
 ## Inputs
 - **skill phase context**: The current generation phase (discovery, graph generation, or assembly) determines which tables are consulted (implicit)
 
