@@ -21,3 +21,4 @@ tested.ai
 - **`ci-cd-workflow.json`** — CI/CD pipeline example
 - **`visual-project-map.json`** — Self-referential: this project's own architecture graph
 - **`visual-project-map-workflow.json`** — This project's workflow graph
+- **`did-policy-employment.json`** — Difference-in-differences policy employment analysis example (design-mode generated)

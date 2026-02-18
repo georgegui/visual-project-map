@@ -39,7 +39,7 @@ Examples:
 ### Step 1.1: Read the existing graph JSON
 
 Read the graph JSON file specified by `--graph`, or find the most recent
-`.json` file in the `examples/` directory.
+`.json` file in the `.graphs/` directory (falling back to `examples/`).
 
 Validate it has the required top-level fields: `title`, `modules`, `nodes`,
 `edges`.
@@ -148,17 +148,16 @@ Construct the `plan` object with this structure:
 
 Read the existing graph JSON. Add the `plan` field to the top level.
 Write the result to a new file:
-`examples/{original-name}-with-plan.json`
+`.graphs/{original-name}-with-plan.json`
 
 Do NOT modify the original graph file.
 
 ### Step 3.2: Serve and open
 
 ```bash
-cd tools/graph-viewer
-python3 -m http.server 8080 &
+python3 scripts/serve.py &
 sleep 1
-open "http://localhost:8080/index.html?graph=examples/{name}-with-plan.json"
+open "http://localhost:8080/viewer/?graph=../../.graphs/{name}-with-plan.json"
 ```
 
 Tell the user:

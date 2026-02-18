@@ -192,7 +192,7 @@ contradictions and against this catalog for duplicates.
   so small graphs don't over-zoom. Large graphs naturally fit below 1.2x.
 
 ### F71: Animated flow simulation
-- **Status**: `implemented`
+- **Status**: `planned`
 - **Workstream**: E2
 - **Files**: `src/flow-animation.js` (FlowAnimation IIFE), `src/viewer.js` (flow CSS classes), `src/interactions.js` (toggleFlowAnimation, stepFlowAnimation, resetFlowAnimation, G/Shift+G keys), `index.html` (Flow button, script tag)
 - `G` key or Flow button starts animated walkthrough of the DAG in
@@ -224,7 +224,7 @@ contradictions and against this catalog for duplicates.
 - Expand All, Collapse All, Fit buttons.
 
 ### F70: Export as PNG/SVG
-- **Status**: `implemented`
+- **Status**: `planned`
 - **Workstream**: E1
 - **Files**: `src/interactions.js` (exportGraph, X/Shift+X keys, btn-export handler), `index.html` (Export button)
 - Toolbar Export button or `X` key exports current view as PNG (full graph,
@@ -266,7 +266,7 @@ contradictions and against this catalog for duplicates.
   shortcut `/` to focus search. Only searches leaf nodes (not modules).
 
 ### F28: Filter by trust level
-- **Status**: `implemented`
+- **Status**: `planned`
 - **Properties**: P7.1
 - **Files**: `src/viewer.js` (buildLegend legend-filter attributes, buildStyles filtered-out), `src/interactions.js` (applyFilters, clearAllFilters, legend click delegation), `index.html` (legend-filter CSS)
 - Click trust tags in the legend to toggle filtering. Filtered nodes and their
@@ -274,7 +274,7 @@ contradictions and against this catalog for duplicates.
   Filters persist across view mode changes and expand/collapse. Escape clears all.
 
 ### F29: Filter by module
-- **Status**: `implemented`
+- **Status**: `planned`
 - **Properties**: P7.1
 - **Files**: `src/viewer.js` (buildLegend legend-filter attributes on module swatches), `src/interactions.js` (applyFilters, clearAllFilters, legend click delegation), `index.html` (legend-filter CSS)
 - Click module color swatches in the legend to toggle filtering. Shares
@@ -299,15 +299,16 @@ contradictions and against this catalog for duplicates.
   `needs-review`, `verified` — encoded via opacity and border treatment (P2.2).
 
 ### F31: Module summary badges
-- **Status**: `implemented`
+- **Status**: `experimental`
 - **Properties**: P4.1, P5.2
-- **Files**: `src/viewer.js` (applyCollapsedStyle child count badge)
-- When a module is collapsed, its label includes a child count badge `(N)`.
-  For phases, counts child modules; for regular modules, counts child nodes.
-  Badge is part of the base label, before I/O subtitle and plan badges.
+- **Files**: `src/viewer.js` (applyCollapsedStyle)
+- When a module is collapsed, its label includes status badges (⚠ for
+  needs-review, ✓ for verified) and I/O subtitle (F61). The child count
+  badge `(N)` described in the original design is **not yet implemented** —
+  `applyCollapsedStyle` does not count children.
 
 ### F32: Optional node evidence/links attribute
-- **Status**: `implemented`
+- **Status**: `planned`
 - **Files**: `schema.json` (evidence array on nodes), `src/viewer.js` (buildElements evidence passthrough), `src/interactions.js` (tooltip evidence count, showNodeSidePanel evidence section)
 - Nodes can have an optional `evidence` array. Each entry has `type`
   (url/commit/file/figure), `value`, and optional `label`. Evidence count
@@ -338,14 +339,17 @@ contradictions and against this catalog for duplicates.
 ## Structural Analysis
 
 ### F33: Orphan detection warning
-- **Status**: `implemented`
-- **Files**: `src/viewer.js` (validateGraph orphan warnings, warningCount, getWarningCount), `src/interactions.js` (updateStatus warning count display)
-- Orphan nodes (no edges) detected during validation and logged as warnings.
-  Warning count persists in `warningCount` and appends to the status bar text
+- **Status**: `experimental`
+- **Files**: `src/viewer.js` (validateGraph orphan warnings)
+- Orphan nodes (no edges) detected during validation and logged as console
+  warnings. Warning count shown briefly on load but overwritten by
+  `updateStatus()` on first expand/collapse. The persistent `warningCount`
+  variable and `getWarningCount` method described in the original design are
+  not yet implemented — warnings do not append to the status bar text
   (e.g., "5 modules collapsed \u00b7 2 warnings"). Complements F49.
 
 ### F34: Bottleneck highlighting
-- **Status**: `implemented`
+- **Status**: `planned`
 - **Files**: `src/interactions.js` (highlightBottlenecks, clearBottlenecks, toggleBottlenecks, B key)
 - `B` key toggles highlighting of top 3 highest-degree visible nodes.
   Uses existing `.dimmed`/`.highlighted` classes. Mutually exclusive with
@@ -361,10 +365,10 @@ contradictions and against this catalog for duplicates.
   ~50% since only the relevant workflow file is loaded.
 
 ### F72: Circular parent guard in collapse logic
-- **Status**: `implemented`
+- **Status**: `planned`
 - **Workstream**: E3
 - **Files**: `src/expand-collapse.js` (_resolveNode visited Set, _depth visited Set)
-- Added `visited` Set to both `_depth()` and `_resolveNode()` to break
+- Add `visited` Set to both `_depth()` and `_resolveNode()` to break
   infinite loops on circular parent chains. Defensive guard complementing
   F49's validation-time check.
 
@@ -392,7 +396,7 @@ contradictions and against this catalog for duplicates.
 
 ### F39: visualize-workflow skill (auto-generate graph JSON)
 - **Status**: `implemented`
-- **Files**: `.claude/skills/visualize-workflow/SKILL.md`, `.claude/skills/_foundations/`
+- **Files**: `skills/visualize-project/SKILL.md`, `skills/visualize-project/_foundations/`
 - **Properties**: P1.1–P1.4 (output must satisfy all structural properties)
 - Claude Code skill that analyzes a project's folder structure, CLAUDE.md
   files, and script dependencies to auto-generate a graph-viewer JSON.
@@ -559,7 +563,7 @@ contradictions and against this catalog for duplicates.
 
 ### F48: visualize-plan skill
 - **Status**: `implemented`
-- **Files**: `.claude/skills/visualize-plan/SKILL.md`
+- **Files**: `skills/visualize-plan/SKILL.md`
 - **Properties**: P1.1-P1.4 (output must satisfy all structural properties)
 - Claude Code skill that reads an existing graph JSON and a plan document,
   matches plan tasks to graph nodes/edges, and emits a `plan` field. Complements
@@ -772,3 +776,7 @@ contradictions and against this catalog for duplicates.
 | 2026-02-17 | F32 | Implemented: evidence/links on nodes (schema + viewer + side panel) |
 | 2026-02-17 | F71 | Implemented: animated flow simulation (G key, topological walk, play/pause/step) |
 | 2026-02-17 | F81 | Implemented: SKILL.md progressive disclosure refactor (router + workflow files + shared generation) |
+| 2026-02-18 | F28, F29, F32, F34, F70, F71, F72 | Audit: downgraded from `implemented` to `planned` — code not present in viewer |
+| 2026-02-18 | F31 | Audit: downgraded to `experimental` — child count badge `(N)` not implemented; only status badges exist |
+| 2026-02-18 | F33 | Audit: downgraded to `experimental` — orphan detection exists but warning count does not persist in status bar |
+| 2026-02-18 | F39, F48 | Audit: corrected stale file paths (`.claude/skills/` → `skills/`) |

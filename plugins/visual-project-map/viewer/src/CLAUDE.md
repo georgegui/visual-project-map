@@ -17,8 +17,7 @@ Scripts must load in this exact order in `index.html`:
 3. **`diff.js`** — `GraphDiff` IIFE (structural diff between two graph JSON versions)
 4. **`viewer.js`** — `GraphViewer` IIFE (JSON loading, Cytoscape element/style building, dagre layout, validation)
 5. **`minimap.js`** — `Minimap` IIFE (canvas overview with viewport rectangle)
-6. **`flow-animation.js`** — `FlowAnimation` IIFE (topological flow walkthrough with play/pause/step)
-7. **`interactions.js`** — `Interactions` IIFE (click/hover handlers, keyboard shortcuts, toolbar, panels)
+6. **`interactions.js`** — `Interactions` IIFE (click/hover handlers, keyboard shortcuts, toolbar, panels)
 
 `expand-collapse.js` must load before `viewer.js` (which instantiates `CollapseManager`); `plan-overlay.js` and `diff.js` before `viewer.js` (which references them in `setView()`); all modules before `interactions.js` (which wires them together).
 
@@ -31,5 +30,5 @@ Scripts must load in this exact order in `index.html`:
 
 ## Conventions
 - All modules use IIFE pattern except `CollapseManager` (class)
-- Global namespace: `CollapseManager`, `GraphViewer`, `GraphDiff`, `PlanOverlay`, `Minimap`, `FlowAnimation`, `Interactions`
+- Global namespace: `CollapseManager`, `GraphViewer`, `GraphDiff`, `PlanOverlay`, `Minimap`, `Interactions`
 - Colors come from input JSON (module colors, trust level colors, actor colors) — no hardcoded palette in JS except actor defaults

@@ -22,7 +22,7 @@ The tool supports four actions — verbs describing what the user wants to accom
 | `describe` | Map an existing project's folder structure | Input A | Implemented |
 | `initialize` | Design a new folder structure from an objective | Input B | Implemented |
 | `refactor` | Restructure existing folders toward an objective | Input A + --refactor | Implemented |
-| `plan` | Propose new files/folders from a SPEC update | — | Planned |
+| `plan` | Propose new files/folders from a SPEC update | Phase 1D | Implemented |
 
 > **Viewer loading (formerly Input C):** Rendering an existing `.json` graph is a viewer operation, not a generation action. Point the viewer at any graph file via `?graph=path/to/file.json`.
 
@@ -72,7 +72,7 @@ Propose new files and folders from updated SPEC.md requirements.
 - **What you provide**: Filesystem path + pointer to changed specs (or auto-detected via incremental mode)
 - **What it produces**: Updated graph with new folders at `status: "planned"` + plan overlay annotations
 - **How it works**: Scans existing project, detects SPEC.md changes, proposes new folders/files to satisfy the updated specs
-- **Status**: Planned — not yet implemented in SKILL.md
+- **Status**: Implemented
 - **Examples**:
   - `/visualize-project . --plan`
   - `/visualize-project . --plan --focus scripts/estimation/`
@@ -339,6 +339,6 @@ Not all rules apply equally to all actions:
 | Skill: critical path | Partial | Yes | Yes | Partial | |
 | Workflow: validate + iterate | Yes | N/A | Partial | N/A | |
 
-`plan` is a planned action — its skill phase does not exist yet.
+`plan` is implemented via Phase 1D in SKILL.md (F79).
 
 **`initialize` gets a pass on the workflow process** because the folder's SPEC.md doesn't exist yet when designing from an objective. As the user implements folders and re-scans with `describe`, the validation loop activates naturally.

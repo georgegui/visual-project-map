@@ -47,13 +47,16 @@ Then use: `/visualize-project` to auto-generate a graph from any project.
 
 ## Architecture
 
-No build system, no npm, no bundler. Three global JS modules loaded as `<script>` tags in order:
+No build system, no npm, no bundler. Six global JS modules loaded as `<script>` tags in order:
 
 1. **`plugins/visual-project-map/viewer/src/expand-collapse.js`** — `CollapseManager` class. Handles collapse/expand by removing children with `cy.remove()` and restoring with `cy.add()`. Creates deduplicated meta-edges for cross-module connections when modules are collapsed.
-2. **`plugins/visual-project-map/viewer/src/viewer.js`** — `GraphViewer` IIFE module. Loads JSON, converts to Cytoscape elements/styles, initializes the graph in collapsed state, runs dagre layout.
-3. **`plugins/visual-project-map/viewer/src/interactions.js`** — `Interactions` IIFE module. Click-to-toggle on modules, hover highlighting/tooltips, keyboard shortcuts, toolbar buttons.
+2. **`plugins/visual-project-map/viewer/src/plan-overlay.js`** — `PlanOverlay` IIFE. Plan annotation glow/badges for add/modify/remove overlay.
+3. **`plugins/visual-project-map/viewer/src/diff.js`** — `GraphDiff` IIFE. Structural diff between two graph JSON versions.
+4. **`plugins/visual-project-map/viewer/src/viewer.js`** — `GraphViewer` IIFE module. Loads JSON, converts to Cytoscape elements/styles, initializes the graph in collapsed state, runs dagre layout.
+5. **`plugins/visual-project-map/viewer/src/minimap.js`** — `Minimap` IIFE. Canvas-based overview inset with viewport rectangle.
+6. **`plugins/visual-project-map/viewer/src/interactions.js`** — `Interactions` IIFE module. Click-to-toggle on modules, hover highlighting/tooltips, keyboard shortcuts, toolbar buttons.
 
-**Load order matters**: `expand-collapse.js` must load before `viewer.js` (which instantiates `CollapseManager`), and both before `interactions.js` (which calls `GraphViewer` and uses the manager).
+**Load order matters**: `expand-collapse.js`, `plan-overlay.js`, and `diff.js` must load before `viewer.js` (which instantiates `CollapseManager` and references `PlanOverlay`/`GraphDiff` in `setView()`). All modules load before `interactions.js` (which wires them together).
 
 ## Key Design Decisions
 
@@ -61,7 +64,7 @@ No build system, no npm, no bundler. Three global JS modules loaded as `<script>
 - **Nested folders (2-level)** — Folders can have a `parent` field pointing to a phase folder. Phases group related folders. Collapse/expand works at both levels.
 - **Folders start collapsed** — `init()` calls `collapseAll()` then runs layout.
 - **Edge labels hidden by default** — Labels appear on hover (tooltip), during path tracing, or via the Labels toggle (`L` key).
-- **Implementation status** drives node border styling (dotted/solid/dashed/green-solid) from the `status` field on nodes and modules. Trust levels drive the Provenance view mode color scheme, not borders.
+- **Implementation status** drives node opacity and badges (P2.2) from the `status` field on nodes and modules: planned (20% ghost), draft (45%), ai-tested (85% default), needs-review (100% + amber badge), verified (100% + green badge). Trust levels drive the Provenance view mode color scheme.
 - **Actor annotations** on edges — optional `actor` field (`human`/`ai`/`script`/`mixed`) colors edge lines.
 - **Edge detail panel** — edges with `details` show a modal panel on click with script path, inputs, outputs, and docs.
 - **Dagre layout fallback** — Uses `longest-path` ranker by default, falls back to `network-simplex` if dagre errors.
